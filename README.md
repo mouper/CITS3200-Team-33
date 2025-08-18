@@ -85,7 +85,7 @@ Each commit message should follow this pattern:
 
 ```
 CITS3200-Team-33/                 # Root project repo
-├─ docs/                            # Project documentation (minutes, specs, ADRs, designs)
+├─ docs/                            # Project documentation (sprint deliverables + Figma design)
 ├─ data/                            # Datasets, small fixtures, evaluation goldsets
 ├─ scripts/                         # Utility scripts for dataset prep and evaluation
 ├─ packages/                        # All code grouped as packages
