@@ -41,14 +41,17 @@ body {
     text-align: left;
     text-shadow: 6px 6px 25px #0e0e0e;
     font-family: 'Instrument Sans';
+    
 }
 
 .section-header {
     position: relative;
     font-size: 1.5rem;
     font-family: 'Instrument Sans';
+    color: #E8675A;
     text-align: left;
     text-shadow: 6px 6px 25px #0e0e0e;
+    padding-top: 20px;
 }
 
 .section-subheader {
@@ -59,6 +62,7 @@ body {
     color: #f5e8d8;
     text-align: left;
     text-shadow: 6px 6px 25px #0e0e0e;
+    padding-top: 20px;
 }
 
 .tile-hero-number {
