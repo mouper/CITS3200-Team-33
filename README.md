@@ -90,13 +90,16 @@ CITS3200-Team-33/                 # Root project repo
 ├─ scripts/                         # Utility scripts for dataset prep and evaluation
 ├─ packages/                        # All code grouped as packages
 │  ├─ extension/                    # Chrome MV3 extension
-│  │  ├─ src/
-│  │  │  ├─ content/                # Content scripts (YouTube scraping, selectors)
-│  │  │  ├─ worker/                 # Worker for classification, cache, blocking logic
-│  │  │  ├─ db/                     # IndexedDB wrapper + cache manager
-│  │  │  ├─ ui/                     # Popup & Settings dashboard
-│  │  │  ├─ lib/                    # Shared utility functions
-│  │  │  └─ styles/                 # CSS/Tailwind styling
+│  │  └─ src/
+│  │     ├─ content/                # Content scripts (YouTube scraping, selectors)
+│  │     ├─ worker/                 # Worker for classification, cache, blocking logic
+│  │     ├─ db/                     # IndexedDB wrapper + cache manager
+│  │     ├─ ui/                     # Popup & Settings dashboard
+│  │     ├─ lib/                    # Shared utility functions
+│  │     └─ static/                 # Static assets + styles
+│  │        └─ assets/              # Images, icons, etc
+│  │        └─ css/                 # CSS stylesheets
+│  │        └─ js/                  # Javascript files
 │  │
 │  ├─ llm-client/                   # LLM access & model interaction package
 │  │  ├─ src/                       # Core client (API wrappers, parsers, rate limit control)
@@ -106,5 +109,5 @@ CITS3200-Team-33/                 # Root project repo
 │  │
 │  └─ shared/                       # Shared constants, enums, types used across packages
 │
-├─ tests/                           # Centralised test suite (unit, integration, end-to-end, perf)
+└─ tests/                           # Centralised test suite (unit, integration, end-to-end, perf)
 ```
