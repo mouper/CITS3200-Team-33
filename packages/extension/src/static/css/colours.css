@@ -1,0 +1,29 @@
+:root {
+    /* Dark Theme Colour Variables */
+
+    /* Main Colours */
+    --darkBackground: #151515;
+    --txtLight1: #FEFAF6;
+    --txtLight2: #F5E8D8;
+
+    /* Tile Icon Colours */
+    --darkAccent: #E8675A;
+    --iconBackground: rgba(232, 103, 90, 0.05);
+
+    /* Block All Selected Colour */
+    --blockAllSelected: rgba(232, 103, 90, 0.5);
+
+    /* Unselected Colour (for toggle + slider) */
+    --unselected: rgba(245, 232, 216, 0.25);
+
+    /* Filter Strength Colours */
+        /* Button Text Colours */
+        --filterGreen: #B8ED5D;
+        --filterOrange: #EAA653;
+        --filterDarkRed: #DD3323;
+
+        /* ButtonFill Colours */
+        --greenFill: rgba(184, 237, 93, 0.05);
+        --orangeFill: rgba(234, 166, 83, 0.05);
+        --redFill: rgba(232, 103, 90, 0.05);
+  }  
