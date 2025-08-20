@@ -1,0 +1,150 @@
+.welcome-txt {
+    position: relative;
+    font-size: 2.25rem;
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+    font-family: 'Instrument Sans';
+}
+
+.section-header {
+    position: relative;
+    font-size: 1.5rem;
+    font-family: 'Instrument Sans';
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.section-subheader {
+    position: relative;
+    font-size: 1.25rem;
+    font-weight: 300;
+    font-family: Figtree;
+    color: #f5e8d8;
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.tile-hero-number {
+    position: relative;
+    font-size: 1.75rem;
+    font-weight: 500;
+    font-family: 'Instrument Sans';
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.tile-hero-txt {
+    position: relative;
+    font-size: 1.25rem;
+    font-weight: 500;
+    font-family: 'Instrument Sans';
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.tile-caption {
+    position: relative;
+    font-size: 0.75rem;
+    font-family: Figtree;
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.tile-stat {
+    position: relative;
+    font-size: 0.625rem;
+    font-family: Figtree;
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.top-categories-header{
+    position: relative;
+    line-height: 1.75rem;
+    font-family: 'Instrument Sans';
+    text-align: left;
+    font-size: 1.125rem;
+}
+
+.top-categories-body{
+    position: relative;
+    line-height: 1.75rem;
+    font-family: 'Instrument Sans';
+    text-align: left;
+    font-size: 1rem;
+}
+
+.graph-title {
+    width: 6.5rem;
+    position: relative;
+    font-size: 1.125rem;
+    font-family: 'Instrument Sans';
+    color: #fefaf6;
+    text-align: left;
+    display: inline-block;
+}
+
+.graph-y-label {
+    width: 1.313rem;
+    position: relative;
+    font-size: 0.75rem;
+    font-family: 'Instrument Sans';
+    color: #fefaf6;
+    text-align: right;
+    display: inline-block;
+}
+
+.graph-x-label {
+    width: 1.938rem;
+    position: relative;
+    font-size: 0.75rem;
+    font-family: 'Instrument Sans';
+    color: #fefaf6;
+    text-align: left;
+    display: inline-block;
+}
+
+.category-header {
+    position: relative;
+    font-size: 1.25rem;
+    font-family: 'Instrument Sans';
+    color: #fefaf6;
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.category-desc {
+    position: relative;
+    font-size: 0.75rem;
+    font-family: Figtree;
+    color: #f5e8d8;
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.category-body {
+    position: relative;
+    font-size: 0.875rem;
+    font-family: 'Instrument Sans';
+    color: #fefaf6;
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+
+.button-text {
+    position: relative;
+    font-size: 0.75rem;
+    font-family: Figtree;
+    text-align: center;
+    text-shadow: 6px 6px 25px #0e0e0e;
+    }
+
+.new-category {
+    position: relative;
+    font-size: 1.25rem;
+    font-family: Figtree;
+    text-align: left;
+    text-shadow: 6px 6px 25px #0e0e0e;
+}
+  
+  
