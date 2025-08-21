@@ -77,27 +77,39 @@
               <label for="toggle1"></label>
             </div>
           </div>
-          
-          <div class="setting-group">
-            <div class="setting-row">
-              <label class="setting-label">Block All Content</label>
-              <div class="button-group">
-                <input type="radio" id="yes1" name="block1" class="radio-input">
-                <label for="yes1" class="setting-btn">Yes</label>
-                <input type="radio" id="no1" name="block1" class="radio-input" checked>
-                <label for="no1" class="setting-btn active">No</label>
+
+          <div id="settings1Body" class="settings-body">
+            <div class="setting-group">
+              <div class="setting-row">
+                <label class="setting-label">Block All Content</label>
+                <div class="button-group">
+                  <input type="radio" id="yes1" name="block1" class="radio-input radio-yes">
+                  <label for="yes1" class="setting-btn">Yes</label>
+                  <input type="radio" id="no1" name="block1" class="radio-input radio-no" checked>
+                  <label for="no1" class="setting-btn active">No</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-group strength-group" id="strength1Group">
+              <div class="strength-header">
+                <label class="setting-label">Filter Strength</label>
+                <span class="strength-label" id="strength1Label">Weak</span>
+              </div>
+              <div class="slider-container" id="strength1Container">
+                <input type="range" id="strength1" class="strength-slider" min="1" max="4" value="1">
               </div>
             </div>
           </div>
-          
-          <div class="setting-group">
-            <label class="setting-label">Filter Strength</label>
-            <div class="slider-container">
-              <input type="range" class="strength-slider" min="1" max="3" value="1">
-              <span class="strength-label">Weak</span>
-            </div>
-          </div>
         </article>
+        <!-- Create New Category Card --> 
+        <article class="card create-category-card">
+          <button class="create-category-btn" type="button">
+            <span class="plus">+</span>
+            <span class="label">Create New Category</span>
+          </button>
+        </article>
+
       </section>
 
       
