@@ -1,30 +1,27 @@
 """
-db_utils.py — Shared helper functions for SQLite database operations.
-Keeps database connection and query execution consistent across all modules.
+db_utils.py — Shared helper functions for SQLite DB operations.
 """
 
 import sqlite3
-from contextlib import closing
 import time
 
 def connect_db(path):
-    """Open a SQLite connection to the given path with dict-like row access."""
+    """Connect to a SQLite database file."""
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     return conn
 
 def execute_query(conn, query, params=()):
-    """Execute a write/delete/update query and commit changes."""
-    with closing(conn.cursor()) as cur:
-        cur.execute(query, params)
-    conn.commit()
+    """Execute INSERT/UPDATE/DELETE queries."""
+    with conn:
+        conn.execute(query, params)
 
 def fetch_all(conn, query, params=()):
-    """Run a SELECT query and return all matching rows."""
-    with closing(conn.cursor()) as cur:
-        cur.execute(query, params)
-        return cur.fetchall()
+    """Run a SELECT query and return all rows."""
+    cur = conn.cursor()
+    cur.execute(query, params)
+    return cur.fetchall()
 
 def current_timestamp():
-    """Return the current UNIX timestamp (seconds since epoch)."""
+    """Get current time as Unix timestamp."""
     return int(time.time())

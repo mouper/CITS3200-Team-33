@@ -1,33 +1,43 @@
 """
-watched_video_db.py — Logs watched videos for history/analytics purposes.
-Entries expire automatically after WATCHED_TTL seconds.
+watched_db.py — Logs watch events with start/end times.
+TTL: 30 days
 """
 
-from db_utils import connect_db, execute_query, current_timestamp
+from db_utils import connect_db, execute_query, fetch_all, current_timestamp
 from config import WATCHED_DB_PATH, WATCHED_TTL
 
 def init_db():
-    """Create the watched_videos table if it doesn't already exist."""
     conn = connect_db(WATCHED_DB_PATH)
     execute_query(conn, """
     CREATE TABLE IF NOT EXISTS watched_videos (
-        video_id TEXT,
-        watched_at INTEGER
+        video_id   TEXT,
+        start_time INTEGER,  -- when viewing began
+        watched_at INTEGER   -- when viewing ended/log saved
     )
     """)
     conn.close()
 
-def log_watch(video_id):
-    """Insert a watched video record with the current timestamp."""
+def log_watch(video_id, start_time=None):
+    if start_time is None:
+        start_time = current_timestamp()
     conn = connect_db(WATCHED_DB_PATH)
     execute_query(conn,
-        "INSERT INTO watched_videos VALUES (?, ?)",
-        (video_id, current_timestamp())
+        "INSERT INTO watched_videos VALUES (?, ?, ?)",
+        (video_id, start_time, current_timestamp())
     )
     conn.close()
 
+def get_durations():
+    """Return list of (video_id, duration_seconds) for all watch events."""
+    conn = connect_db(WATCHED_DB_PATH)
+    rows = fetch_all(conn, """
+        SELECT video_id, (watched_at - start_time) AS duration
+        FROM watched_videos
+    """)
+    conn.close()
+    return rows
+
 def cleanup():
-    """Delete watch history entries older than the allowed retention period."""
     conn = connect_db(WATCHED_DB_PATH)
     cutoff = current_timestamp() - WATCHED_TTL
     execute_query(conn, "DELETE FROM watched_videos WHERE watched_at < ?", (cutoff,))

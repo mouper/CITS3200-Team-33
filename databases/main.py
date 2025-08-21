@@ -1,33 +1,29 @@
 """
-main.py — Entry point for the self-maintaining video data pipeline.
-Uses the database.py hub to interact with all DBs from one place.
+main.py — Entry point for the self-cleaning video data pipeline.
 """
 
-from databases import database
+import database
 from cleanup_db import start_scheduler
+import time
 
-# Initialise all databases on startup
+# Initialise all DBs
 database.init_all()
 
-# Start the automated cleanup every hour (3600 seconds)
+# Start cleanups every hour
 start_scheduler(3600)
 
 def fetch_and_store_metadata(video_id, metadata_json):
-    """
-    Simulate fetching video metadata and categorising it.
-    Replace the placeholder category with real categorisation logic.
-    """
+    # Simulated fetch & categorisation
     database.insert_metadata(video_id, metadata_json)
-    category = "Example"  # TODO: Implement real categorisation logic
-    database.insert_categorised(video_id, category, metadata_json)
+    database.insert_categorised(video_id, "Example", metadata_json)
 
 def watch_video(video_id):
-    """Log that a video has been watched."""
-    database.log_watch(video_id)
+    start = int(time.time())
+    # Simulate watching...
+    time.sleep(2)
+    database.log_watch(video_id, start)
 
-# Example run
 if __name__ == "__main__":
     fetch_and_store_metadata("abc123", '{"title": "Test Video"}')
     watch_video("abc123")
-    print("Pipeline started with central database hub. Cleanup scheduler running in background.")
-
+    print("Pipeline started. Scheduler running in background.")
