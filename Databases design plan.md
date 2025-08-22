@@ -18,7 +18,7 @@ Purpose: Temporarily store raw metadata from YouTube API until categorisation is
 - **Get:** Retrieve to feed into LLM for categorisation.  
 - **Delete:** Immediately after category is determined.
 
-## 2. Categorised Video DB 
+## 2. Categorised DB 
 **Purpose:** Record category assignment for quick lookup and avoid recategorising.  
 **Possible schema:**
 
@@ -34,7 +34,7 @@ Purpose: Temporarily store raw metadata from YouTube API until categorisation is
 - **Delete:** Background job removes rows older than 24 hours.
 
 
-## 3. Watched Video DB  
+## 3. Watched DB  
 **Purpose:** Track stimulus activity and watch events.  
 **Suggested schema:**
 
