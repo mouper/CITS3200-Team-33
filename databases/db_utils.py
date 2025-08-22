@@ -1,0 +1,27 @@
+"""
+db_utils.py — Shared helper functions for SQLite DB operations.
+"""
+
+import sqlite3
+import time
+
+def connect_db(path):
+    """Connect to a SQLite database file."""
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def execute_query(conn, query, params=()):
+    """Execute INSERT/UPDATE/DELETE queries."""
+    with conn:
+        conn.execute(query, params)
+
+def fetch_all(conn, query, params=()):
+    """Run a SELECT query and return all rows."""
+    cur = conn.cursor()
+    cur.execute(query, params)
+    return cur.fetchall()
+
+def current_timestamp():
+    """Get current time as Unix timestamp."""
+    return int(time.time())
