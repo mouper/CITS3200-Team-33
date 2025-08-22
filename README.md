@@ -120,6 +120,14 @@ CITS3200-Team-33/                 # Root project repo
 
 ---
 
+## Running the browser extension
+1. Open Chrome → go to chrome://extensions.
+2. Toggle Developer mode.
+3. Click “Load unpacked” → select the src folder (location = CITS3200-Team-33/packages/extension/src)
+4. Pin the extension. Click the toolbar icon → in the popup, click “Open Dashboard”.
+
+---
+
 ## Running categorisation on cached videos (llm-client)
 
 Prerequisites:
