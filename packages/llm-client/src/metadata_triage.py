@@ -4,7 +4,6 @@ metadata_triage.py — Methods for triaging video metadata, normalisation of pro
     video metadata to support downstream tasks such as categorization, caching, and user history.
 """
 
-from databases import get_fresh_metadata, cleanup, fetch_all
 import json
 import os
 import re
@@ -30,9 +29,16 @@ def load_categories(categories_path: Optional[os.PathLike] = None) -> Tuple[List
 
 ALLOWED_LABELS, CATEGORIES_VERSION = load_categories()
 
-from databases import db_utils, config as db_config
+try:
+    from databases import db_utils
+    from databases import config as db_config
+except Exception:
+    db_utils = None  # type: ignore
+    db_config = None  # type: ignore
 
 def _get_categorised_ids() -> set:
+    if db_utils is None or db_config is None:
+        return set()
     path = db_config.CATEGORIES_DB_PATH
     conn = db_utils.connect_db(path)
     try:
