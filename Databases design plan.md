@@ -42,7 +42,7 @@ Purpose: Temporarily store raw metadata from YouTube API until categorisation is
 |--------------|-------------|-----------------------------------------------------|
 | videoID      | VARCHAR     | PK or composite key with timestamp if re-watched    |
 | start_time   | INTEGER     | When viewing began                                  |
-| watched_at   | INTEGER     | When viewing ended/log saved                        |
+| end_time     | INTEGER     | When viewing ended/log saved                        |
 
 **Lifecycle:**
 - **Create:** Insert when a video is watched.  
