@@ -1,38 +1,41 @@
 # AI Recommendation Filter - Team 33 Project for CITS3200
+
 ---
+
 ## Issue Creation Guidelines
 
 To keep our workflow organized and efficient, please follow these conventions when creating a new issue:
-
 
 ### Use Present Tense in the Title
 
 Write issue titles in **present tense**, using a verb that describes the action.
 
-- Good: `Create navbar component`  
+- Good: `Create navbar component`
 - Bad: `Created navbar component`, `Navbar was created`
-
 
 ### Add an Image of the Design
 
 Include a **screenshot or link** to the relevant design (e.g., from Figma) to give visual context for the task.
-
 
 ### List Reusable Components and Styles
 
 If the issue involves building **reusable components or styles**, list them out clearly.
 
 #### Example List:
+
 - components/Navbar.tsx
 - components/Button.tsx
 
 ### Reporting a Bug
+
 Start the issue with 'Bug:'
+
 - e.g. Bug: Save button broken
 
 ---
 
 ## Branch Naming Convention
+
 This project follows a consistent branch naming strategy to improve collaboration and maintain clarity across development activities.
 
 ### Branch Types
@@ -51,6 +54,7 @@ This project follows a consistent branch naming strategy to improve collaboratio
 After the branch category, include the **reference** to the issue or ticket you're working on. If there's no reference, use `no-ref`.
 
 ### Example Branch Name
+
 `feature/issue-42/create-new-button-component`
 
 ---
@@ -63,20 +67,22 @@ Commit messages should be clear, concise, and follow a structured format to comm
 
 Start your commit message with one of the following categories:
 
-- **`feat`** — Adding a new feature  
-- **`fix`** — Fixing a bug  
-- **`refactor`** — Improving code for performance or readability, without changing behavior  
+- **`feat`** — Adding a new feature
+- **`fix`** — Fixing a bug
+- **`refactor`** — Improving code for performance or readability, without changing behavior
 - **`chore`** — Maintenance tasks (e.g. documentation, formatting, tests, cleanup)
 
 ### Format
 
 Each commit message should follow this pattern:
 **`<category>: statement`**
+
 - The **category** is followed by a colon `:` and a space
 - Each **statement** is a short, imperative verb phrase
 - Separate multiple statements with a **semicolon `;`**
 
 ### Example Commit Message
+
 `feat: add button component`
 
 ---
@@ -111,3 +117,42 @@ CITS3200-Team-33/                 # Root project repo
 │
 └─ tests/                           # Centralised test suite (unit, integration, end-to-end, perf)
 ```
+
+---
+
+## Running categorisation on cached videos (llm-client)
+
+Prerequisites:
+
+- Python with `requests` (and optionally `python-dotenv` if you use a `.env` file)
+- Your `.env` at the repo root with:
+  - `OPENAI_API_KEY=sk-...`
+  - Optional: `OPENAI_MODEL_ID=gpt-5-nano`
+
+### Option A: One-off categorisation run (reads from metadata cache DB, writes to categorised DB)
+
+1. Ensure the DBs are initialised and the metadata cache has items.
+   - If you already have the `databases/` layer running elsewhere, you can skip this.
+2. From repo root, run:
+
+```
+python -c "import os,sys; sys.path.insert(0,'packages/llm-client/src'); from categorise_runner import run_once; model=os.getenv('OPENAI_MODEL_ID','gpt-5-nano'); print('Rows written:', run_once(model))"
+```
+
+This will:
+
+- Fetch fresh (uncategorised) metadata rows from the cache
+- Build a compact prompt
+- Call the model with your `OPENAI_API_KEY`
+- Parse and validate strict JSON
+- Persist to `categorised_videos` DB
+
+### Option B: Dry-run with dummy input (no DB writes)
+
+From repo root:
+
+```
+python packages/llm-client/tests/e2e_llm_dummy_test.py
+```
+
+This prints the raw input, triaged payload, full prompt, live LLM response, and the final JSON that would be written to the DB.
