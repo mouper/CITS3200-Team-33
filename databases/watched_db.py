@@ -9,7 +9,7 @@ from config import WATCHED_DB_PATH, WATCHED_TTL
 def init_db():
     conn = connect_db(WATCHED_DB_PATH)
     execute_query(conn, """
-    CREATE TABLE IF NOT EXISTS watched_videos (
+    CREATE TABLE IF NOT EXISTS watched (
         video_id   TEXT,
         start_time INTEGER,  -- when viewing began
         end_time INTEGER     -- when viewing ended/log saved
@@ -22,7 +22,7 @@ def log_watch(video_id, start_time=None):
         start_time = current_timestamp()
     conn = connect_db(WATCHED_DB_PATH)
     execute_query(conn,
-        "INSERT INTO watched_videos VALUES (?, ?, ?)",
+        "INSERT INTO watched VALUES (?, ?, ?)",
         (video_id, start_time, current_timestamp())
     )
     conn.close()
@@ -32,7 +32,7 @@ def get_durations():
     conn = connect_db(WATCHED_DB_PATH)
     rows = fetch_all(conn, """
         SELECT video_id, (end_time - start_time) AS duration
-        FROM watched_videos
+        FROM watched
     """)
     conn.close()
     return rows
@@ -40,7 +40,7 @@ def get_durations():
 def cleanup():
     conn = connect_db(WATCHED_DB_PATH)
     cutoff = current_timestamp() - WATCHED_TTL
-    execute_query(conn, "DELETE FROM watched_videos WHERE end_time < ?", (cutoff,))
+    execute_query(conn, "DELETE FROM watched WHERE end_time < ?", (cutoff,))
     conn.close()
 
 
