@@ -1,0 +1,226 @@
+{
+  "version": "categories.v1",
+  "updated": "2025-08-21",
+  "ordering": "positive_to_negative",
+  "notes": "7 positive, 13 negative; labels are mutually exclusive and intended for single-label classification.",
+  "allowedLabels": [
+    "Educational & Academic",
+    "How-To / Tutorials",
+    "Science & Technology",
+    "Wellbeing & Mindfulness",
+    "Music & Arts",
+    "Sports & Fitness",
+    "Travel & Nature",
+    "Internet Clip Compilations",
+    "Clickbait / Curiosity Traps",
+    "Sensational / Outrage News",
+    "Politics & Public Affairs",
+    "Conspiracy & Fringe Claims",
+    "True Crime & Investigations",
+    "Pranks & Dangerous Challenges",
+    "Gaming – High-Arousal/Competitive",
+    "Gambling & Betting",
+    "Sexual / Suggestive",
+    "Scams & Get-Rich-Quick",
+    "Hate / Harassment & Bullying",
+    "Violent / Graphic",
+    "Other / Unclear"
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "label": "Educational & Academic",
+      "polarity": "positive",
+      "definition": "Lectures, study guides, curriculum-aligned explainers.",
+      "examples": [
+        "Linear Algebra: Eigenvalues Explained",
+        "History of the ANZACs in 10 Minutes"
+      ]
+    },
+    {
+      "id": 2,
+      "label": "How-To / Tutorials",
+      "polarity": "positive",
+      "definition": "Practical step-by-step guides for skills or tasks.",
+      "examples": [
+        "How to Tie a Windsor Knot",
+        "Build a Budget PC: Step by Step"
+      ]
+    },
+    {
+      "id": 3,
+      "label": "Science & Technology",
+      "polarity": "positive",
+      "definition": "Research breakdowns, engineering, tech reviews and demos.",
+      "examples": [
+        "CRISPR in Plain English",
+        "M2 MacBook Air Review: 6 Months Later"
+      ]
+    },
+    {
+      "id": 4,
+      "label": "Wellbeing & Mindfulness",
+      "polarity": "positive",
+      "definition": "Mental health, meditation, healthy routines, balanced living.",
+      "examples": [
+        "10-Minute Guided Meditation",
+        "Sleep Hygiene: What Actually Works"
+      ]
+    },
+    {
+      "id": 5,
+      "label": "Music & Arts",
+      "polarity": "positive",
+      "definition": "Music performances, visual art, creative process.",
+      "examples": [
+        "Live at the Opera House",
+        "Watercolour Basics for Beginners"
+      ]
+    },
+    {
+      "id": 6,
+      "label": "Sports & Fitness",
+      "polarity": "positive",
+      "definition": "Matches, highlights, training, exercise programmes.",
+      "examples": ["Matildas Highlights vs Japan", "20-Minute HIIT Workout"]
+    },
+    {
+      "id": 7,
+      "label": "Travel & Nature",
+      "polarity": "positive",
+      "definition": "Travel logs, wildlife, outdoor exploration.",
+      "examples": [
+        "Road Trip Across the Kimberley",
+        "Great Barrier Reef Dive Tour"
+      ]
+    },
+    {
+      "id": 8,
+      "label": "Internet Clip Compilations",
+      "polarity": "negative",
+      "definition": "Compilation reels of short internet clips or memes designed for rapid consumption.",
+      "examples": [
+        "Funniest Internet Clips of the Week #42",
+        "Ultimate Meme Compilation 2025"
+      ]
+    },
+    {
+      "id": 9,
+      "label": "Clickbait / Curiosity Traps",
+      "polarity": "negative",
+      "definition": "Sensational titles/thumbnails built to provoke curiosity rather than inform.",
+      "examples": [
+        "You Won’t Believe What Happened Next!",
+        "This Trick Changed My Life Overnight"
+      ]
+    },
+    {
+      "id": 10,
+      "label": "Sensational / Outrage News",
+      "polarity": "negative",
+      "definition": "News framed to provoke anger or fear; outrage cycles.",
+      "examples": [
+        "They’re Coming For Your Kids?!",
+        "This Policy Will Destroy Everything"
+      ]
+    },
+    {
+      "id": 11,
+      "label": "Politics & Public Affairs",
+      "polarity": "negative",
+      "definition": "Partisan takes, political commentary, public policy debates.",
+      "examples": [
+        "Election Debate Highlights: Who Won?",
+        "Why This Bill Is a Disaster"
+      ]
+    },
+    {
+      "id": 12,
+      "label": "Conspiracy & Fringe Claims",
+      "polarity": "negative",
+      "definition": "Unverified or fringe assertions presented as fact.",
+      "examples": [
+        "The Moon Landing Was Faked?",
+        "Secret Societies Controlling the World"
+      ]
+    },
+    {
+      "id": 13,
+      "label": "True Crime & Investigations",
+      "polarity": "negative",
+      "definition": "Crime stories, investigations, forensic breakdowns.",
+      "examples": [
+        "Inside the Cold Case: 1998 Disappearance",
+        "How Detectives Caught the Suspect"
+      ]
+    },
+    {
+      "id": 14,
+      "label": "Pranks & Dangerous Challenges",
+      "polarity": "negative",
+      "definition": "Pranks, stunts, or challenges that risk harm or humiliation.",
+      "examples": [
+        "24 Hours Overnight in a Mall (Caught!)",
+        "Spicy Noodle Challenge Extreme"
+      ]
+    },
+    {
+      "id": 15,
+      "label": "Gaming – High-Arousal/Competitive",
+      "polarity": "negative",
+      "definition": "Competitive, high-intensity gaming moments and rage-bait highlights.",
+      "examples": ["Insane Clutch in Ranked!", "Try Not to Rage: Impossible"]
+    },
+    {
+      "id": 16,
+      "label": "Gambling & Betting",
+      "polarity": "negative",
+      "definition": "Casino content, sports betting tips, loot-box analogues.",
+      "examples": ["$1,000 Blackjack Session", "Weekend Multis: My Top 5 Picks"]
+    },
+    {
+      "id": 17,
+      "label": "Sexual / Suggestive",
+      "polarity": "negative",
+      "definition": "Sexually suggestive themes or thumbnails; adult-oriented.",
+      "examples": [
+        "Is This Outfit Too Much?",
+        "Dating Confessions You Won’t Expect"
+      ]
+    },
+    {
+      "id": 18,
+      "label": "Scams & Get-Rich-Quick",
+      "polarity": "negative",
+      "definition": "Promises of unrealistic profits, MLM/crypto hype, dubious schemes.",
+      "examples": [
+        "Turn $100 into $10,000 Fast!",
+        "This Coin Will 100x This Month"
+      ]
+    },
+    {
+      "id": 19,
+      "label": "Hate / Harassment & Bullying",
+      "polarity": "negative",
+      "definition": "Content attacking individuals or groups; slurs, dog-piling.",
+      "examples": ["Exposing This Loser Streamer", "Watch This Group Get Owned"]
+    },
+    {
+      "id": 20,
+      "label": "Violent / Graphic",
+      "polarity": "negative",
+      "definition": "Graphic violence, injuries, fight footage, gore.",
+      "examples": [
+        "Street Fight Caught on Camera",
+        "Most Brutal Knockouts Compilation"
+      ]
+    },
+    {
+      "id": 21,
+      "label": "Other / Unclear",
+      "polarity": "neutral",
+      "definition": "Low-signal or ambiguous content that does not fit other labels.",
+      "examples": ["Daily Vlog #327", "Random Stuff I Found Today"]
+    }
+  ]
+}
