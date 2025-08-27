@@ -12,7 +12,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS watched_videos (
         video_id   TEXT,
         start_time INTEGER,  -- when viewing began
-        watched_at INTEGER   -- when viewing ended/log saved
+        end_time INTEGER     -- when viewing ended/log saved
     )
     """)
     conn.close()
@@ -31,7 +31,7 @@ def get_durations():
     """Return list of (video_id, duration_seconds) for all watch events."""
     conn = connect_db(WATCHED_DB_PATH)
     rows = fetch_all(conn, """
-        SELECT video_id, (watched_at - start_time) AS duration
+        SELECT video_id, (end_time - start_time) AS duration
         FROM watched_videos
     """)
     conn.close()
@@ -40,7 +40,7 @@ def get_durations():
 def cleanup():
     conn = connect_db(WATCHED_DB_PATH)
     cutoff = current_timestamp() - WATCHED_TTL
-    execute_query(conn, "DELETE FROM watched_videos WHERE watched_at < ?", (cutoff,))
+    execute_query(conn, "DELETE FROM watched_videos WHERE end_time < ?", (cutoff,))
     conn.close()
 
 
