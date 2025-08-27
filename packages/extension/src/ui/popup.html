@@ -8,8 +8,30 @@
   </head>
   <body class="popup-root">
     <div class="popup-container">
-      <div class="popup-title">Mellow</div>
-      <button id="open-dashboard" class="btn">Open Dashboard</button>
+      <div class="popup-header">
+        <div class="brand">
+          <img class="brand-icon" src="../static/assets/IconDark.png" alt="Mellow icon" />
+          <div class="brand-name section-subheader">Mellow</div>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-row">
+          <div class="setting-label">Extension Status</div>
+          <div class="setting-controls">
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-enabled" />
+              <label for="toggle-enabled" aria-label="Enable or disable extension"></label>
+            </div>
+            <span id="run-status" class="setting-status">Stopped</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="open-dashboard" class="btn btn-full">
+        <img class="btn-icon" src="../static/assets/layout.svg" alt="Open dashboard" />
+        <span class="btn-text">Open Dashboard</span>
+      </button>
     </div>
     <script src="../static/js/popup.js" type="module"></script>
     
