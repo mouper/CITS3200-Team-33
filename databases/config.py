@@ -5,8 +5,8 @@ config.py — Central configuration for DB paths and retention periods.
 
 # Database file paths
 METADATA_DB_PATH    = "metadata_cache.db"
-CATEGORIES_DB_PATH  = "categorised_videos.db"
-WATCHED_DB_PATH     = "watched_videos.db"
+CATEGORIES_DB_PATH  = "categorised.db"
+WATCHED_DB_PATH     = "watched.db"
 
 # Retention periods (in seconds)
 METADATA_TTL   = 6 * 60 * 60         # 6 hours
