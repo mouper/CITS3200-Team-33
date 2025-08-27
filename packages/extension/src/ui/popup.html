@@ -32,6 +32,14 @@
         <img class="btn-icon" src="../static/assets/layout.svg" alt="Open dashboard" />
         <span class="btn-text">Open Dashboard</span>
       </button>
+
+      <div class="popup-graph card graph-card">
+        <div class="graph-header">
+          <div class="graph-title">Last X Hours</div>
+          <button id="category-pill" class="category-pill" aria-label="Selected category" disabled>All</button>
+        </div>
+        <canvas id="popupChart" width="560" height="320" aria-label="Activity chart" role="img"></canvas>
+      </div>
     </div>
     <script src="../static/js/popup.js" type="module"></script>
     

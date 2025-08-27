@@ -41,7 +41,8 @@ body {
     text-align: left;
     text-shadow: 6px 6px 25px #0e0e0e;
     font-family: 'Instrument Sans';
-    
+    padding-top: 16px;
+    padding-bottom: 10px;
 }
 
 .section-header {
@@ -77,7 +78,7 @@ body {
 .tile-hero-txt {
     position: relative;
     font-size: 1.25rem;
-    font-weight: 500;
+    font-weight: 300;
     font-family: 'Instrument Sans';
     text-align: left;
     text-shadow: 6px 6px 25px #0e0e0e;
@@ -86,8 +87,10 @@ body {
 .tile-caption {
     position: relative;
     font-size: 0.75rem;
+    font-weight: 300;
     font-family: 'Figtree';
     text-align: left;
+    color: var(--txtLight2);
     text-shadow: 6px 6px 25px #0e0e0e;
 }
 
@@ -178,11 +181,11 @@ body {
     font-family: 'Figtree';
     text-align: center;
     text-shadow: 6px 6px 25px #0e0e0e;
-    }
+}
 
 .new-category {
     position: relative;
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     font-family: 'Figtree';
     text-align: left;
     text-shadow: 6px 6px 25px #0e0e0e;

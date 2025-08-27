@@ -6,13 +6,12 @@
 body { margin: 0; }
 
 /* Popup */
-.popup-root { background: var(--darkBackground); min-width: 300px; min-height: 160px; display: block; }
-.popup-container { padding: 20px 22px 24px; }
-.popup-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.popup-root { background: var(--darkBackground); min-width: 350px; min-height: 160px; display: block; }
+.popup-container { padding: 22px 24px 26px; }
+.popup-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-icon { width: 28px; height: 28px; border-radius: 6px; }
 .brand-name { color: var(--txtLight1); padding-top: 0; }
-.popup-title { font-weight: 600; margin-bottom: 8px; }
 .btn { cursor: pointer; padding: 12px 16px; border-radius: 8px; border: 1px solid #2d2d31; background: #1a1a1e; color: #f3f3f6; display: inline-flex; align-items: center; gap: 10px; font-family: 'Instrument Sans', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
 .btn-full { width: 100%; justify-content: center; }
 .btn-icon { width: 22px; height: 22px; }
@@ -22,20 +21,22 @@ body { margin: 0; }
 /* Dashboard-specific styles. Build out from your Figma spec here. */
 .dashboard-root { background: #0f0f10; color: #f0f1f3; min-height: 100vh; }
 .dashboard-container { max-width: 1280px; margin: 0 auto; padding: 24px; }
-.cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding-top: 12px;}
-.card { border-radius: 14px; background: radial-gradient(120% 120% at 100% 0%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%), #121214; border: 1px solid #242429; padding: 18px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 8px 40px rgba(0,0,0,.35); }
-.card-title { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
-.card-subtle { color: #a6adbb; font-size: 12px; }
+.cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; padding-top: 12px;}
+.card { border-radius: 14px; background: radial-gradient(120% 120% at 100% 0%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%), #121214; border: 1px solid #242429; padding: 26px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 8px 40px rgba(0,0,0,.35); }
+.card .tile-hero-txt { margin: 0 0 12px; }
+
 
 /* Split section: graph wider than categories */
-.dashboard-split { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding-top: 12px; padding-bottom: 30px; }
-.graph-card canvas { width: 100%; height: 280px; display: block; }
+.dashboard-split { display: grid; grid-template-columns: 2fr 1fr; gap: 64px; padding-bottom: 30px; }
+.graph-card canvas { width: 100%; display: block; }
+.dashboard-root .graph-card canvas { height: 280px; }
+.category-select { padding: 12px 16px; border-radius: 8px; background: #1a1a1e; border: 1px solid #2d2d31; color: #f3f3f6; font-size: 14px; font-family: 'Instrument Sans', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f3f3f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-size: 14px 14px; background-position: right 12px center; padding-right: 30px; }
 .categories-card { text-align: center; display: flex; flex-direction: column;  min-height: 280px;  }
-.category-list { list-style: none;  color: #a6adbb; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+.category-list { list-style: none;  color: #a6adbb; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; font-family: 'Instrument Sans'; }
 .category-list li { padding: 16px 0; border-bottom: 1px solid #242429; display: flex; justify-content: space-between; }
 .category-list li span:last-child { padding-right: 25px; }
 
-.cards_categories { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding-top: 12px;}
+.cards_categories { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding-top: 12px;}
 
 /* Create Category Card */
 .create-category-card { display: grid; place-items: center; }
@@ -45,11 +46,10 @@ body { margin: 0; }
 .create-category-btn .label { font-size: 14px; }
 
 /* Settings Card Styles */
-.settings-card { padding: 24px; }
+.settings-card { padding: 28px; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
 .header-left { display: flex; align-items: flex-start; gap: 12px; }
 .icon-box { width: 40px; height: 40px; background: var(--iconBackground); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.icon { width: 20px; height: 20px; color: var(--darkAccent); }
 .icon-placeholder { font-size: 20px; }
 .header-text { flex: 1; }
 .card-subtitle { color: #a6adbb; font-size: 12px; margin: 4px 0 0; }
@@ -107,4 +107,10 @@ body { margin: 0; }
 @media (max-width: 900px) {
   .dashboard-split { grid-template-columns: 1fr; }
 }
+
+/* Popup graph styles */
+.popup-graph { margin-top: 16px; border-radius: 14px; background: radial-gradient(120% 120% at 100% 0%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%), #121214; border: 1px solid #242429; padding: 22px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 8px 40px rgba(0,0,0,.35); }
+.graph-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+/* Use typography.css .graph-title; remove duplicate overrides here */
+.category-pill { padding: 6px 10px; border-radius: 9999px; font-size: 12px; border: 1px solid rgba(232,103,90,0.35); background: var(--redFill); color: var(--darkAccent); cursor: default; font-family: 'Figtree'; }
 

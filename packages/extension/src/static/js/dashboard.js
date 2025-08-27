@@ -147,4 +147,66 @@ wireCardBehaviors(1);
   });
 })();
 
+// Graph rendering + category select persistence
+(function setupDashboardGraph() {
+  try {
+    const canvas = document.getElementById('lineChart');
+    const select = document.getElementById('category-select');
+    if (!canvas || !select) return;
+
+    // Load last selected category
+    chrome.storage?.local?.get(['selectedCategory'], ({ selectedCategory }) => {
+      if (selectedCategory) select.value = selectedCategory;
+    });
+
+    // Persist on change
+    select.addEventListener('change', () => {
+      chrome.storage?.local?.set({ selectedCategory: select.value });
+      draw();
+    });
+
+    function draw() {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 6; i++) {
+        const y = (h / 6) * i;
+        ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(w - 20, y); ctx.stroke();
+      }
+
+      // Placeholder points
+      const points = [
+        [60, 210],[120,120],[180,160],[240,130],[300,60],[360,140],[420,130],[480,150],[540,100],[600,50],[660,130],[720,200],[780,240]
+      ];
+
+      const grad = ctx.createLinearGradient(0, 0, w, 0);
+      grad.addColorStop(0, 'rgba(232,103,90,0.8)');
+      grad.addColorStop(1, 'rgba(255,255,255,0.9)');
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      for (let i = 0; i < points.length; i++) {
+        const [x, y] = points[i];
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+      fillGrad.addColorStop(0, 'rgba(232,103,90,0.12)');
+      fillGrad.addColorStop(1, 'rgba(232,103,90,0.02)');
+      ctx.fillStyle = fillGrad;
+      ctx.lineTo(points[points.length - 1][0], h - 20);
+      ctx.lineTo(points[0][0], h - 20);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    draw();
+  } catch (_) { /* no-op */ }
+})();
+
 
