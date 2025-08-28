@@ -7,10 +7,10 @@
     "default_title": "Open Mellow",
     "default_popup": "ui/popup.html",
     "default_icon": {
-      "16": "static/assets/layout.svg",
-      "32": "static/assets/layout.svg",
-      "48": "static/assets/layout.svg",
-      "128": "static/assets/layout.svg"
+      "16": "static/assets/IconDark.png",
+      "32": "static/assets/IconDark.png",
+      "48": "static/assets/IconDark.png",
+      "128": "static/assets/IconDark.png"
     }
   },
   "oauth2": {
@@ -25,10 +25,10 @@
     "type": "module"
   },
   "icons": {
-    "16": "static/assets/layout.svg",
-    "32": "static/assets/layout.svg",
-    "48": "static/assets/layout.svg",
-    "128": "static/assets/layout.svg"
+    "16": "static/assets/IconDark.png",
+    "32": "static/assets/IconDark.png",
+    "48": "static/assets/IconDark.png",
+    "128": "static/assets/IconDark.png"
   },
   "permissions": ["storage", "tabs", "identity", "identity.email"],
   "host_permissions": ["<all_urls>"]
