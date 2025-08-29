@@ -9,21 +9,120 @@
   </head>
   <body class="dashboard-root">
     <main class="dashboard-container">
-      <div class="headline">Hi, <em>Username</em></div>
+      <div class="welcome-txt">Hi, <span id="user-first-name">Username</span></div>
+      <div class="section-header">Overview</div>
       <section class="cards">
         <article class="card">
-          <h3 class="card-title">Hours Saved This Week</h3>
-          <div class="card-subtle">Placeholder metric</div>
+          <div class="tile-hero-txt">Hours Saved This Week</div>
+          <div class="tile-caption">Placeholder metric</div>
         </article>
         <article class="card">
-          <h3 class="card-title">Content Removed</h3>
-          <div class="card-subtle">Placeholder metric</div>
+          <div class="tile-hero-txt">Content Removed</div>
+          <div class="tile-caption">Placeholder metric</div>
         </article>
         <article class="card">
-          <h3 class="card-title">Videos Blocked This Week</h3>
-          <div class="card-subtle">Placeholder metric</div>
+          <div class="tile-hero-txt">Videos Blocked This Week</div>
+          <div class="tile-caption">Placeholder metric</div>
+        </article>
+      <!-- </section> -->
+      <!-- <section class="cards"> -->
+        <article class="card">
+          <div class="tile-hero-txt">Categories Blocked</div>
+          <div class="tile-caption">Placeholder metric</div>
+        </article>
+        <article class="card">
+          <div class="tile-hero-txt">Most Blocked Content</div>
+          <div class="tile-caption">Placeholder metric</div>
+        </article>
+        <article class="card">
+          <div class="tile-hero-txt">Videos Blocked in Total</div>
+          <div class="tile-caption">Placeholder metric</div>
         </article>
       </section>
+
+      <section class="dashboard-split" style="margin-top: 32px;">
+        <article class="card graph-card">
+          <div class="graph-header">
+            <div class="graph-title">Last X Hours</div>
+            <select id="category-select" class="category-select" aria-label="Select category">
+              <option value="All">All</option>
+              <option value="Category 1">Category 1</option>
+              <option value="Category 2">Category 2</option>
+              <option value="Category 3">Category 3</option>
+              <option value="Category 4">Category 4</option>
+            </select>
+          </div>
+          <canvas id="lineChart" width="900" height="280" aria-label="Activity chart" role="img"></canvas>
+        </article>
+        <article class="card categories-card">
+          <div class="tile-hero-txt">Top Categories</div>
+          <div class="tile-caption">Total Days Blocked</div>
+          <ul class="category-list top-categories-body">
+            <li><span>1. Category 1 Name</span><span class="days-blocked">32 Days</span></li>
+            <li><span>2. Category 2 Name</span><span class="days-blocked">28 Days</span></li>
+            <li><span>3. Category 3 Name</span><span class="days-blocked">14 Days</span></li>
+            <li><span>4. Category 4 Name</span><span class="days-blocked">14 Days</span></li>
+          </ul>
+        </article>
+      </section>
+
+      <div class="section-header">Control Panel</div>
+      <div class="section-subheader">Content Categories</div>
+
+      <section class="cards_categories">
+        <article class="card settings-card">
+          <div class="card-header">
+            <div class="header-left">
+              <div class="icon-box">
+                <div class="icon-placeholder">📊</div>
+              </div>
+              <div class="header-text">
+                <div class="category-header">Category 1</div>
+                <p class="category-desc">Category 1 Description</p>
+              </div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle1" checked>
+              <label for="toggle1"></label>
+            </div>
+          </div>
+
+          <div id="settings1Body" class="settings-body">
+            <div class="setting-group">
+              <div class="setting-row">
+                <label class="setting-label">Block All Content</label>
+                <div class="button-group">
+                  <input type="radio" id="yes1" name="block1" class="radio-input radio-yes">
+                  <label for="yes1" class="setting-btn">Yes</label>
+                  <input type="radio" id="no1" name="block1" class="radio-input radio-no" checked>
+                  <label for="no1" class="setting-btn active">No</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-group strength-group" id="strength1Group">
+              <div class="strength-header">
+                <label class="setting-label">Filter Strength</label>
+                <span class="strength-label" id="strength1Label">Weak</span>
+              </div>
+              <div class="slider-container" id="strength1Container">
+                <input type="range" id="strength1" class="strength-slider" min="1" max="4" value="1">
+              </div>
+            </div>
+          </div>
+        </article>
+        <!-- Create New Category Card --> 
+        <article class="card create-category-card">
+          <button class="create-category-btn" type="button">
+            <span class="plus">+</span>
+            <span class="label new-category">Create New Category</span>
+          </button>
+        </article>
+
+      </section>
+
+      
+      
     </main>
     <script type="module" src="../static/js/dashboard.js"></script>
   </body>

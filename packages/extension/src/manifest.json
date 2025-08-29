@@ -7,23 +7,30 @@
     "default_title": "Open Mellow",
     "default_popup": "ui/popup.html",
     "default_icon": {
-      "16": "static/assets/layout.svg",
-      "32": "static/assets/layout.svg",
-      "48": "static/assets/layout.svg",
-      "128": "static/assets/layout.svg"
+      "16": "static/assets/IconDark.png",
+      "32": "static/assets/IconDark.png",
+      "48": "static/assets/IconDark.png",
+      "128": "static/assets/IconDark.png"
     }
+  },
+  "oauth2": {
+    "client_id": "849894976651-uaooik09vq8rsm749o2963cr0l7f8j2f.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
   },
   "background": {
     "service_worker": "worker/service-worker.js",
     "type": "module"
   },
   "icons": {
-    "16": "static/assets/layout.svg",
-    "32": "static/assets/layout.svg",
-    "48": "static/assets/layout.svg",
-    "128": "static/assets/layout.svg"
+    "16": "static/assets/IconDark.png",
+    "32": "static/assets/IconDark.png",
+    "48": "static/assets/IconDark.png",
+    "128": "static/assets/IconDark.png"
   },
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage", "tabs", "identity", "identity.email"],
   "host_permissions": ["<all_urls>"]
 }
 
