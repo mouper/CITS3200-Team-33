@@ -121,6 +121,7 @@ CITS3200-Team-33/                 # Root project repo
 ---
 
 ## Running the browser extension
+
 1. Open Chrome → go to chrome://extensions.
 2. Toggle Developer mode.
 3. Click “Load unpacked” → select the src folder (location = CITS3200-Team-33/packages/extension/src)
@@ -164,3 +165,33 @@ python packages/llm-client/tests/e2e_llm_dummy_test.py
 ```
 
 This prints the raw input, triaged payload, full prompt, live LLM response, and the final JSON that would be written to the DB.
+
+---
+
+## Running the local Flask service (server)
+
+A lightweight Flask service is scaffolded under `server/` to expose local endpoints for metadata, classification, watched events, allostatic settings, and stats. Implementation stubs are provided; handlers will be added next.
+
+Setup:
+
+1. Create a Python venv and install deps:
+
+```
+python -m venv .venv
+. .venv/Scripts/activate  # Windows PowerShell
+pip install -r server/requirements.txt
+```
+
+2. Create env file:
+
+```
+copy server/env.example server/.env
+```
+
+3. Run the server:
+
+```
+python server/run.py
+```
+
+The service binds to `127.0.0.1` on the port from `server/.env` (default 5050). Future `/api/*` endpoints will require the `X-LOCAL-TOKEN` header from the env file.
