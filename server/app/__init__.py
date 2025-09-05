@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from .config import load_config
+from .background import start_background
 
 
 def create_app() -> Flask:
@@ -30,6 +31,9 @@ def create_app() -> Flask:
     # app.register_blueprint(watched.bp)
     # app.register_blueprint(allostasis.bp)
     # app.register_blueprint(stats.bp)
+
+    # Start background autorun (if enabled via env)
+    start_background(app)
 
     return app
 
