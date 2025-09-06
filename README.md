@@ -178,14 +178,17 @@ Setup:
 
 ```
 python -m venv .venv
-. .venv/Scripts/activate  # Windows PowerShell
+. .venv/Scripts/activate  # Windows PowerShell command
+source .venv/bin/activate # macOS/ Linux command
 pip install -r server/requirements.txt
 ```
 
 2. Create env file:
 
 ```
-copy server/env.example server/.env
+copy server/env.example server/.env # Windows PowerShell command
+cp server/env.example server/.env # macOS/ Linux command
+
 ```
 
 3. Run the server:
