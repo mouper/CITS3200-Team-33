@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -9,8 +9,14 @@
   </head>
   <body class="dashboard-root">
     <main class="dashboard-container">
-      <div class="welcome-txt">Hi, <span id="user-first-name">Username</span></div>
+      <div class="welcome-txt">
+        Hi, <span id="user-first-name">Username</span>
+      </div>
       <div class="section-header">Overview</div>
+      <div class="section-subheader" id="backend-health">
+        <span class="dot"></span>
+        Backend: Checking…
+      </div>
       <section class="cards">
         <article class="card">
           <div class="tile-hero-txt">Hours Saved This Week</div>
@@ -24,8 +30,8 @@
           <div class="tile-hero-txt">Videos Blocked This Week</div>
           <div class="tile-caption">Placeholder metric</div>
         </article>
-      <!-- </section> -->
-      <!-- <section class="cards"> -->
+        <!-- </section> -->
+        <!-- <section class="cards"> -->
         <article class="card">
           <div class="tile-hero-txt">Categories Blocked</div>
           <div class="tile-caption">Placeholder metric</div>
@@ -40,11 +46,15 @@
         </article>
       </section>
 
-      <section class="dashboard-split" style="margin-top: 32px;">
+      <section class="dashboard-split" style="margin-top: 32px">
         <article class="card graph-card">
           <div class="graph-header">
             <div class="graph-title">Last X Hours</div>
-            <select id="category-select" class="category-select" aria-label="Select category">
+            <select
+              id="category-select"
+              class="category-select"
+              aria-label="Select category"
+            >
               <option value="All">All</option>
               <option value="Category 1">Category 1</option>
               <option value="Category 2">Category 2</option>
@@ -52,16 +62,34 @@
               <option value="Category 4">Category 4</option>
             </select>
           </div>
-          <canvas id="lineChart" width="900" height="280" aria-label="Activity chart" role="img"></canvas>
+          <canvas
+            id="lineChart"
+            width="900"
+            height="280"
+            aria-label="Activity chart"
+            role="img"
+          ></canvas>
         </article>
         <article class="card categories-card">
           <div class="tile-hero-txt">Top Categories</div>
           <div class="tile-caption">Total Days Blocked</div>
           <ul class="category-list top-categories-body">
-            <li><span>1. Category 1 Name</span><span class="days-blocked">32 Days</span></li>
-            <li><span>2. Category 2 Name</span><span class="days-blocked">28 Days</span></li>
-            <li><span>3. Category 3 Name</span><span class="days-blocked">14 Days</span></li>
-            <li><span>4. Category 4 Name</span><span class="days-blocked">14 Days</span></li>
+            <li>
+              <span>1. Category 1 Name</span
+              ><span class="days-blocked">32 Days</span>
+            </li>
+            <li>
+              <span>2. Category 2 Name</span
+              ><span class="days-blocked">28 Days</span>
+            </li>
+            <li>
+              <span>3. Category 3 Name</span
+              ><span class="days-blocked">14 Days</span>
+            </li>
+            <li>
+              <span>4. Category 4 Name</span
+              ><span class="days-blocked">14 Days</span>
+            </li>
           </ul>
         </article>
       </section>
@@ -82,7 +110,7 @@
               </div>
             </div>
             <div class="toggle-switch">
-              <input type="checkbox" id="toggle1" checked>
+              <input type="checkbox" id="toggle1" checked />
               <label for="toggle1"></label>
             </div>
           </div>
@@ -92,9 +120,20 @@
               <div class="setting-row">
                 <label class="setting-label">Block All Content</label>
                 <div class="button-group">
-                  <input type="radio" id="yes1" name="block1" class="radio-input radio-yes">
+                  <input
+                    type="radio"
+                    id="yes1"
+                    name="block1"
+                    class="radio-input radio-yes"
+                  />
                   <label for="yes1" class="setting-btn">Yes</label>
-                  <input type="radio" id="no1" name="block1" class="radio-input radio-no" checked>
+                  <input
+                    type="radio"
+                    id="no1"
+                    name="block1"
+                    class="radio-input radio-no"
+                    checked
+                  />
                   <label for="no1" class="setting-btn active">No</label>
                 </div>
               </div>
@@ -106,26 +145,27 @@
                 <span class="strength-label" id="strength1Label">Weak</span>
               </div>
               <div class="slider-container" id="strength1Container">
-                <input type="range" id="strength1" class="strength-slider" min="1" max="4" value="1">
+                <input
+                  type="range"
+                  id="strength1"
+                  class="strength-slider"
+                  min="1"
+                  max="4"
+                  value="1"
+                />
               </div>
             </div>
           </div>
         </article>
-        <!-- Create New Category Card --> 
+        <!-- Create New Category Card -->
         <article class="card create-category-card">
           <button class="create-category-btn" type="button">
             <span class="plus">+</span>
             <span class="label new-category">Create New Category</span>
           </button>
         </article>
-
       </section>
-
-      
-      
     </main>
     <script type="module" src="../static/js/dashboard.js"></script>
   </body>
-  </html>
-
-
+</html>

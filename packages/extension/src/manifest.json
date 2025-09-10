@@ -33,5 +33,3 @@
   "permissions": ["storage", "tabs", "identity", "identity.email"],
   "host_permissions": ["<all_urls>"]
 }
-
-
