@@ -13,25 +13,20 @@ console.log("Dashboard loaded");
         method: "GET",
       });
       const ok = res?.ok;
-      const el = document.getElementById("backend-health");
-      if (el) {
-        el.classList.remove("status-online", "status-offline");
-        el.classList.add(ok ? "status-online" : "status-offline");
-        el.lastElementChild?.nodeType === Node.TEXT_NODE;
-        const text = ok ? "Backend: Online" : "Backend: Offline";
-        el.childNodes.forEach((n) => {
-          if (n.nodeType === Node.TEXT_NODE) n.textContent = ` ${text}`;
-        });
+      const wrap = document.getElementById("backend-health");
+      const textEl = document.getElementById("backend-health-text");
+      if (wrap && textEl) {
+        wrap.classList.remove("status-online", "status-offline");
+        wrap.classList.add(ok ? "status-online" : "status-offline");
+        textEl.textContent = ok ? "Backend: Online" : "Backend: Offline";
       }
     } catch (_) {
-      const el = document.getElementById("backend-health");
-      if (el) {
-        el.classList.remove("status-online");
-        el.classList.add("status-offline");
-        el.childNodes.forEach((n) => {
-          if (n.nodeType === Node.TEXT_NODE)
-            n.textContent = " Backend: Offline";
-        });
+      const wrap = document.getElementById("backend-health");
+      const textEl = document.getElementById("backend-health-text");
+      if (wrap && textEl) {
+        wrap.classList.remove("status-online");
+        wrap.classList.add("status-offline");
+        textEl.textContent = "Backend: Offline";
       }
     }
 
