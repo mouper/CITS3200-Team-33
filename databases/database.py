@@ -5,22 +5,25 @@ database.py — Central hub to initialise and interact with all DBs.
 from . import metadata_cache_db
 from . import categorised_db
 from . import watched_db
+from . import user_settings_db
 
 def init_all():
     metadata_cache_db.init_db()
     categorised_db.init_db()
     watched_db.init_db()
+    user_settings_db.init_db()
 
 def cleanup_all():
     metadata_cache_db.cleanup()
     categorised_db.cleanup()
     watched_db.cleanup()
+    user_settings_db.cleanup()
 
 def insert_metadata(video_id, metadata_json):
     return metadata_cache_db.insert_metadata(video_id, metadata_json)
 
-def insert_categorised(video_id, category, metadata_json):
-    return categorised_db.insert_categorised(video_id, category, metadata_json)
+def insert_categorised(video_id, category):
+    return categorised_db.insert_categorised(video_id, category)
 
 def log_watch(video_id, start_time=None):
     return watched_db.log_watch(video_id, start_time)
@@ -30,6 +33,12 @@ def get_fresh_metadata():
 
 def get_watch_durations():
     return watched_db.get_durations()
+
+def set_user_settings(category, filter_strength, is_active):
+    return user_settings_db.set_settings(category, filter_strength, is_active)
+
+def get_user_settings(category):
+    return user_settings_db.get_settings(category)
 
 # Auto‑create any missing DBs/tables when this module is loaded
 init_all()

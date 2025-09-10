@@ -3,10 +3,11 @@
 config.py — Central configuration for DB paths and retention periods.
 """
 
-# Database file paths (stored under the project data directory)
-METADATA_DB_PATH    = "data/metadata_cache.db"
-CATEGORIES_DB_PATH  = "data/categorised.db"
-WATCHED_DB_PATH     = "data/watched.db"
+# Database file paths (stored under the project databases directory)
+METADATA_DB_PATH    = "databases/metadata_cache.db"
+CATEGORIES_DB_PATH  = "databases/categorised.db"
+WATCHED_DB_PATH     = "databases/watched.db"
+USER_SETTINGS_DB_PATH = "databases/user_settings.db"
 
 # Retention periods (in seconds)
 METADATA_TTL   = 6 * 60 * 60         # 6 hours

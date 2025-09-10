@@ -10,7 +10,7 @@ def init_db():
     conn = connect_db(WATCHED_DB_PATH)
     execute_query(conn, """
     CREATE TABLE IF NOT EXISTS watched (
-        video_id   TEXT,
+        video_id   TEXT PRIMARY KEY,
         start_time INTEGER,  -- when viewing began
         end_time INTEGER     -- when viewing ended/log saved
     )
