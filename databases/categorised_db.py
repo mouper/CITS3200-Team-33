@@ -13,23 +13,22 @@ def init_db():
     CREATE TABLE IF NOT EXISTS categorised (
         video_id  TEXT PRIMARY KEY,
         category  TEXT,
-        metadata  TEXT,
-        timestamp INTEGER
+        time_categorised INTEGER
     )
     """)
     conn.close()
 
-def insert_categorised(video_id, category, metadata_json):
+def insert_categorised(video_id, category):
     conn = connect_db(CATEGORIES_DB_PATH)
     execute_query(conn,
-        "REPLACE INTO categorised VALUES (?, ?, ?, ?)",
-        (video_id, category, metadata_json, current_timestamp())
+        "REPLACE INTO categorised VALUES (?, ?, ?)",
+        (video_id, category, current_timestamp())
     )
     conn.close()
 
 def cleanup():
     conn = connect_db(CATEGORIES_DB_PATH)
     cutoff = current_timestamp() - CATEGORIES_TTL
-    execute_query(conn, "DELETE FROM categorised WHERE timestamp < ?", (cutoff,))
+    execute_query(conn, "DELETE FROM categorised WHERE time_categorised < ?", (cutoff,))
     conn.close()
 

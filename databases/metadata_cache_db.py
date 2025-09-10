@@ -12,7 +12,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS metadata_cache (
         video_id  TEXT PRIMARY KEY,
         metadata  TEXT,
-        timestamp INTEGER
+        time_cached INTEGER
     )
     """)
     conn.close()
@@ -29,7 +29,7 @@ def get_fresh_metadata():
     conn = connect_db(METADATA_DB_PATH)
     cutoff = current_timestamp() - METADATA_TTL
     rows = fetch_all(conn,
-        "SELECT * FROM metadata_cache WHERE timestamp >= ?",
+        "SELECT * FROM metadata_cache WHERE time_cached >= ?",
         (cutoff,)
     )
     conn.close()
@@ -38,5 +38,5 @@ def get_fresh_metadata():
 def cleanup():
     conn = connect_db(METADATA_DB_PATH)
     cutoff = current_timestamp() - METADATA_TTL
-    execute_query(conn, "DELETE FROM metadata_cache WHERE timestamp < ?", (cutoff,))
+    execute_query(conn, "DELETE FROM metadata_cache WHERE time_cached < ?", (cutoff,))
     conn.close()
