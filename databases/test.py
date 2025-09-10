@@ -1,5 +1,5 @@
 import time, sqlite3, os
-import database  # your central hub
+from . import database
 
 vid = "smoketest001"
 

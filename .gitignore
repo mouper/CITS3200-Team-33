@@ -3,3 +3,5 @@
 instance/
 *.db
 __pycache__
+*.pyc
+databases/__pycache__/

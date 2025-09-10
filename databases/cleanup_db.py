@@ -4,7 +4,7 @@ cleanup_db.py — Periodically cleans all DBs.
 
 import time
 import threading
-import database
+from . import database
 
 def run_cleanups():
     database.cleanup_all()
