@@ -28,7 +28,7 @@ for db_file, table in [
         print(f"{db_file} not found")
 
 print("\n--- Inserting into user_settings_db ---")
-database.set_user_settings("TestCategory", "MEDIUM", True)
+database.set_user_settings("TestCategory", "Moderate", True)
 
 print("\n--- Checking user settings ---")
 print(database.get_user_settings("TestCategory"))
