@@ -2,8 +2,8 @@
 main.py — Entry point for the self-cleaning video data pipeline.
 """
 
-import database
-from cleanup_db import start_scheduler
+from . import database
+from .cleanup_db import start_scheduler
 import time
 
 # Initialise all DBs
