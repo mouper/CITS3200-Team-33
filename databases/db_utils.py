@@ -3,10 +3,14 @@ db_utils.py — Shared helper functions for SQLite DB operations.
 """
 
 import sqlite3
+import os
 import time
 
 def connect_db(path):
-    """Connect to a SQLite database file."""
+    """Connect to a SQLite database file. Ensures parent directory exists."""
+    parent_dir = os.path.dirname(path)
+    if parent_dir and not os.path.exists(parent_dir):
+        os.makedirs(parent_dir, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     return conn
