@@ -30,3 +30,6 @@ def get_fresh_metadata():
 
 def get_watch_durations():
     return watched_db.get_durations()
+
+# Auto‑create any missing DBs/tables when this module is loaded
+init_all()

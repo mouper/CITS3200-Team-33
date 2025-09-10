@@ -1,6 +1,6 @@
 """
 watched_db.py — Logs watch events with start/end times.
-TTL: 30 days
+TTL (Time-To-Live): 30 days
 """
 
 from .db_utils import connect_db, execute_query, fetch_all, current_timestamp

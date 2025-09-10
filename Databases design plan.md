@@ -2,6 +2,7 @@ Databases design plan
 
 ## 1. Metadata Cache DB  
 Purpose: Temporarily store raw metadata from YouTube API until categorisation is done.  
+TTL (Time-To-Live): defines how long data remains valid before it is automatically deleted from the database.
 
 **Possible Schema:**
 
