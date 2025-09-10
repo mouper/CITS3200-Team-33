@@ -74,7 +74,7 @@ export function resetAllCategories() {
 }
 
 
-// Persists category data to localStorage
+// Maintains category data to localStorage
 function saveState() {
   localStorage.setItem("categoryStimulus", JSON.stringify(categoryStimulus));
 }
