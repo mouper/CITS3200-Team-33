@@ -3,8 +3,8 @@ metadata_cache_db.py — Short-term cache for fetched video metadata.
 TTL: 6 hours
 """
 
-from db_utils import connect_db, execute_query, fetch_all, current_timestamp
-from config import METADATA_DB_PATH, METADATA_TTL
+from .db_utils import connect_db, execute_query, fetch_all, current_timestamp
+from .config import METADATA_DB_PATH, METADATA_TTL
 
 def init_db():
     conn = connect_db(METADATA_DB_PATH)

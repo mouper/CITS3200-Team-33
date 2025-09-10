@@ -3,8 +3,8 @@ categorised_db.py — Stores videos and categories for quick reference.
 TTL (Time-To-Live): Cached video data expires after 24 hours to ensure relevance and reduce storage.
 """
 
-from db_utils import connect_db, execute_query, fetch_all, current_timestamp
-from config import CATEGORIES_DB_PATH, CATEGORIES_TTL
+from .db_utils import connect_db, execute_query, fetch_all, current_timestamp
+from .config import CATEGORIES_DB_PATH, CATEGORIES_TTL
 
 def init_db():
     conn = connect_db(CATEGORIES_DB_PATH)

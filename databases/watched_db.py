@@ -3,8 +3,8 @@ watched_db.py — Logs watch events with start/end times.
 TTL: 30 days
 """
 
-from db_utils import connect_db, execute_query, fetch_all, current_timestamp
-from config import WATCHED_DB_PATH, WATCHED_TTL
+from .db_utils import connect_db, execute_query, fetch_all, current_timestamp
+from .config import WATCHED_DB_PATH, WATCHED_TTL
 
 def init_db():
     conn = connect_db(WATCHED_DB_PATH)

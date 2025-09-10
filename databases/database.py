@@ -2,9 +2,9 @@
 database.py — Central hub to initialise and interact with all DBs.
 """
 
-import metadata_cache_db
-import categorised_db
-import watched_db
+from . import metadata_cache_db
+from . import categorised_db
+from . import watched_db
 
 def init_all():
     metadata_cache_db.init_db()
