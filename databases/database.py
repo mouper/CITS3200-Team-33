@@ -19,8 +19,8 @@ def cleanup_all():
 def insert_metadata(video_id, metadata_json):
     return metadata_cache_db.insert_metadata(video_id, metadata_json)
 
-def insert_categorised(video_id, category, metadata_json):
-    return categorised_db.insert_categorised(video_id, category, metadata_json)
+def insert_categorised(video_id, category):
+    return categorised_db.insert_categorised(video_id, category)
 
 def log_watch(video_id, start_time=None):
     return watched_db.log_watch(video_id, start_time)
