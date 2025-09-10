@@ -129,6 +129,36 @@ CITS3200-Team-33/                 # Root project repo
 
 ---
 
+### Start the backend when the frontend is running
+
+Option A — Windows (recommended during development):
+
+```
+scripts\dev.ps1
+```
+
+- Starts the Flask server on `http://127.0.0.1:5050` and tries to open Chrome with the unpacked extension loaded.
+- The dashboard shows a status line under “Overview”: `Backend: Online` or `Backend: Offline`.
+
+Option B — Manual steps:
+
+1. Start the Flask server (from repo root):
+
+```
+python server\run.py
+```
+
+2. Load/open the extension dashboard (see steps above under “Running the browser extension”).
+3. Confirm health: visit `http://127.0.0.1:5050/health` (should return `{ "status": "ok" }`).
+   - The dashboard will also show the status line.
+
+Notes:
+
+- Default host/port are `127.0.0.1:5050`. Change by setting `FLASK_RUN_PORT` (or `PORT`).
+- CORS is enabled for `/api/*`, `/health`, and `/version` for local dev. Lock this down for production.
+
+---
+
 ## Running categorisation on cached videos (llm-client)
 
 Prerequisites:
