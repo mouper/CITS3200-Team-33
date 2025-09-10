@@ -13,17 +13,16 @@ def init_db():
     CREATE TABLE IF NOT EXISTS categorised (
         video_id  TEXT PRIMARY KEY,
         category  TEXT,
-        metadata  TEXT,
         timestamp INTEGER
     )
     """)
     conn.close()
 
-def insert_categorised(video_id, category, metadata_json):
+def insert_categorised(video_id, category):
     conn = connect_db(CATEGORIES_DB_PATH)
     execute_query(conn,
-        "REPLACE INTO categorised VALUES (?, ?, ?, ?)",
-        (video_id, category, metadata_json, current_timestamp())
+        "REPLACE INTO categorised VALUES (?, ?, ?)",
+        (video_id, category, current_timestamp())
     )
     conn.close()
 
