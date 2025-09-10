@@ -1,5 +1,5 @@
 import time, sqlite3, os
-import database  # your central hub
+from . import database
 
 vid = "smoketest001"
 
@@ -17,8 +17,8 @@ print([dict(r) for r in database.get_watch_durations()])
 
 print("\n--- Peeking directly into the tables ---")
 for db_file, table in [
-    ("categorised.db", "categorised"),
-    ("watched.db", "watched")
+    ("data/categorised.db", "categorised"),
+    ("data/watched.db", "watched")
 ]:
     if os.path.exists(db_file):
         conn = sqlite3.connect(db_file)
