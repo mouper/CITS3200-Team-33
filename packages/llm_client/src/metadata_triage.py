@@ -42,7 +42,7 @@ def _get_categorised_ids() -> set:
     path = db_config.CATEGORIES_DB_PATH
     conn = db_utils.connect_db(path)
     try:
-        rows = db_utils.fetch_all(conn, "SELECT video_id FROM categorised_videos")
+        rows = db_utils.fetch_all(conn, "SELECT video_id FROM categorised")
         return {row["video_id"] for row in rows}
     finally:
         conn.close()
@@ -54,7 +54,9 @@ def _fetch_fresh_rows() -> List[Dict[str, Any]]:
     # Convert sqlite3.Row -> plain dict for safer downstream usage
     out: List[Dict[str, Any]] = []
     for r in rows:
-        out.append({"video_id": r["video_id"], "metadata": r["metadata"], "timestamp": r["timestamp"]})
+        # metadata_cache schema uses 'time_cached' not 'timestamp'
+        ts = r["time_cached"] if "time_cached" in r.keys() else r.get("timestamp", None)  # type: ignore
+        out.append({"video_id": r["video_id"], "metadata": r["metadata"], "timestamp": ts})
     return out
 
 def get_fresh_metadata_unprocessed() -> List[Dict[str, Any]]:
@@ -178,6 +180,7 @@ def get_fresh_metadata_triaged() -> List[Dict[str, Any]]:
       }
     """
     rows = get_fresh_metadata_unprocessed()
+    print(f"Triage: fetched {len(rows)} uncategorised rows")
     results: List[Dict[str, Any]] = []
     for r in rows:
         meta = r.get("metadata") or {}
@@ -192,4 +195,5 @@ def get_fresh_metadata_triaged() -> List[Dict[str, Any]]:
                 "CATEGORIES_VERSION": CATEGORIES_VERSION,
             },
         })
+    print(f"Triage: prepared {len(results)} payloads")
     return results
