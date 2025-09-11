@@ -245,3 +245,12 @@ python scripts/sample_json.py --fraction 0.2 --seed 42
 ```
 python scripts/load_and_categorise.py
 ```
+
+4. Populate watched.db and user_settings.db with sample data
+```
+SEED_WATCHED_COUNT=25 python scripts/seed_sample_data.
+
+# change SEED_WATCHED_COUNT to change the number of watched videos added
+# watched video ids are populated from categorised.db
+# settings are populated for all categories with a default 'Moderate' strength + random categories are selected as active
+```
