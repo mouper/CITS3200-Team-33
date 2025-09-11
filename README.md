@@ -237,7 +237,7 @@ The service binds to `127.0.0.1` on the port from `server/.env` (default 5050). 
 2. Create a smaller test json file
 
 ```
-python scripts/sample_json.py --fraction 0.2 --seed 42
+python scripts/json_sampler.py --fraction 0.2 --seed 42
 # change the value after --fraction to change the size of data sampled e.g. --fraction 0.2 = 20% of 397 (the number of videos in youtube_sample_397.json)
 ```
 
