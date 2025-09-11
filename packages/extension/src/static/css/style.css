@@ -226,22 +226,30 @@ body {
   text-align: center;
   display: flex;
   flex-direction: column;
+  padding: 25px 35px;
 }
+
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 26px;
   gap: 2px;
 }
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 .icon-box {
-  width: 40px;
-  height: 40px;
+  width: 45px;
+  height: 45px;
   background: var(--iconBackground);
   border-radius: 8px;
   display: flex;
@@ -251,6 +259,7 @@ body {
 .icon-placeholder {
   font-size: 20px;
 }
+img.icon-svg { width: 37px; height: 37px; display: block; }
 .header-text {
   flex: 1;
   align-items: center;  
@@ -306,7 +315,7 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 25px;
+  margin-bottom: 8px;
 }
 .setting-label {
   color: #f0f1f3;
@@ -316,7 +325,7 @@ body {
 .setting-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
 }
 .setting-status {
   color: #a6adbb;
@@ -368,9 +377,8 @@ body {
   align-items: center;
 }
 .slider-container {
+  padding-top: 8px;
   display: block;
-  margin-top: 10px;
-  margin-bottom: 5px;
 }
 
 /* Slider base */
@@ -431,8 +439,8 @@ body {
 /* Strength label pill */
 .strength-label {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 9999px;
+  padding: 10px 12px;
+  border-radius: 10px;
   font-size: 12px;
   line-height: 1;
 }

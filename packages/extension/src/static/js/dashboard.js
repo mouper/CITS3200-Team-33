@@ -221,7 +221,7 @@ async function renderSettingsCards() {
     card.innerHTML = `
       <div class="card-header">
         <div class="header-left">
-          <div class="icon-box"><div class="icon-placeholder">📊</div></div>
+          <div class="icon-box"><img class="icon-svg" src="../static/assets/category.svg" alt="" /></div>
           <div class="header-text">
             <div class="category-header">${row.category}</div>
             <p class="category-desc"></p>
