@@ -7,6 +7,37 @@ document.getElementById('open-dashboard')?.addEventListener('click', async () =>
 const toggleEl = document.getElementById('toggle-enabled');
 const statusEl = document.getElementById('run-status');
 
+const SERVER_BASE = 'http://127.0.0.1:5050';
+
+async function api(path, opts = {}) {
+  try {
+    const res = await fetch(`${SERVER_BASE}${path}`, {
+      method: opts.method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    return { error: String(err) };
+  }
+}
+
+async function getServerRunning() {
+  const status = await api('/api/classifier/status');
+  return Boolean(status && status.loop_running);
+}
+
+async function waitForServerState(targetRunning, timeoutMs = 1500, stepMs = 100) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const running = await getServerRunning();
+    if (running === targetRunning) return running;
+    await new Promise(r => setTimeout(r, stepMs));
+  }
+  return await getServerRunning();
+}
+
 async function readState() {
   return new Promise((resolve) => {
     chrome.storage.local.get(['mellowEnabled'], (result) => {
@@ -28,14 +59,40 @@ function renderStatus(enabled) {
 
 (async function init() {
   if (!toggleEl) return;
-  const enabled = await readState();
+  // Ask server for actual status first
+  let enabled = false;
+  try {
+    const status = await api('/api/classifier/status');
+    enabled = Boolean(status && status.loop_running);
+  } catch (_) {
+    enabled = await readState();
+  }
   toggleEl.checked = enabled;
   renderStatus(enabled);
 
   toggleEl.addEventListener('change', async () => {
     const next = toggleEl.checked;
-    await writeState(next);
+    // Optimistic UI, but we'll immediately reconcile with server
     renderStatus(next);
+    toggleEl.disabled = true;
+
+    // Tell server to start/stop background worker
+    const result = next
+      ? await api('/api/classifier/start', { method: 'POST', body: {} })
+      : await api('/api/classifier/stop', { method: 'POST' });
+
+    let running;
+    if (result && result.error) {
+      running = !next; // failure -> revert to previous
+    } else {
+      // Wait briefly for background thread to flip state
+      running = await waitForServerState(next);
+    }
+
+    toggleEl.checked = running;
+    renderStatus(running);
+    await writeState(running);
+    toggleEl.disabled = false;
   });
 })();
 
