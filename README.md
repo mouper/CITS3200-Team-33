@@ -228,3 +228,20 @@ python server/run.py
 ```
 
 The service binds to `127.0.0.1` on the port from `server/.env` (default 5050). Future `/api/*` endpoints will require the `X-LOCAL-TOKEN` header from the env file.
+
+---
+
+## Populating the databases with test data
+1. The following steps must be done in the virtual environment with the .db files created ( after all the steps above in 'Running the local Flask service (server)' has been completed)
+
+2. Create a smaller test json file
+
+```
+python scripts/sample_json.py --fraction 0.2 --seed 42
+# change the value after --fraction to change the size of data sampled e.g. --fraction 0.2 = 20% of 397 (the number of videos in youtube_sample_397.json)
+```
+
+3. Categorise and populate categorised.db + metadata_cache.db with test_metadata.json
+```
+python scripts/load_and_categorise.py
+```
