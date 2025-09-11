@@ -505,3 +505,22 @@ renderSettingsCards();
     /* no-op */
   }
 })();
+
+
+fetch("http://127.0.0.1:5050/api/settings/active/count")
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("activeUsersCount").innerText = data.active_users;
+  });
+
+fetch("http://127.0.0.1:5050/api/settings/max-blocked")
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("maxBlockedCategory").innerText = data.category || "N/A";
+  });
+
+  fetch("http://127.0.0.1:5050/api/settings/total-blocked")
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("totalBlockedVideos").innerText = data.total_blocked || "N/A";
+  });
