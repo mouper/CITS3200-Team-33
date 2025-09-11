@@ -46,9 +46,10 @@ def create_app() -> Flask:
     # require_local_token(app)
 
     from .routes import stats
-    # from .routes import metadata, classifier, watched, allostasis
+    from .routes import classifier
+    # from .routes import metadata, watched, allostasis
     # app.register_blueprint(metadata.bp)
-    # app.register_blueprint(classifier.bp)
+    app.register_blueprint(classifier.bp)
     # app.register_blueprint(watched.bp)
     # app.register_blueprint(allostasis.bp)
     app.register_blueprint(stats.bp)
