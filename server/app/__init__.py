@@ -47,9 +47,11 @@ def create_app() -> Flask:
 
     from .routes import stats
     from .routes import classifier
+    from .routes import settings
     # from .routes import metadata, watched, allostasis
     # app.register_blueprint(metadata.bp)
     app.register_blueprint(classifier.bp)
+    app.register_blueprint(settings.bp)
     # app.register_blueprint(watched.bp)
     # app.register_blueprint(allostasis.bp)
     app.register_blueprint(stats.bp)

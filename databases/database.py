@@ -40,5 +40,8 @@ def set_user_settings(category, filter_strength, is_active):
 def get_user_settings(category):
     return user_settings_db.get_settings(category)
 
+def get_all_user_settings():
+    return user_settings_db.get_all_settings()
+
 # Auto‑create any missing DBs/tables when this module is loaded
 init_all()

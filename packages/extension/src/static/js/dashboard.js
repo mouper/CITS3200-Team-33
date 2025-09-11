@@ -82,6 +82,23 @@ console.log("Dashboard loaded");
   }
 })();
 
+// Settings API client
+const SERVER_BASE = "http://127.0.0.1:5050";
+async function api(path, opts = {}) {
+  try {
+    const res = await fetch(`${SERVER_BASE}${path}`, {
+      method: opts.method || "GET",
+      headers: { "Content-Type": "application/json" },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn("API error", path, e);
+    return null;
+  }
+}
+
 // Utility to sync slider fill percent
 function setSliderFill(sliderEl) {
   const min = parseInt(sliderEl.min || "0", 10);
@@ -91,23 +108,32 @@ function setSliderFill(sliderEl) {
   sliderEl.style.setProperty("--fill", pct + "%");
 }
 
-// Helpers to wire behaviors for a settings card by numeric id
-function wireCardBehaviors(cardId) {
+// Helpers to wire behaviors for a settings card by category key
+function wireCardBehaviorsByCategory(category) {
+  const esc = CSS.escape(category);
   // Toggle body
-  const toggle = document.getElementById(`toggle${cardId}`);
-  const body = document.getElementById(`settings${cardId}Body`);
+  const toggle = document.querySelector(`[data-category="${esc}"] .settings-toggle`);
+  const body = document.querySelector(`[data-category="${esc}"] .settings-body`);
   if (toggle && body) {
     const apply = () => body.classList.toggle("hidden", !toggle.checked);
     apply();
-    toggle.addEventListener("change", apply);
+    toggle.addEventListener("change", async () => {
+      apply();
+      // Persist toggle state
+      const currentStrength = getStrengthLabelByCategory(category);
+      await api(`/api/settings/${encodeURIComponent(category)}`, {
+        method: "POST",
+        body: { filter_strength: currentStrength, is_active: toggle.checked },
+      });
+    });
   }
 
   // Slider behavior
-  const slider = document.getElementById(`strength${cardId}`);
-  const label = document.getElementById(`strength${cardId}Label`);
-  const group = document.getElementById(`strength${cardId}Group`);
-  const yesRadio = document.getElementById(`yes${cardId}`);
-  const noRadio = document.getElementById(`no${cardId}`);
+  const slider = document.querySelector(`[data-category="${esc}"] .strength-slider`);
+  const label = document.querySelector(`[data-category="${esc}"] .strength-label`);
+  const group = document.querySelector(`[data-category="${esc}"] .strength-group`);
+  const yesRadio = document.querySelector(`[data-category="${esc}"] .radio-yes`);
+  const noRadio = document.querySelector(`[data-category="${esc}"] .radio-no`);
   if (!slider || !label || !group || !yesRadio || !noRadio) return;
 
   const showGroup = () => group.classList.remove("hidden");
@@ -141,25 +167,191 @@ function wireCardBehaviors(cardId) {
   setSliderFill(slider);
   applyState(parseInt(slider.value, 10));
 
-  slider.addEventListener("input", (e) =>
-    applyState(parseInt(e.target.value, 10))
-  );
+  slider.addEventListener("input", (e) => {
+    const v = parseInt(e.target.value, 10);
+    applyState(v);
+  });
+  slider.addEventListener("change", async (e) => {
+    // Persist strength change
+    const strength = getStrengthLabelByCategory(category);
+    const isActive = Boolean(toggle?.checked);
+    await api(`/api/settings/${encodeURIComponent(category)}`, {
+      method: "POST",
+      body: { filter_strength: strength, is_active: isActive },
+    });
+  });
   yesRadio.addEventListener("change", () => {
     if (yesRadio.checked) {
       slider.value = "4";
       applyState(4);
+      // Persist Extra Strong when blocking all
+      api(`/api/settings/${encodeURIComponent(category)}`, {
+        method: "POST",
+        body: { filter_strength: "Extra Strong", is_active: true },
+      });
     }
   });
   noRadio.addEventListener("change", () => {
     if (noRadio.checked) {
       if (parseInt(slider.value, 10) === 4) slider.value = "3";
       applyState(parseInt(slider.value, 10));
+      // Persist current strength when unblocking all
+      api(`/api/settings/${encodeURIComponent(category)}`, {
+        method: "POST",
+        body: { filter_strength: getStrengthLabelByCategory(category), is_active: true },
+      });
     }
   });
 }
 
-// Initial card is 1
-wireCardBehaviors(1);
+// Render settings cards dynamically
+async function renderSettingsCards() {
+  const container = document.getElementById("cards-categories");
+  if (!container) return;
+
+  const data = await api("/api/settings");
+  const items = (data?.items || []).filter((i) => i.is_active);
+  container.innerHTML = "";
+
+  for (const row of items) {
+    const slug = slugify(row.category);
+    const card = document.createElement("article");
+    card.className = "card settings-card";
+    card.setAttribute("data-category", row.category);
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="header-left">
+          <div class="icon-box"><img class="icon-svg" src="../static/assets/category.svg" alt="" /></div>
+          <div class="header-text">
+            <div class="category-header">${row.category}</div>
+            <p class="category-desc"></p>
+          </div>
+        </div>
+        <div class="toggle-switch">
+          <input type="checkbox" id="toggle-${slug}" class="settings-toggle" ${row.is_active ? "checked" : ""} />
+          <label for="toggle-${slug}"></label>
+        </div>
+      </div>
+      <div class="settings-body">
+        <div class="setting-group">
+          <div class="setting-row">
+            <label class="setting-label">Block All Content</label>
+            <div class="button-group">
+              <input type="radio" id="yes-${slug}" name="block-${slug}" class="radio-input radio-yes" ${row.filter_strength === 'Extra Strong' ? "checked" : ""} />
+              <label for="yes-${slug}" class="setting-btn">Yes</label>
+              <input type="radio" id="no-${slug}" name="block-${slug}" class="radio-input radio-no" ${row.filter_strength !== 'Extra Strong' ? "checked" : ""} />
+              <label for="no-${slug}" class="setting-btn active">No</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group strength-group">
+          <div class="strength-header">
+            <label class="setting-label">Filter Strength</label>
+            <span class="strength-label">${row.filter_strength || 'Weak'}</span>
+          </div>
+          <div class="slider-container">
+            <input type="range" id="strength-${slug}" class="strength-slider" min="1" max="4" value="${mapStrengthToValue(row.filter_strength)}" />
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+    // Wire behaviors for this category
+    wireCardBehaviorsByCategory(row.category);
+    // Ensure slider fill is correct
+    const slider = card.querySelector(".strength-slider");
+    if (slider) setSliderFill(slider);
+  }
+}
+
+function mapStrengthToValue(str) {
+  return str === "Moderate" ? 2 : str === "Strong" ? 3 : str === "Extra Strong" ? 4 : 1;
+}
+
+function slugify(str) {
+  return (str || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+// Helpers
+function getStrengthLabelByCategory(category) {
+  const label = document.querySelector(`[data-category="${CSS.escape(category)}"] .strength-label`);
+  const text = (label?.textContent || "").trim();
+  if (["Weak", "Moderate", "Strong", "Extra Strong"].includes(text)) return text;
+  // Map slider value to label if label text not yet updated
+  const slider = document.querySelector(`[data-category="${CSS.escape(category)}"] .strength-slider`);
+  const val = parseInt(slider?.value || "1", 10);
+  return val === 1 ? "Weak" : val === 2 ? "Moderate" : val === 3 ? "Strong" : "Extra Strong";
+}
+
+// Load initial settings from backend and apply to UI
+renderSettingsCards();
+
+// Edit Categories modal logic
+(function setupEditCategoriesModal() {
+  const btn = document.getElementById("edit-categories-btn");
+  const modal = document.getElementById("edit-categories-modal");
+  if (!btn || !modal) return;
+  const closeBtn = modal.querySelector(".modal-close");
+  const cancelBtn = modal.querySelector(".modal-cancel");
+  const saveBtn = modal.querySelector(".modal-save");
+  const list = document.getElementById("edit-categories-list");
+
+  const open = async () => {
+    modal.classList.remove("hidden");
+    // Populate list
+    const data = await api("/api/settings");
+    const items = data?.items || [];
+    list.innerHTML = items
+      .map((row) => {
+        const slug = slugify(row.category);
+        return `
+          <div class="edit-cat-name">${row.category}</div>
+          <div class="edit-cat-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" id="edit-toggle-${slug}" ${row.is_active ? "checked" : ""}>
+              <label for="edit-toggle-${slug}"></label>
+            </label>
+          </div>
+        `;
+      })
+      .join("");
+  };
+  const close = () => modal.classList.add("hidden");
+
+  btn.addEventListener("click", open);
+  closeBtn?.addEventListener("click", close);
+  cancelBtn?.addEventListener("click", close);
+  modal.querySelector(".modal-backdrop")?.addEventListener("click", close);
+
+  saveBtn?.addEventListener("click", async () => {
+    const data = await api("/api/settings");
+    const items = data?.items || [];
+    // Save toggled states in parallel
+    await Promise.all(
+      items.map((row) => {
+        const slug = slugify(row.category);
+        const el = document.getElementById(`edit-toggle-${slug}`);
+        if (!el) return null;
+        const isActive = Boolean(el.checked);
+        // Send current strength unchanged if not available
+        const strength = row.filter_strength || "Weak";
+        return api(`/api/settings/${encodeURIComponent(row.category)}`, {
+          method: "POST",
+          body: { filter_strength: strength, is_active: isActive },
+        });
+      })
+    );
+
+    // Re-render cards based on new actives
+    await renderSettingsCards();
+    close();
+  });
+})();
 
 // Create New Category cloning
 (function setupCreateCategory() {
