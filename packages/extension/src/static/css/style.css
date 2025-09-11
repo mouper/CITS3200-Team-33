@@ -223,17 +223,20 @@ body {
 
 /* Settings Card Styles */
 .settings-card {
-  padding: 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
 }
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 24px;
+  gap: 2px;
 }
 .header-left {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
 }
 .icon-box {
@@ -250,6 +253,8 @@ body {
 }
 .header-text {
   flex: 1;
+  align-items: center;  
+  padding-top: 10px;
 }
 .card-subtitle {
   color: #a6adbb;
@@ -294,13 +299,14 @@ body {
 
 /* Setting Groups */
 .setting-group {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  margin-bottom: 25px;
 }
 .setting-label {
   color: #f0f1f3;
@@ -364,6 +370,7 @@ body {
 .slider-container {
   display: block;
   margin-top: 10px;
+  margin-bottom: 5px;
 }
 
 /* Slider base */
