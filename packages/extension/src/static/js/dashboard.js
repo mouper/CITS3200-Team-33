@@ -291,6 +291,68 @@ function getStrengthLabelByCategory(category) {
 // Load initial settings from backend and apply to UI
 renderSettingsCards();
 
+// Edit Categories modal logic
+(function setupEditCategoriesModal() {
+  const btn = document.getElementById("edit-categories-btn");
+  const modal = document.getElementById("edit-categories-modal");
+  if (!btn || !modal) return;
+  const closeBtn = modal.querySelector(".modal-close");
+  const cancelBtn = modal.querySelector(".modal-cancel");
+  const saveBtn = modal.querySelector(".modal-save");
+  const list = document.getElementById("edit-categories-list");
+
+  const open = async () => {
+    modal.classList.remove("hidden");
+    // Populate list
+    const data = await api("/api/settings");
+    const items = data?.items || [];
+    list.innerHTML = items
+      .map((row) => {
+        const slug = slugify(row.category);
+        return `
+          <div class="edit-cat-name">${row.category}</div>
+          <div class="edit-cat-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" id="edit-toggle-${slug}" ${row.is_active ? "checked" : ""}>
+              <label for="edit-toggle-${slug}"></label>
+            </label>
+          </div>
+        `;
+      })
+      .join("");
+  };
+  const close = () => modal.classList.add("hidden");
+
+  btn.addEventListener("click", open);
+  closeBtn?.addEventListener("click", close);
+  cancelBtn?.addEventListener("click", close);
+  modal.querySelector(".modal-backdrop")?.addEventListener("click", close);
+
+  saveBtn?.addEventListener("click", async () => {
+    const data = await api("/api/settings");
+    const items = data?.items || [];
+    // Save toggled states in parallel
+    await Promise.all(
+      items.map((row) => {
+        const slug = slugify(row.category);
+        const el = document.getElementById(`edit-toggle-${slug}`);
+        if (!el) return null;
+        const isActive = Boolean(el.checked);
+        // Send current strength unchanged if not available
+        const strength = row.filter_strength || "Weak";
+        return api(`/api/settings/${encodeURIComponent(row.category)}`, {
+          method: "POST",
+          body: { filter_strength: strength, is_active: isActive },
+        });
+      })
+    );
+
+    // Re-render cards based on new actives
+    await renderSettingsCards();
+    close();
+  });
+})();
+
 // Create New Category cloning
 (function setupCreateCategory() {
   const btn = document.querySelector(".create-category-btn");

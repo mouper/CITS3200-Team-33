@@ -453,6 +453,40 @@ body {
   display: none !important;
 }
 
+/* Generic small buttons for dashboard */
+.btn-primary { background: #e8675a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+.btn-primary:hover { filter: brightness(1.05); }
+.btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+.btn-secondary:hover { background: rgba(255,255,255,0.06); }
+
+/* Modal */
+.modal.hidden { display: none; }
+.modal { position: fixed; inset: 0; z-index: 1000; display: block; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+.modal-content { position: relative; margin: 10vh auto; width: min(720px, 92vw); background: radial-gradient(120% 120% at 100% 0%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 60%), #121214; border: 1px solid #242429; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 20px 40px rgba(0, 0, 0, 0.4); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 24px 28px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.modal-title { margin: 0; font-size: 1.5rem; font-family: 'Instrument Sans'; color: #E8675A; text-shadow: 6px 6px 25px #0e0e0e; }
+.modal-close { background: transparent; color: #fff; border: none; font-size: 22px; line-height: 1; cursor: pointer; }
+.modal-body { padding: 24px 28px; max-height: 60vh; overflow: auto; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 14px; padding: 20px 28px 24px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+.edit-categories-list { display: grid; grid-template-columns: 1fr auto; gap: 18px 16px; }
+.edit-cat-name { align-self: center; font-family: 'Instrument Sans'; font-size: 14px; color: #f0f1f3; }
+.edit-cat-toggle { justify-self: end; }
+
+/* Match Edit Categories button typography to category-select */
+#edit-categories-btn {
+  font-family: "Instrument Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Match modal action buttons typography to category-select */
+.modal-footer .btn-primary,
+.modal-footer .btn-secondary {
+  font-family: "Instrument Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 14px;
+}
+
 @media (max-width: 900px) {
   .dashboard-split {
     grid-template-columns: 1fr;
