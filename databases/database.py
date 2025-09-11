@@ -43,5 +43,14 @@ def get_user_settings(category):
 def get_all_user_settings():
     return user_settings_db.get_all_settings()
 
+def count_active_users():
+    return user_settings_db.count_active()
+
+def get_max_blocked_category():
+    return user_settings_db.get_max_blocked_category()
+
+def get_total_blocked_videos():
+    return user_settings_db.get_total_blocked_videos()
+
 # Auto‑create any missing DBs/tables when this module is loaded
 init_all()
