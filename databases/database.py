@@ -34,6 +34,9 @@ def get_fresh_metadata():
 def get_watch_durations():
     return watched_db.get_durations()
 
+def delete_metadata_by_ids(video_ids):
+    return metadata_cache_db.delete_metadata_by_ids(video_ids)
+
 def set_user_settings(category, filter_strength, is_active):
     return user_settings_db.set_settings(category, filter_strength, is_active)
 

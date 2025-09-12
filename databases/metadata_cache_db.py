@@ -40,3 +40,17 @@ def cleanup():
     cutoff = current_timestamp() - METADATA_TTL
     execute_query(conn, "DELETE FROM metadata_cache WHERE time_cached < ?", (cutoff,))
     conn.close()
+
+
+def delete_metadata_by_ids(video_ids):
+    """Delete cached metadata rows for the given list of video_ids.
+
+    No-op if the list is empty.
+    """
+    if not video_ids:
+        return
+    conn = connect_db(METADATA_DB_PATH)
+    placeholders = ",".join(["?"] * len(video_ids))
+    query = f"DELETE FROM metadata_cache WHERE video_id IN ({placeholders})"
+    execute_query(conn, query, tuple(video_ids))
+    conn.close()

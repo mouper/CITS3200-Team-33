@@ -47,7 +47,8 @@ def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
             items = get_fresh_metadata_triaged()
             _status["pending_count"] = len(items)
             if items:
-                written = run_once(model_id)
+                # Pass pre-triaged items so the runner can delete them from cache immediately
+                written = run_once(model_id, pretriaged_items=items)
                 _status["last_written"] = int(written)
                 _status["last_run_ts"] = int(time.time())
                 _status["last_error"] = None
