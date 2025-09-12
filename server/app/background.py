@@ -34,7 +34,10 @@ def _ensure_llm_client_on_path() -> None:
 def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
     _ensure_llm_client_on_path()
     try:
-        from llm_client.src.metadata_triage import get_fresh_metadata_triaged  # type: ignore
+        from llm_client.src.metadata_triage import (
+            get_fresh_metadata_unprocessed,
+            get_fresh_metadata_triaged,
+        )  # type: ignore
         from llm_client.src.categorise_runner import run_once  # type: ignore
     except Exception as exc:  # pragma: no cover
         _status["last_error"] = f"Import error: {exc}"
@@ -44,16 +47,32 @@ def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
     assert _stop_event is not None
     while not _stop_event.is_set():
         try:
-            items = get_fresh_metadata_triaged()
-            _status["pending_count"] = len(items)
-            if items:
-                # Pass pre-triaged items so the runner can delete them from cache immediately
+            pending_rows = get_fresh_metadata_unprocessed()
+            pending_count = len(pending_rows)
+            _status["pending_count"] = pending_count
+            if pending_count:
+                print(f"Background: pending {pending_count} fresh rows; triggering categoriser")
+                # Build triaged items now so we can delete them immediately before classification
+                items = get_fresh_metadata_triaged()
+                try:
+                    from databases import database as db
+                    video_ids = [it.get("videoId") for it in items if it.get("videoId")]
+                    if video_ids:
+                        db.delete_metadata_by_ids(video_ids)
+                        print(f"Background: removed {len(video_ids)} triaged rows from cache")
+                except Exception:
+                    pass
+                # Pass pre-triaged items into the runner to guarantee categorisation runs
                 written = run_once(model_id, pretriaged_items=items)
                 _status["last_written"] = int(written)
                 _status["last_run_ts"] = int(time.time())
                 _status["last_error"] = None
         except Exception as exc:  # pragma: no cover
             _status["last_error"] = str(exc)
+            try:
+                print(f"Background error: {exc}")
+            except Exception:
+                pass
         finally:
             _stop_event.wait(interval_seconds)
     _status["loop_running"] = False
@@ -84,7 +103,7 @@ def start_loop(model_id: str | None = None, interval_seconds: float | None = Non
         _stop_event.clear()
 
     model = model_id or os.getenv("OPENAI_MODEL_ID", "gpt-5-nano")
-    interval = interval_seconds if interval_seconds is not None else float(os.getenv("CLASSIFIER_POLL_INTERVAL", "0.05"))
+    interval = interval_seconds if interval_seconds is not None else float(os.getenv("CLASSIFIER_POLL_INTERVAL", "1"))
 
     _thread = threading.Thread(target=_poll_and_classify, args=(model, interval), daemon=True)
     _thread.start()
