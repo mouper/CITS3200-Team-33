@@ -59,11 +59,21 @@ def parse_and_validate(content: str, allowed_labels: List[str]) -> str:
     return category
 
 
-def run_once(model_id: str) -> int:
+def run_once(model_id: str, pretriaged_items: List[Dict[str, Any]] | None = None) -> int:
     client = OpenAIClient()
-    items = get_fresh_metadata_triaged()
+    # Allow caller to pass pre-triaged items so we don't re-triage here.
+    items = pretriaged_items if pretriaged_items is not None else get_fresh_metadata_triaged()
     print(f"Categoriser: {len(items)} items to process")
     written = 0
+    # Remove items from cache immediately so subsequent loops don't re-triage them.
+    try:
+        video_ids_to_delete = [it.get("videoId") for it in items if it.get("videoId")]
+        if video_ids_to_delete:
+            db.delete_metadata_by_ids(video_ids_to_delete)
+            print(f"Triage: removed {len(video_ids_to_delete)} rows from cache")
+    except Exception:
+        # Best-effort deletion; continue even if cleanup fails
+        pass
     for i, item in enumerate(items, start=1):
         video_id = item["videoId"]
         payload = item["payload"]
