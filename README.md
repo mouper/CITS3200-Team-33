@@ -232,6 +232,7 @@ The service binds to `127.0.0.1` on the port from `server/.env` (default 5050). 
 ---
 
 ## Populating the databases with test data
+
 1. The following steps must be done in the virtual environment with the .db files created ( after all the steps above in 'Running the local Flask service (server)' has been completed)
 
 2. Create a smaller test json file
@@ -241,16 +242,34 @@ python scripts/json_sampler.py --fraction 0.2 --seed 42
 # change the value after --fraction to change the size of data sampled e.g. --fraction 0.2 = 20% of 397 (the number of videos in youtube_sample_397.json)
 ```
 
-3. Categorise and populate categorised.db + metadata_cache.db with test_metadata.json
-```
-python scripts/load_and_categorise.py
+3. Ensure the classifier autorunner is running (so it detects cache rows and categorises)
+
+python server/run.py
+
 ```
 
-4. Populate watched.db and user_settings.db with sample data
+4. Load only the metadata cache with your JSON (autorunner will triage + categorise)
+
 ```
+
+python scripts/load_into_cache.py --file data/test_metadata.json
+
+The autorunner will triage fresh rows, remove them from `metadata_cache`, and write results to `categorised.db`.
+
+```
+
+5. Populate watched.db and user_settings.db with sample data
+
+```
+
 SEED_WATCHED_COUNT=25 python scripts/seed_sample_data.
 
 # change SEED_WATCHED_COUNT to change the number of watched videos added
+
 # watched video ids are populated from categorised.db
+
 # settings are populated for all categories with a default 'Moderate' strength + random categories are selected as active
+
+```
+
 ```
