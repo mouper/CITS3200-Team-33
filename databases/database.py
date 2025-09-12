@@ -6,12 +6,14 @@ from . import metadata_cache_db
 from . import categorised_db
 from . import watched_db
 from . import user_settings_db
+from . import graph_stats
 
 def init_all():
     metadata_cache_db.init_db()
     categorised_db.init_db()
     watched_db.init_db()
     user_settings_db.init_db()
+    graph_stats.init_db()
 
 def cleanup_all():
     metadata_cache_db.cleanup()
@@ -51,6 +53,15 @@ def get_max_blocked_category():
 
 def get_total_blocked_videos():
     return user_settings_db.get_total_blocked_videos()
+
+def set_block_level(category, current_level):
+    return graph_stats.set_block_level(category, current_level)
+
+def get_block_level(category):
+    return graph_stats.get_block_level(category)
+
+def get_all_block_levels():
+    return graph_stats.get_all_block_levels()
 
 # Auto‑create any missing DBs/tables when this module is loaded
 init_all()

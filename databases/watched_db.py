@@ -18,11 +18,12 @@ def init_db():
     conn.close()
 
 def log_watch(video_id, start_time=None):
+    conn = connect_db(WATCHED_DB_PATH)
     if start_time is None:
         start_time = current_timestamp()
     conn = connect_db(WATCHED_DB_PATH)
     execute_query(conn,
-        "INSERT INTO watched VALUES (?, ?, ?)",
+        "REPLACE INTO watched VALUES (?, ?, ?)",
         (video_id, start_time, current_timestamp())
     )
     conn.close()

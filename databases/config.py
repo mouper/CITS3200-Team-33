@@ -8,6 +8,7 @@ METADATA_DB_PATH    = "databases/metadata_cache.db"
 CATEGORIES_DB_PATH  = "databases/categorised.db"
 WATCHED_DB_PATH     = "databases/watched.db"
 USER_SETTINGS_DB_PATH = "databases/user_settings.db"
+GRAPH_STATS_DB_PATH = "databases/category_block_stats.db"
 
 # Retention periods (in seconds)
 METADATA_TTL   = 6 * 60 * 60         # 6 hours

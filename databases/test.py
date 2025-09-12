@@ -42,3 +42,27 @@ if os.path.exists(db_file):
     print(f"{table} : {rows}")
 else:
     print(f"{db_file} not found")
+
+# ...existing code...
+
+print("\n--- Inserting into category_block_stats ---")
+from . import graph_stats
+graph_stats.set_block_level("TestCategory", 0.75)
+
+print("\n--- Checking block level for TestCategory ---")
+print(graph_stats.get_block_level("TestCategory"))
+
+print("\n--- All block levels ---")
+print(graph_stats.get_all_block_levels())
+
+print("\n--- Peeking directly into the category_block_stats table ---")
+db_file = "databases/category_block_stats.db"
+table = "category_block_stats"
+if os.path.exists(db_file):
+    conn = sqlite3.connect(db_file)
+    rows = conn.execute(f"SELECT * FROM {table}").fetchall()
+    print(f"{table} : {rows}")
+    conn.close()
+else:
+    print(f"{db_file} not found")
+
