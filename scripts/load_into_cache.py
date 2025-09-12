@@ -17,6 +17,7 @@ import json
 import os
 import sys
 from typing import Any, Dict, List
+import time
 
 
 def _ensure_paths() -> None:
@@ -74,7 +75,7 @@ def _load_json(path: str) -> List[Dict[str, Any]]:
     raise RuntimeError("Unsupported JSON format: expected array, container with items list, id->object map, or JSON Lines")
 
 
-def _insert_into_cache(items: List[Dict[str, Any]]) -> int:
+def _insert_into_cache(items: List[Dict[str, Any]], slow: bool = False) -> int:
     from databases import database as db  # lazy import after sys.path setup
     inserted = 0
     total = len(items)
@@ -93,6 +94,9 @@ def _insert_into_cache(items: List[Dict[str, Any]]) -> int:
             continue
         db.insert_metadata(str(vid), json.dumps(item, ensure_ascii=False))
         inserted += 1
+        if slow:
+            # Target ~10 inserts per second
+            time.sleep(0.1)
         if idx % 100 == 0:
             print(f"Inserted {idx}/{total} into metadata_cache...")
     return inserted
@@ -103,6 +107,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Load JSON into metadata_cache only")
     parser.add_argument("--file", default="data/test_metadata.json", help="Path to JSON file")
+    parser.add_argument("--slow", action="store_true", help="Throttle inserts to 10 videos/second")
     args = parser.parse_args()
 
     print(f"Loading JSON: {args.file}")
@@ -110,7 +115,19 @@ def main() -> None:
     print(f"Loaded {len(data)} items")
 
     print("Inserting into metadata_cache...")
-    inserted = _insert_into_cache(data)
+    # Signal to background classifier to pause polling/deletions
+    try:
+        from databases import database as db
+        db.set_ingest_active(True)
+    except Exception:
+        pass
+    try:
+        inserted = _insert_into_cache(data, slow=args.slow)
+    finally:
+        try:
+            db.set_ingest_active(False)
+        except Exception:
+            pass
     print(f"Inserted into metadata_cache: {inserted}")
 
 
