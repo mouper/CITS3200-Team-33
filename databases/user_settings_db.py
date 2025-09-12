@@ -11,7 +11,7 @@ def init_db(db_path=USER_SETTINGS_DB_PATH):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_filter_settings (
             category TEXT PRIMARY KEY,
-            filter_strength TEXT CHECK(filter_strength IN ('Weak','Moderate','Strong','Extra Strong')),
+            filter_strength TEXT CHECK(filter_strength IN ('Weak','Moderate','Strong','Extra Strong','Blocked')),
             is_active BOOLEAN NOT NULL CHECK(is_active IN (0, 1)),
             last_updated_time TIMESTAMP
         )
@@ -28,7 +28,7 @@ def init_db(db_path=USER_SETTINGS_DB_PATH):
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_filter_settings_new (
                 category TEXT PRIMARY KEY,
-                filter_strength TEXT CHECK(filter_strength IN ('Weak','Moderate','Strong','Extra Strong')),
+                filter_strength TEXT CHECK(filter_strength IN ('Weak','Moderate','Strong','Extra Strong', 'Blocked')),
                 is_active BOOLEAN NOT NULL CHECK(is_active IN (0, 1)),
                 last_updated_time TIMESTAMP
             )
