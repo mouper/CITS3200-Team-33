@@ -139,7 +139,7 @@ function wireCardBehaviorsByCategory(category) {
   const showGroup = () => group.classList.remove("hidden");
   const hideGroup = () => group.classList.add("hidden");
 
-  const applyState = (val) => {
+  const applyState = (val, isBlocked = false) => {
     showGroup();
     label.classList.remove("is-weak", "is-moderate", "is-strong");
 
@@ -156,8 +156,15 @@ function wireCardBehaviorsByCategory(category) {
       label.classList.add("is-strong");
       noRadio.checked = true;
     } else if (val === 4) {
-      yesRadio.checked = true;
-      hideGroup();
+      if (isBlocked) {
+        label.textContent = "Blocked";
+        yesRadio.checked = true;
+        hideGroup();
+      } else {
+        label.textContent = "Extra Strong";
+        label.classList.add("is-strong");
+        noRadio.checked = true;
+      }
     }
 
     setSliderFill(slider);
@@ -165,11 +172,14 @@ function wireCardBehaviorsByCategory(category) {
 
   // Init
   setSliderFill(slider);
-  applyState(parseInt(slider.value, 10));
+  const initialValue = parseInt(slider.value, 10);
+  const isBlocked = label.textContent.trim() === "Blocked";
+  applyState(initialValue, isBlocked);
 
   slider.addEventListener("input", (e) => {
     const v = parseInt(e.target.value, 10);
-    applyState(v);
+    const isBlocked = v === 4 && yesRadio.checked;
+    applyState(v, isBlocked);
   });
   slider.addEventListener("change", async (e) => {
     // Persist strength change
@@ -183,18 +193,19 @@ function wireCardBehaviorsByCategory(category) {
   yesRadio.addEventListener("change", () => {
     if (yesRadio.checked) {
       slider.value = "4";
-      applyState(4);
-      // Persist Extra Strong when blocking all
+      label.textContent = "Blocked";
+      applyState(4, true);
+      // Persist Blocked when blocking all
       api(`/api/settings/${encodeURIComponent(category)}`, {
         method: "POST",
-        body: { filter_strength: "Extra Strong", is_active: true },
+        body: { filter_strength: "Blocked", is_active: true },
       });
     }
   });
   noRadio.addEventListener("change", () => {
     if (noRadio.checked) {
       if (parseInt(slider.value, 10) === 4) slider.value = "3";
-      applyState(parseInt(slider.value, 10));
+      applyState(parseInt(slider.value, 10), false);
       // Persist current strength when unblocking all
       api(`/api/settings/${encodeURIComponent(category)}`, {
         method: "POST",
@@ -237,9 +248,9 @@ async function renderSettingsCards() {
           <div class="setting-row">
             <label class="setting-label">Block All Content</label>
             <div class="button-group">
-              <input type="radio" id="yes-${slug}" name="block-${slug}" class="radio-input radio-yes" ${row.filter_strength === 'Extra Strong' ? "checked" : ""} />
+              <input type="radio" id="yes-${slug}" name="block-${slug}" class="radio-input radio-yes" ${row.filter_strength === 'Blocked' ? "checked" : ""} />
               <label for="yes-${slug}" class="setting-btn">Yes</label>
-              <input type="radio" id="no-${slug}" name="block-${slug}" class="radio-input radio-no" ${row.filter_strength !== 'Extra Strong' ? "checked" : ""} />
+              <input type="radio" id="no-${slug}" name="block-${slug}" class="radio-input radio-no" ${row.filter_strength !== 'Blocked' ? "checked" : ""} />
               <label for="no-${slug}" class="setting-btn active">No</label>
             </div>
           </div>
@@ -267,7 +278,7 @@ async function renderSettingsCards() {
 }
 
 function mapStrengthToValue(str) {
-  return str === "Moderate" ? 2 : str === "Strong" ? 3 : str === "Extra Strong" ? 4 : 1;
+  return str === "Moderate" ? 2 : str === "Strong" ? 3 : str === "Extra Strong" ? 4 : str === "Blocked" ? 4 : 1;
 }
 
 function slugify(str) {
@@ -281,7 +292,7 @@ function slugify(str) {
 function getStrengthLabelByCategory(category) {
   const label = document.querySelector(`[data-category="${CSS.escape(category)}"] .strength-label`);
   const text = (label?.textContent || "").trim();
-  if (["Weak", "Moderate", "Strong", "Extra Strong"].includes(text)) return text;
+  if (["Weak", "Moderate", "Strong", "Extra Strong", "Blocked"].includes(text)) return text;
   // Map slider value to label if label text not yet updated
   const slider = document.querySelector(`[data-category="${CSS.escape(category)}"] .strength-slider`);
   const val = parseInt(slider?.value || "1", 10);

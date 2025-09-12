@@ -17,18 +17,18 @@ def init_db(db_path=USER_SETTINGS_DB_PATH):
         )
     ''')
 
-    # Detect and repair old invalid CHECK constraint created earlier
+    # Detect and repair old CHECK constraint that doesn't include 'Blocked'
     cursor.execute("""
         SELECT sql FROM sqlite_master
         WHERE type='table' AND name='user_filter_settings'
     """)
     row = cursor.fetchone()
-    if row and row[0] and "and 'Extra Strong'" in row[0]:
+    if row and row[0] and "'Blocked'" not in row[0]:
         # Rebuild table with correct CHECK constraint, preserving data
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_filter_settings_new (
                 category TEXT PRIMARY KEY,
-                filter_strength TEXT CHECK(filter_strength IN ('Weak','Moderate','Strong','Extra Strong', 'Blocked')),
+                filter_strength TEXT CHECK(filter_strength IN ('Weak','Moderate','Strong','Extra Strong','Blocked')),
                 is_active BOOLEAN NOT NULL CHECK(is_active IN (0, 1)),
                 last_updated_time TIMESTAMP
             )

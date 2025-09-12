@@ -44,7 +44,7 @@ def upsert_settings(category: str) -> Any:
     body: Dict[str, Any] = request.get_json(silent=True) or {}
     filter_strength = body.get("filter_strength")
     is_active = bool(body.get("is_active", False))
-    if filter_strength not in {"Weak", "Moderate", "Strong", "Extra Strong"}:
+    if filter_strength not in {"Weak", "Moderate", "Strong", "Extra Strong", "Blocked"}:
         return jsonify({"error": "invalid filter_strength"}), 400
     database.set_user_settings(category, filter_strength, is_active)
     row = database.get_user_settings(category)
