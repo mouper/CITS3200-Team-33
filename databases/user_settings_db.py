@@ -1,6 +1,7 @@
 from datetime import datetime
 from .db_utils import connect_db
 from .config import USER_SETTINGS_DB_PATH
+import sqlite3
 
 def init_db(db_path=USER_SETTINGS_DB_PATH):
     conn = connect_db(db_path)
@@ -99,6 +100,34 @@ def get_all_settings(db_path=USER_SETTINGS_DB_PATH):
 def cleanup(db_path=USER_SETTINGS_DB_PATH):
     # If you want to implement retention, add logic here
     pass
+
+
+def count_active(db_path=USER_SETTINGS_DB_PATH):
+    conn = connect_db(db_path) 
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM user_filter_settings WHERE is_active = 1")
+    count = cur.fetchone()[0]
+    conn.close()
+    return count
+
+def get_max_blocked_category(db_path=USER_SETTINGS_DB_PATH):
+    conn = connect_db(db_path)  # Opens user_filter_settings.db
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT category, MAX(total_blocked_vid)
+        FROM user_filter_settings
+    """)
+    row = cur.fetchone()
+    conn.close()
+    return row[0]
+
+def total_block(db_path=USER_SETTINGS_DB_PATH):
+    conn = connect_db(db_path) 
+    cur = conn.cursor()
+    cur.execute("SELECT sum(total_blocked_vid) FROM user_filter_settings")
+    totalV = cur.fetchone()[0]
+    conn.close()
+    return totalV
 
 if __name__ == "__main__":
     init_db()

@@ -51,3 +51,20 @@ def upsert_settings(category: str) -> Any:
     return jsonify(row), 201
 
 
+@bp.get("/api/settings/active/count")
+def active_count() -> Any:
+    """Return count of active users for the dashboard."""
+    count = database.count_active_users()
+    return jsonify({"active_users": count})
+
+@bp.get("/api/settings/max-blocked")
+def max_blocked_category():
+    """Return category with highest blocked videos."""
+    category = database.get_max_blocked_category()
+    return jsonify({"category": category})
+
+@bp.get("/api/settings/total-blocked")
+def total_blocked_videos():
+    """Return total blocked videos across all categories."""
+    total = database.get_total_blocked_videos()
+    return jsonify({"total_blocked": total})
