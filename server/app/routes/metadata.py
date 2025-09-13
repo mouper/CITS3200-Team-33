@@ -118,8 +118,10 @@ def fetch_youtube_videos_by_id(
 
             row = {
                 "video_id": item.get("id"),
+                "videoId": item.get("id"),  # Add camelCase version for categorizer
                 "title": sn.get("title"),
                 "description": sn.get("description"),
+                "channel": sn.get("channelTitle"),  # Use 'channel' key for categorizer
                 "channel_title": sn.get("channelTitle"),
                 "channel_id": sn.get("channelId"),
                 "publish_time": sn.get("publishedAt"),
@@ -159,11 +161,25 @@ def process_batch_urls():
         if not video_ids:
             return jsonify({'error': 'No valid YouTube video IDs found in URLs'}), 400
         
-        # Check which videos already exist in cache
+        # Check which videos are already categorized OR in cache
         existing_ids = []
         new_ids = []
         
+        # Get already categorized video IDs
+        try:
+            from databases import categorised_db
+            categorized_data = categorised_db.get_all_categorised()
+            categorized_ids = set(item['video_id'] for item in categorized_data if hasattr(item, 'keys'))
+        except ImportError:
+            categorized_ids = set()
+        
         for video_id in video_ids:
+            # Skip if already categorized
+            if video_id in categorized_ids:
+                existing_ids.append(video_id)
+                continue
+                
+            # Skip if already in cache
             existing_metadata = database.get_metadata_by_id(video_id)
             if existing_metadata:
                 existing_ids.append(video_id)
@@ -278,4 +294,117 @@ def get_video_metadata(video_id: str):
         
     except Exception as e:
         current_app.logger.error(f"Error getting video metadata: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@bp.route('/categorization-progress', methods=['GET'])
+def get_categorization_progress():
+    """Get categorization progress statistics."""
+    try:
+        # Check categorizer status to determine if it's actually done
+        from server.app.background import get_status
+        categorizer_status = get_status()
+        pending_count = categorizer_status.get('pending_count', 0)
+        is_running = categorizer_status.get('loop_running', False)
+        
+        # Get categorized videos count
+        try:
+            from databases import categorised_db
+            categorized_data = categorised_db.get_all_categorised()
+            categorized_count = len(categorized_data) if categorized_data else 0
+        except ImportError:
+            categorized_count = 0
+        
+        # Get fresh metadata count
+        fresh_metadata = database.get_fresh_metadata()
+        fresh_count = len(fresh_metadata)
+        
+        # Categorization is complete when:
+        # 1. No pending videos in categorizer AND
+        # 2. Either categorizer is not running OR there are no fresh videos
+        is_complete = pending_count == 0 and (not is_running or fresh_count == 0)
+        
+        # Calculate progress
+        total_videos = fresh_count + categorized_count + pending_count
+        if total_videos == 0:
+            progress = 100
+        else:
+            progress = (categorized_count / total_videos) * 100
+        
+        return jsonify({
+            'success': True,
+            'totalVideos': total_videos,
+            'processedVideos': categorized_count,
+            'categorizedVideos': categorized_count,
+            'unprocessedVideos': fresh_count + pending_count,
+            'pendingInCategorizer': pending_count,
+            'progress': min(progress, 100),
+            'isComplete': is_complete,
+            'categorizerRunning': is_running,
+            'freshCount': fresh_count
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting categorization progress: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@bp.route('/debug-fresh-videos', methods=['GET'])
+def debug_fresh_videos():
+    """Debug endpoint to see all fresh videos."""
+    try:
+        fresh_metadata = database.get_fresh_metadata()
+        fresh_sample = []
+        
+        for item in fresh_metadata:
+            if hasattr(item, 'keys'):
+                fresh_sample.append({
+                    'video_id': item['video_id'],
+                    'time_cached': item['time_cached'],
+                    'metadata': item['metadata']
+                })
+        
+        return jsonify({
+            'success': True,
+            'count': len(fresh_sample),
+            'videos': fresh_sample
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting fresh videos debug: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@bp.route('/categorized-videos', methods=['GET'])
+def get_categorized_videos():
+    """Get all categorized videos with their categories."""
+    try:
+        from databases import categorised_db
+        categorized_data = categorised_db.get_all_categorised()
+        
+        if not categorized_data:
+            return jsonify([])
+        
+        # Format the data for the frontend
+        formatted_data = []
+        for item in categorized_data:
+            # Handle both dict and sqlite3.Row objects
+            if hasattr(item, 'keys'):
+                # sqlite3.Row object
+                formatted_data.append({
+                    'video_id': item['video_id'],
+                    'category': item['category'],
+                    'timestamp': item['time_categorised']
+                })
+            else:
+                # dict object
+                formatted_data.append({
+                    'video_id': item.get('video_id') or item.get('videoId'),
+                    'category': item.get('category') or item.get('category_name'),
+                    'timestamp': item.get('timestamp') or item.get('time_categorized')
+                })
+        
+        return jsonify(formatted_data)
+        
+    except ImportError:
+        return jsonify([])
+    except Exception as e:
+        current_app.logger.error(f"Error getting categorized videos: {e}")
         return jsonify({'error': 'Internal server error'}), 500

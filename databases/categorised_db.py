@@ -26,6 +26,13 @@ def insert_categorised(video_id, category):
     )
     conn.close()
 
+def get_all_categorised():
+    """Get all categorized videos."""
+    conn = connect_db(CATEGORIES_DB_PATH)
+    rows = fetch_all(conn, "SELECT * FROM categorised ORDER BY time_categorised DESC")
+    conn.close()
+    return rows
+
 def cleanup():
     conn = connect_db(CATEGORIES_DB_PATH)
     cutoff = current_timestamp() - CATEGORIES_TTL

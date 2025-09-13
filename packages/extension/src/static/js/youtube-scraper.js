@@ -11,7 +11,7 @@ class YouTubeScraper {
         this.scrapeInterval = null;
         this.isScraping = false;
         this.scrapeDelay = 2000; // 2 seconds between scrapes
-        this.maxUrlsPerBatch = 10; // Limit batch size to avoid overwhelming the API
+        this.maxUrlsPerBatch = 30; // Limit batch size to avoid overwhelming the API
         
         this.init();
     }

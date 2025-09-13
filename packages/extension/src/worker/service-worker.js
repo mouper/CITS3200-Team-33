@@ -49,6 +49,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
       
+    case 'getCategorizationProgress':
+      handleGetProgress(sendResponse);
+      return true; // Keep message channel open for async response
+      
+    case 'getCategorizedVideos':
+      handleGetCategorizedVideos(sendResponse);
+      return true; // Keep message channel open for async response
+      
     default:
       sendResponse({ success: false, error: 'Unknown action' });
   }
@@ -166,6 +174,42 @@ async function sendUrlsToServer(urlBatch) {
   } catch (error) {
     console.error('[Service Worker] Failed to send URLs to server:', error);
     throw error;
+  }
+}
+
+/**
+ * Handle getting categorization progress
+ */
+async function handleGetProgress(sendResponse) {
+  try {
+    const response = await fetch(`${CONFIG.SERVER_URL}/api/metadata/categorization-progress`);
+    if (response.ok) {
+      const data = await response.json();
+      sendResponse({ success: true, data: data });
+    } else {
+      sendResponse({ success: false, error: `Server responded with status: ${response.status}` });
+    }
+  } catch (error) {
+    console.error('[Service Worker] Error getting categorization progress:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Handle getting categorized videos
+ */
+async function handleGetCategorizedVideos(sendResponse) {
+  try {
+    const response = await fetch(`${CONFIG.SERVER_URL}/api/metadata/categorized-videos`);
+    if (response.ok) {
+      const data = await response.json();
+      sendResponse({ success: true, data: data });
+    } else {
+      sendResponse({ success: false, error: `Server responded with status: ${response.status}` });
+    }
+  } catch (error) {
+    console.error('[Service Worker] Error getting categorized videos:', error);
+    sendResponse({ success: false, error: error.message });
   }
 }
 

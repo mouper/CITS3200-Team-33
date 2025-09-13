@@ -35,8 +35,15 @@
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/*", "*://*.youtu.be/*"],
-      "js": ["content/youtube-scraper.js"],
+      "js": ["static/js/youtube-categorization.js"],
+      "css": ["static/css/youtube-categorization.css"],
       "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["static/css/youtube-categorization.css"],
+      "matches": ["*://*.youtube.com/*", "*://*.youtu.be/*"]
     }
   ]
 }
