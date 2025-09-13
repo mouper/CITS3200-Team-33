@@ -31,5 +31,12 @@
     "128": "static/assets/IconDark.png"
   },
   "permissions": ["storage", "tabs", "identity", "identity.email"],
-  "host_permissions": ["<all_urls>"]
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*", "*://*.youtu.be/*"],
+      "js": ["content/youtube-scraper.js"],
+      "run_at": "document_end"
+    }
+  ]
 }

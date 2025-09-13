@@ -273,3 +273,164 @@ SEED_WATCHED_COUNT=25 python scripts/seed_sample_data.
 ```
 
 ```
+
+# YouTube URL Scraping Integration
+
+This feature enables dynamic scraping of YouTube video URLs from the homepage and automatic metadata processing.
+
+## How It Works
+
+1. **Content Script** (`packages/extension/src/content/youtube-scraper.js`)
+   - Runs on YouTube pages
+   - Continuously monitors for recommended video URLs
+   - Extracts video IDs from various YouTube URL formats
+   - Sends URLs to the service worker in batches
+
+2. **Service Worker** (`packages/extension/src/worker/service-worker.js`)
+   - Receives URLs from content script
+   - Queues URLs for processing
+   - Sends batches to the server API
+   - Handles retries and error recovery
+
+3. **Server API** (`server/app/routes/metadata.py`)
+   - Receives URL batches from extension
+   - Extracts video IDs from URLs
+   - Fetches metadata using YouTube Data API
+   - Stores metadata in `metadata_cache.db`
+   - Avoids duplicate processing
+
+4. **Background Categorizer** (`server/app/background.py`)
+   - Continuously monitors for fresh metadata
+   - Automatically categorizes new videos
+   - Moves processed videos to categorized database
+
+## Setup Instructions
+
+### 1. Environment Variables
+
+Set your YouTube API key:
+```bash
+export YT_API_KEY="your_youtube_api_key_here"
+```
+
+Enable background categorization:
+```bash
+export CLASSIFIER_AUTORUN=true
+```
+
+### 2. Start the Server
+
+```bash
+cd server
+python run.py
+```
+
+The server will run on `http://localhost:5050` by default.
+
+### 3. Load the Extension
+
+1. Open Chrome/Edge and go to `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked" and select `packages/extension/src/`
+4. The extension should now be active
+
+### 4. Test the Integration
+
+Run the test script:
+```bash
+python test_youtube_scraping_integration.py
+```
+
+### 5. Use on YouTube
+
+1. Visit `https://www.youtube.com`
+2. Open browser developer tools (F12)
+3. Check the Console tab for scraper logs
+4. The extension will automatically:
+   - Detect recommended videos
+   - Extract their URLs
+   - Send them to your server
+   - Process metadata and categorize them
+
+## Configuration
+
+### Content Script Settings
+
+In `youtube-scraper.js`:
+- `scrapeDelay`: Time between URL scans (default: 2000ms)
+- `maxUrlsPerBatch`: Maximum URLs per batch (default: 10)
+
+### Service Worker Settings
+
+In `service-worker.js`:
+- `SERVER_URL`: Your server URL (default: http://localhost:5000)
+- `BATCH_SIZE`: URLs per API call (default: 10)
+- `PROCESSING_DELAY`: Delay between batches (default: 2000ms)
+- `MAX_RETRIES`: Retry attempts for failed requests (default: 3)
+
+## API Endpoints
+
+- `POST /api/metadata/batch` - Process multiple URLs from extension
+- `POST /api/metadata/fetch` - Fetch single video metadata
+- `GET /api/metadata/fresh` - Get fresh metadata awaiting processing
+- `GET /api/metadata/<video_id>` - Get specific video metadata
+
+## Monitoring
+
+### Browser Console
+Check for logs from:
+- `[YouTube Scraper]` - Content script activity
+- `[Service Worker]` - Background processing
+
+### Server Logs
+Monitor for:
+- API requests from extension
+- Metadata processing
+- Background categorization activity
+
+### Database
+Check `databases/metadata_cache.db` for:
+- Fresh metadata awaiting processing
+- Processed metadata with timestamps
+
+## Troubleshooting
+
+### Extension Not Working
+1. Check browser console for errors
+2. Verify extension is loaded and enabled
+3. Ensure you're on a YouTube page
+4. Check manifest.json permissions
+
+### Server Not Receiving URLs
+1. Verify server is running on correct port
+2. Check CORS settings
+3. Look for network errors in browser console
+4. Test API endpoint manually
+
+### Metadata Not Processing
+1. Check `YT_API_KEY` environment variable
+2. Verify YouTube API quota
+3. Check server logs for API errors
+4. Ensure background categorizer is enabled
+
+### Background Categorizer Not Running
+1. Set `CLASSIFIER_AUTORUN=true`
+2. Check server logs for categorization activity
+3. Verify LLM client is properly configured
+4. Check database for fresh metadata
+
+## URL Patterns Supported
+
+The scraper detects URLs in these formats:
+- `https://www.youtube.com/watch?v=VIDEO_ID`
+- `https://youtu.be/VIDEO_ID`
+- `https://www.youtube.com/shorts/VIDEO_ID`
+- `https://www.youtube.com/embed/VIDEO_ID`
+
+## Performance Considerations
+
+- URLs are deduplicated automatically
+- Processing is batched to avoid API rate limits
+- Failed requests are retried with exponential backoff
+- Old URLs are cleaned up automatically
+- Background processing runs continuously but efficiently
