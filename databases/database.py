@@ -58,7 +58,7 @@ def get_max_blocked_category():
     return user_settings_db.get_max_blocked_category()
 
 def get_total_blocked_videos():
-    return user_settings_db.get_total_blocked_videos()
+    return user_settings_db.total_block()
 
 def set_block_level(category, current_level):
     return graph_stats.set_block_level(category, current_level)
