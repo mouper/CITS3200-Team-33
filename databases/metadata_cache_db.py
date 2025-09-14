@@ -42,6 +42,19 @@ def get_fresh_metadata():
     conn.close()
     return rows
 
+def get_metadata_by_id(video_id):
+    """Get metadata for a specific video ID."""
+    conn = connect_db(METADATA_DB_PATH)
+    rows = fetch_all(conn,
+        "SELECT metadata FROM metadata_cache WHERE video_id = ?",
+        (video_id,)
+    )
+    conn.close()
+    if rows:
+        import json
+        return json.loads(rows[0][0])
+    return None
+
 def cleanup():
     conn = connect_db(METADATA_DB_PATH)
     cutoff = current_timestamp() - METADATA_TTL

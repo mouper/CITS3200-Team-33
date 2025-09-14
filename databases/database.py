@@ -33,6 +33,9 @@ def log_watch(video_id, start_time=None):
 def get_fresh_metadata():
     return metadata_cache_db.get_fresh_metadata()
 
+def get_metadata_by_id(video_id):
+    return metadata_cache_db.get_metadata_by_id(video_id)
+
 def get_watch_durations():
     return watched_db.get_durations()
 
