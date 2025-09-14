@@ -3,5 +3,3 @@
 instance/
 *.db
 __pycache__
-*.pyc
-data/test_metadata.json
