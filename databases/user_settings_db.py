@@ -124,7 +124,7 @@ def get_max_blocked_category(db_path=USER_SETTINGS_DB_PATH):
     conn = connect_db(db_path)  # Opens user_filter_settings.db
     cur = conn.cursor()
     cur.execute("""
-        SELECT category, MAX(total_blocked_vid)
+        SELECT category, MAX(count)
         FROM user_filter_settings
     """)
     row = cur.fetchone()
@@ -134,7 +134,7 @@ def get_max_blocked_category(db_path=USER_SETTINGS_DB_PATH):
 def total_block(db_path=USER_SETTINGS_DB_PATH):
     conn = connect_db(db_path) 
     cur = conn.cursor()
-    cur.execute("SELECT sum(total_blocked_vid) FROM user_filter_settings")
+    cur.execute("SELECT sum(count) FROM user_filter_settings")
     totalV = cur.fetchone()[0]
     conn.close()
     return totalV

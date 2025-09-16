@@ -530,8 +530,116 @@ fetch("http://127.0.0.1:5050/api/settings/max-blocked")
     document.getElementById("maxBlockedCategory").innerText = data.category || "N/A";
   });
 
-  fetch("http://127.0.0.1:5050/api/settings/total-blocked")
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById("totalBlockedVideos").innerText = data.total_blocked || "N/A";
+// Load current week blocked videos statistics
+Promise.all([
+  fetch("http://127.0.0.1:5050/api/blocked-videos/this-week"),
+  fetch("http://127.0.0.1:5050/api/blocked-videos/stats-by-period"),
+  fetch("http://127.0.0.1:5050/api/metadata/categorized-videos")
+])
+  .then(responses => Promise.all(responses.map(res => res.json())))
+  .then(([weekData, periodData, categorizedData]) => {
+    if (weekData.success && periodData.success) {
+      const weekVideos = weekData.videos;
+      const periodStats = periodData.stats;
+      
+      // Calculate total duration for this week
+      const weekDurationHours = weekVideos.reduce((total, video) => {
+        return total + (video.duration_hours || 0);
+      }, 0);
+      
+      // Calculate content removal percentage
+      let contentRemovalPercentage = 0;
+      if (Array.isArray(categorizedData)) {
+        // Filter categorized videos from this week (last 7 days)
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        
+        const thisWeekCategorized = categorizedData.filter(video => {
+          // Handle Unix timestamp (seconds) - convert to milliseconds
+          const videoDate = new Date(video.timestamp * 1000);
+          return videoDate >= oneWeekAgo;
+        });
+        
+        const totalCategorizedThisWeek = thisWeekCategorized.length;
+        const blockedThisWeek = periodStats.this_week || 0;
+        
+        if (totalCategorizedThisWeek > 0) {
+          contentRemovalPercentage = (blockedThisWeek / totalCategorizedThisWeek) * 100;
+        }
+      }
+      
+      // Update "Videos Blocked in Total" with this week's count
+      document.getElementById("totalBlockedVideos").innerText = periodStats.this_week || "0";
+      
+      // Update dashboard cards with current week data
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        const heroText = card.querySelector('.tile-hero-txt');
+        const caption = card.querySelector('.tile-caption');
+        
+        if (heroText && heroText.textContent.includes('Hours Saved This Week')) {
+          if (caption && caption.textContent.includes('Placeholder')) {
+            const hoursFormatted = weekDurationHours >= 1 
+              ? `${weekDurationHours.toFixed(1)} hours` 
+              : `${(weekDurationHours * 60).toFixed(0)} minutes`;
+            caption.textContent = `${hoursFormatted} blocked`;
+          }
+        }
+        
+        // Update "Content Removed" with percentage
+        if (heroText && heroText.textContent.includes('Content Removed')) {
+          if (caption && caption.textContent.includes('Placeholder')) {
+            caption.textContent = `${contentRemovalPercentage.toFixed(1)}%`;
+          }
+        }
+        
+        // Update "Videos Blocked This Week" with actual count
+        if (heroText && heroText.textContent.includes('Videos Blocked This Week')) {
+          if (caption && caption.textContent.includes('Placeholder')) {
+            caption.textContent = `${periodStats.this_week} videos`;
+          }
+        }
+      });
+      
+      console.log(`Dashboard updated with current week data: ${periodStats.this_week} videos, ${weekDurationHours.toFixed(2)} hours, ${contentRemovalPercentage.toFixed(1)}% content removed`);
+    }
+  })
+  .catch(error => {
+    console.warn('Failed to load current week blocked videos stats:', error);
+    // Fallback to total stats if week-specific data fails
+    fetch("http://127.0.0.1:5050/api/blocked-videos/stats")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const stats = data.stats;
+          document.getElementById("totalBlockedVideos").innerText = stats.total_blocked || "N/A";
+          
+          const cards = document.querySelectorAll('.card');
+          cards.forEach(card => {
+            const heroText = card.querySelector('.tile-hero-txt');
+            const caption = card.querySelector('.tile-caption');
+            
+            if (heroText && heroText.textContent.includes('Hours Saved This Week')) {
+              if (caption && caption.textContent.includes('Placeholder')) {
+                caption.textContent = `${stats.total_duration_formatted} blocked`;
+              }
+            }
+            
+            if (heroText && heroText.textContent.includes('Content Removed')) {
+              if (caption && caption.textContent.includes('Placeholder')) {
+                caption.textContent = `${stats.total_blocked} videos`;
+              }
+            }
+            
+            if (heroText && heroText.textContent.includes('Videos Blocked This Week')) {
+              if (caption && caption.textContent.includes('Placeholder')) {
+                caption.textContent = `${stats.total_blocked} videos`;
+              }
+            }
+          });
+        }
+      })
+        .catch(fallbackError => {
+          console.warn('Fallback stats also failed:', fallbackError);
+        });
   });

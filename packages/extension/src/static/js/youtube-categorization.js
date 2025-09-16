@@ -670,6 +670,9 @@ class YouTubeCategorizationManager {
         // Append the overlay to the video container
         videoContainer.appendChild(overlay);
         
+        // Log this blocked video to the database
+        this.logBlockedVideo(videoId, category);
+        
         // Prevent any click events on the overlay
         overlay.addEventListener('click', (e) => {
             e.preventDefault();
@@ -825,6 +828,51 @@ class YouTubeCategorizationManager {
             chunks.push(array.slice(i, i + chunkSize));
         }
         return chunks;
+    }
+
+    async logBlockedVideo(videoId, category) {
+        // Log a blocked video to the database with its duration
+        try {
+            console.log(`[YouTube Categorization] Logging blocked video: ${videoId} (${category})`);
+            
+            // Get video metadata to extract duration
+            const metadata = await this.getVideoMetadata(videoId);
+            
+            // Send to blocked videos API
+            const response = await fetch('http://127.0.0.1:5050/api/blocked-videos/log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    video_id: videoId,
+                    duration: metadata?.duration,
+                    metadata_json: metadata ? JSON.stringify(metadata) : null
+                })
+            });
+            
+            if (response.ok) {
+                console.log(`[YouTube Categorization] Successfully logged blocked video: ${videoId}`);
+            } else {
+                console.warn(`[YouTube Categorization] Failed to log blocked video: ${videoId}`, response.status);
+            }
+        } catch (error) {
+            console.error(`[YouTube Categorization] Error logging blocked video: ${videoId}`, error);
+        }
+    }
+
+    async getVideoMetadata(videoId) {
+        // Get video metadata from the server
+        try {
+            const response = await fetch(`http://127.0.0.1:5050/api/metadata/${videoId}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.metadata;
+            }
+        } catch (error) {
+            console.warn(`[YouTube Categorization] Could not fetch metadata for ${videoId}:`, error);
+        }
+        return null;
     }
 }
 
