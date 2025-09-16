@@ -7,7 +7,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from .config import load_config
@@ -30,7 +30,12 @@ def create_app() -> Flask:
     # CORS: allow configured origins for /api/* and health/version (relaxed during dev)
     allowed_origins = app.config.get("ALLOWED_ORIGINS", ["*"])
     CORS(app, resources={
-        r"/api/*": {"origins": allowed_origins},
+        r"/api/*": {
+            "origins": ["*", "chrome-extension://*", "moz-extension://*"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+            "supports_credentials": False
+        },
         r"/health": {"origins": allowed_origins},
         r"/version": {"origins": allowed_origins},
     })
@@ -50,17 +55,37 @@ def create_app() -> Flask:
     from .routes import settings
     from .routes import metadata
     from .routes import blocked_videos
+    from .routes import filter
     # from .routes import watched, allostasis
     app.register_blueprint(metadata.bp)
     app.register_blueprint(classifier.bp)
     app.register_blueprint(settings.bp)
     app.register_blueprint(blocked_videos.bp)
+    app.register_blueprint(filter.bp)
     # app.register_blueprint(watched.bp)
     # app.register_blueprint(allostasis.bp)
     app.register_blueprint(stats.bp)
 
     # Start background autorun (if enabled via env)
     start_background(app)
+
+    # Add manual CORS handler for Chrome extensions
+    @app.after_request
+    def after_request(response):
+        origin = request.headers.get('Origin')
+        print(f"DEBUG: Request origin: {origin}")
+        print(f"DEBUG: Request method: {request.method}")
+        print(f"DEBUG: Request path: {request.path}")
+        
+        # Always add CORS headers for API routes
+        if request.path.startswith('/api/'):
+            response.headers['Access-Control-Allow-Origin'] = origin or '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+            response.headers['Access-Control-Allow-Credentials'] = 'false'
+            print(f"DEBUG: Added CORS headers for {request.path}")
+        
+        return response
 
     return app
 
