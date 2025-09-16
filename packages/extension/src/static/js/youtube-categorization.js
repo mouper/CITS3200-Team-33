@@ -27,6 +27,12 @@ class YouTubeCategorizationManager {
         this.overlaysApplied = false; // Track if overlays have been applied
         
         this.init();
+        
+        // Watch behavior tracking
+        this.currentVideoId = null;
+        this.currentCategory = null;
+        this.watchStartTime = null;
+        this.watchTrackingInterval = null;
     }
 
     init() {
@@ -56,6 +62,9 @@ class YouTubeCategorizationManager {
         
         // Start periodic label refresh to handle YouTube's dynamic DOM
         this.startPeriodicLabelRefresh();
+        
+        // Start watch behavior tracking
+        this.startWatchTracking();
     }
 
     isYouTubePage() {
@@ -579,7 +588,7 @@ class YouTubeCategorizationManager {
         return null;
     }
 
-    addCategoryLabelToThumbnail(thumbnail, category) {
+    async addCategoryLabelToThumbnail(thumbnail, category) {
         // Extract video ID to track which videos we've already processed
         const videoId = this.extractVideoIdFromThumbnail(thumbnail);
         if (!videoId) {
@@ -593,9 +602,18 @@ class YouTubeCategorizationManager {
             return;
         }
         
-        console.log(`[YouTube Categorization] Adding overlay for video ${videoId}: ${category}`);
+        // Use probabilistic filter to decide whether to block this video
+        const shouldBlock = await this.shouldBlockVideo(videoId, category);
         
-        // Prioritize yt-lockup-view-model, fallback to legacy containers
+        console.log(`[YouTube Categorization] Filter decision for video ${videoId} (${category}): ${shouldBlock ? 'BLOCKED' : 'ALLOWED'}`);
+        console.log(`[YouTube Categorization] About to add overlay for video ${videoId} - shouldBlock: ${shouldBlock}`);
+        
+        // Always show the category overlay, but only block interactions if filtered
+        await this.addCategoryOverlay(thumbnail, category, videoId, shouldBlock);
+    }
+
+    async addCategoryOverlay(thumbnail, category, videoId, shouldBlock) {
+        // Find the video container
         let videoContainer = thumbnail.closest('.yt-lockup-view-model');
         
         if (!videoContainer) {
@@ -628,84 +646,74 @@ class YouTubeCategorizationManager {
         videoContainer.style.position = 'relative';
         videoContainer.style.overflow = 'visible';
         
-        // Create the blocking overlay that covers the container
+        // Create the category overlay
         const overlay = document.createElement('div');
-        overlay.className = 'mellow-category-overlay';
+        overlay.className = `mellow-category-overlay ${shouldBlock ? 'blocked' : 'unblocked'}`;
         overlay.textContent = category;
+        
+        console.log(`[YouTube Categorization] Creating overlay for video ${videoId} with class: ${overlay.className}`);
         
         // For smaller containers (thumbnails), adjust the overlay styling
         const isSmallContainer = videoContainer.offsetWidth < 200;
         const fontSize = isSmallContainer ? '14px' : '18px';
         const padding = isSmallContainer ? '8px' : '15px';
         
-        // Apply styles to block the container
+        // Apply additional inline styles for sizing
         overlay.style.cssText = `
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            background: rgba(0, 0, 0, 0.85) !important;
-            color: white !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
             font-size: ${fontSize} !important;
-            font-weight: bold !important;
-            z-index: 9999 !important;
-            text-align: center !important;
             padding: ${padding} !important;
-            box-sizing: border-box !important;
-            word-wrap: break-word !important;
-            text-transform: capitalize !important;
-            pointer-events: auto !important;
-            border: 2px solid rgba(255, 255, 255, 0.3) !important;
-            cursor: default !important;
         `;
-        
-        // Disable all interactions on the video container
-        videoContainer.style.pointerEvents = 'none';
-        videoContainer.style.userSelect = 'none';
         
         // Append the overlay to the video container
         videoContainer.appendChild(overlay);
         
-        // Log this blocked video to the database
-        this.logBlockedVideo(videoId, category);
+        // Handle interactions based on whether video is blocked
+        if (shouldBlock) {
+            // For blocked videos: disable interactions on the video container
+            // The overlay will catch clicks and prevent them from reaching the video
+            videoContainer.style.pointerEvents = 'none';
+            videoContainer.style.userSelect = 'none';
+            
+            // Log this blocked video to the database
+            this.logBlockedVideo(videoId, category);
+            
+            // Add click prevention to the overlay
+            overlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(`[YouTube Categorization] Blocked click on video ${videoId} (${category})`);
+                return false;
+            }, true);
+            
+            overlay.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }, true);
+            
+            overlay.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }, true);
+            
+            console.log(`[YouTube Categorization] BLOCKED video ${videoId} (${category}) - interactions disabled`);
+        } else {
+            // For unblocked videos: allow interactions to pass through
+            // The overlay has pointer-events: none so clicks go through to the video
+            videoContainer.style.pointerEvents = 'auto';
+            videoContainer.style.userSelect = 'auto';
+            
+            console.log(`[YouTube Categorization] ALLOWED video ${videoId} (${category}) - interactions enabled`);
+        }
         
-        // Prevent any click events on the overlay
-        overlay.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }, true);
+        // Mark this video as processed
+        this.overlayedVideos.add(videoId);
         
-        overlay.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }, true);
-        
-        // Check if overlay is visible and retry if needed
+        // Check if overlay is visible
         const checkVisibility = () => {
             const isVisible = overlay.offsetWidth > 0 && overlay.offsetHeight > 0;
-            console.log(`[YouTube Categorization] Added blocking overlay "${category}" to container (visible: ${isVisible}, width: ${overlay.offsetWidth}, height: ${overlay.offsetHeight})`);
-            
-            if (!isVisible) {
-                console.log(`[YouTube Categorization] Overlay not visible, container info:`, {
-                    tag: videoContainer.tagName,
-                    className: videoContainer.className,
-                    width: videoContainer.offsetWidth,
-                    height: videoContainer.offsetHeight,
-                    position: window.getComputedStyle(videoContainer).position,
-                    display: window.getComputedStyle(videoContainer).display,
-                    parentWidth: videoContainer.parentElement ? videoContainer.parentElement.offsetWidth : 'no parent',
-                    parentHeight: videoContainer.parentElement ? videoContainer.parentElement.offsetHeight : 'no parent'
-                });
-                
-                // Try creating a more visible test overlay
-                this.createTestOverlay(videoContainer, category, videoId);
-            }
+            console.log(`[YouTube Categorization] Added ${shouldBlock ? 'BLOCKING' : 'LABEL'} overlay "${category}" to container (visible: ${isVisible}, width: ${overlay.offsetWidth}, height: ${overlay.offsetHeight})`);
             return isVisible;
         };
         
@@ -833,12 +841,15 @@ class YouTubeCategorizationManager {
     async logBlockedVideo(videoId, category) {
         // Log a blocked video to the database with its duration
         try {
+            console.log(`[YouTube Categorization] ===== LOGGING BLOCKED VIDEO =====`);
             console.log(`[YouTube Categorization] Logging blocked video: ${videoId} (${category})`);
             
             // Get video metadata to extract duration
             const metadata = await this.getVideoMetadata(videoId);
+            console.log(`[YouTube Categorization] Got metadata for ${videoId}:`, metadata);
             
             // Send to blocked videos API
+            console.log(`[YouTube Categorization] Sending POST request to blocked-videos API for ${videoId}`);
             const response = await fetch('http://127.0.0.1:5050/api/blocked-videos/log', {
                 method: 'POST',
                 headers: {
@@ -851,8 +862,11 @@ class YouTubeCategorizationManager {
                 })
             });
             
+            console.log(`[YouTube Categorization] Blocked videos API response status: ${response.status} for ${videoId}`);
+            
             if (response.ok) {
-                console.log(`[YouTube Categorization] Successfully logged blocked video: ${videoId}`);
+                const responseData = await response.json();
+                console.log(`[YouTube Categorization] Successfully logged blocked video: ${videoId}`, responseData);
             } else {
                 console.warn(`[YouTube Categorization] Failed to log blocked video: ${videoId}`, response.status);
             }
@@ -871,6 +885,124 @@ class YouTubeCategorizationManager {
             }
         } catch (error) {
             console.warn(`[YouTube Categorization] Could not fetch metadata for ${videoId}:`, error);
+        }
+        return null;
+    }
+
+    async shouldBlockVideo(videoId, category) {
+        // Use the probabilistic filter to decide whether to block a video
+        console.log(`[YouTube Categorization] Making filter request for ${videoId} (${category})`);
+        try {
+            const response = await fetch('http://127.0.0.1:5050/api/filter/decide', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    category: category,
+                    video_id: videoId
+                })
+            });
+            
+            console.log(`[YouTube Categorization] Filter response status: ${response.status} for ${videoId}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`[YouTube Categorization] Filter decision for ${videoId} (${category}):`, data);
+                console.log(`[YouTube Categorization] Should block: ${data.should_filter} for ${videoId}`);
+                return data.should_filter;
+            } else {
+                console.warn(`[YouTube Categorization] Failed to get filter decision for ${videoId}:`, response.status);
+                // Default to NOT blocking if filter is unavailable - let user decide
+                console.log(`[YouTube Categorization] Defaulting to ALLOW for ${videoId} due to API error`);
+                return false;
+            }
+        } catch (error) {
+            console.error(`[YouTube Categorization] Error getting filter decision for ${videoId}:`, error);
+            // Default to NOT blocking if filter is unavailable - let user decide
+            console.log(`[YouTube Categorization] Defaulting to ALLOW for ${videoId} due to network error`);
+            return false;
+        }
+    }
+
+    async updateFilterState(videoId, category, watched, watchtimeMins) {
+        // Update the probabilistic filter state based on user watch behavior
+        try {
+            const response = await fetch('http://127.0.0.1:5050/api/filter/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    category: category,
+                    watched: watched,
+                    watchtime_mins: watchtimeMins
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`[YouTube Categorization] Updated filter state for ${videoId} (${category}):`, data);
+                return data;
+            } else {
+                console.warn(`[YouTube Categorization] Failed to update filter state for ${videoId}:`, response.status);
+            }
+        } catch (error) {
+            console.error(`[YouTube Categorization] Error updating filter state for ${videoId}:`, error);
+        }
+        return null;
+    }
+
+    startWatchTracking() {
+        // Track when user starts watching a video
+        this.watchTrackingInterval = setInterval(() => {
+            this.checkCurrentVideo();
+        }, 5000); // Check every 5 seconds
+    }
+
+    async checkCurrentVideo() {
+        // Check if we're on a video page and get the current video info
+        const videoId = this.extractVideoId(window.location.href);
+        
+        if (videoId && videoId !== this.currentVideoId) {
+            // New video detected
+            if (this.currentVideoId && this.currentCategory && this.watchStartTime) {
+                // Log the previous video watch time
+                const watchTimeMins = (Date.now() - this.watchStartTime) / (1000 * 60);
+                await this.updateFilterState(this.currentVideoId, this.currentCategory, true, watchTimeMins);
+            }
+            
+            // Start tracking new video
+            this.currentVideoId = videoId;
+            this.watchStartTime = Date.now();
+            
+            // Get category for current video
+            this.currentCategory = await this.getVideoCategory(videoId);
+            
+            console.log(`[YouTube Categorization] Started tracking video ${videoId} (${this.currentCategory})`);
+        } else if (!videoId && this.currentVideoId) {
+            // Left video page
+            if (this.currentCategory && this.watchStartTime) {
+                const watchTimeMins = (Date.now() - this.watchStartTime) / (1000 * 60);
+                await this.updateFilterState(this.currentVideoId, this.currentCategory, true, watchTimeMins);
+            }
+            
+            this.currentVideoId = null;
+            this.currentCategory = null;
+            this.watchStartTime = null;
+        }
+    }
+
+    async getVideoCategory(videoId) {
+        // Get category for a video from the categorized database
+        try {
+            const response = await fetch(`http://127.0.0.1:5050/api/categorised/${videoId}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.category;
+            }
+        } catch (error) {
+            console.warn(`[YouTube Categorization] Could not fetch category for ${videoId}:`, error);
         }
         return null;
     }
