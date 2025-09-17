@@ -139,5 +139,23 @@ def total_block(db_path=USER_SETTINGS_DB_PATH):
     conn.close()
     return totalV
 
+def get_all_strength_levels(db_path=USER_SETTINGS_DB_PATH):
+    """
+    Returns a dictionary mapping category names to their filter strength levels.
+    Used by the probabilistic filter to determine blocking behavior.
+    """
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT category, filter_strength
+        FROM user_filter_settings
+        WHERE is_active = 1
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Convert to dictionary: category -> filter_strength
+    return {row[0]: row[1] for row in rows}
+
 if __name__ == "__main__":
     init_db()

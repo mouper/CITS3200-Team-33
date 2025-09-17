@@ -121,7 +121,22 @@
     box-sizing: border-box !important;
     word-wrap: break-word !important;
     text-transform: capitalize !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Blocked video overlay - prevents clicks */
+.mellow-category-overlay.blocked {
+    pointer-events: auto !important;
+    cursor: not-allowed !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    border: 2px solid rgba(255, 0, 0, 0.5) !important;
+}
+
+/* Unblocked video overlay - allows clicks through */
+.mellow-category-overlay.unblocked {
     pointer-events: none !important;
+    cursor: pointer !important;
+    background: rgba(0, 0, 0, 0.6) !important;
     border: 2px solid rgba(255, 255, 255, 0.3) !important;
 }
 
