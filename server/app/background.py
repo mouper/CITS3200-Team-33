@@ -17,6 +17,7 @@ _status: Dict[str, Any] = {
     "last_written": 0,
     "last_error": None,
     "pending_count": 0,
+    "classify_inflight": False,
 }
 
 _stop_event: Event | None = None
@@ -47,6 +48,16 @@ def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
     assert _stop_event is not None
     while not _stop_event.is_set():
         try:
+            # Do not poll while a classification run is in-flight
+            if _status.get("classify_inflight"):
+                continue
+            # Skip polling entirely if ingestion is active
+            try:
+                from databases import database as db
+                if db.is_ingest_active():
+                    continue
+            except Exception:
+                pass
             pending_rows = get_fresh_metadata_unprocessed()
             pending_count = len(pending_rows)
             _status["pending_count"] = pending_count
@@ -54,19 +65,19 @@ def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
                 print(f"Background: pending {pending_count} fresh rows; triggering categoriser")
                 # Build triaged items now so we can delete them immediately before classification
                 items = get_fresh_metadata_triaged()
-                try:
-                    from databases import database as db
-                    video_ids = [it.get("videoId") for it in items if it.get("videoId")]
-                    if video_ids:
-                        db.delete_metadata_by_ids(video_ids)
-                        print(f"Background: removed {len(video_ids)} triaged rows from cache")
-                except Exception:
-                    pass
-                # Pass pre-triaged items into the runner to guarantee categorisation runs
-                written = run_once(model_id, pretriaged_items=items)
-                _status["last_written"] = int(written)
-                _status["last_run_ts"] = int(time.time())
-                _status["last_error"] = None
+                def classify_async(payload_items):
+                    _status["classify_inflight"] = True
+                    try:
+                        written_local = run_once(model_id, pretriaged_items=payload_items)
+                        _status["last_written"] = int(written_local)
+                        _status["last_run_ts"] = int(time.time())
+                        _status["last_error"] = None
+                    except Exception as exc:
+                        _status["last_error"] = str(exc)
+                    finally:
+                        _status["classify_inflight"] = False
+                # Run classification on a separate thread so inserts into metadata_cache are never blocked
+                threading.Thread(target=classify_async, args=(items,), daemon=True).start()
         except Exception as exc:  # pragma: no cover
             _status["last_error"] = str(exc)
             try:
@@ -102,8 +113,8 @@ def start_loop(model_id: str | None = None, interval_seconds: float | None = Non
     else:
         _stop_event.clear()
 
-    model = model_id or os.getenv("OPENAI_MODEL_ID", "gpt-5-nano")
-    interval = interval_seconds if interval_seconds is not None else float(os.getenv("CLASSIFIER_POLL_INTERVAL", "1"))
+    model = model_id or os.getenv("OPENAI_MODEL_ID", "gpt-4.1-nano")
+    interval = interval_seconds if interval_seconds is not None else float(os.getenv("CLASSIFIER_POLL_INTERVAL", "0.5"))
 
     _thread = threading.Thread(target=_poll_and_classify, args=(model, interval), daemon=True)
     _thread.start()

@@ -13,7 +13,8 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .metadata_triage import (
     get_fresh_metadata_triaged,
@@ -60,45 +61,63 @@ def parse_and_validate(content: str, allowed_labels: List[str]) -> str:
 
 
 def run_once(model_id: str, pretriaged_items: List[Dict[str, Any]] | None = None) -> int:
-    client = OpenAIClient()
     # Allow caller to pass pre-triaged items so we don't re-triage here.
     items = pretriaged_items if pretriaged_items is not None else get_fresh_metadata_triaged()
-    print(f"Categoriser: {len(items)} items to process")
-    written = 0
-    # Remove items from cache immediately so subsequent loops don't re-triage them.
+
+    # Deduplicate by videoId while preserving order
+    seen: set = set()
+    unique_items: List[Dict[str, Any]] = []
+    for it in items:
+        vid = it.get("videoId")
+        if not vid or vid in seen:
+            continue
+        seen.add(vid)
+        unique_items.append(it)
+
+    # Remove ALL triaged items from cache immediately so subsequent loops don't re-triage them
     try:
-        video_ids_to_delete = [it.get("videoId") for it in items if it.get("videoId")]
+        video_ids_to_delete = [it.get("videoId") for it in unique_items if it.get("videoId")]
         if video_ids_to_delete:
             db.delete_metadata_by_ids(video_ids_to_delete)
             print(f"Triage: removed {len(video_ids_to_delete)} rows from cache")
     except Exception:
         # Best-effort deletion; continue even if cleanup fails
         pass
-    for i, item in enumerate(items, start=1):
+
+    # Now process everything with concurrency up to 5
+    print(f"Categoriser: processing {len(unique_items)} item(s) with concurrency=5")
+
+    def classify_one(item: Dict[str, Any]) -> Tuple[str, bool]:
         video_id = item["videoId"]
         payload = item["payload"]
         system, labels_block, user_payload = assemble_prompt(payload, ALLOWED_LABELS)
-
-        # One attempt + one retry on parse failure only
+        # Use a dedicated client per thread to avoid shared state issues
+        local_client = OpenAIClient()
         for attempt in range(2):
             try:
-                content = call_classifier(client, model_id, system, labels_block, user_payload)
+                content = call_classifier(local_client, model_id, system, labels_block, user_payload)
                 category = parse_and_validate(content, ALLOWED_LABELS)
-                # Persist
                 db.insert_categorised(video_id, category)
-                written += 1
-                break
-            except (ParseError, RequestException, RuntimeError) as e:
-                # Treat parser errors and transient network/runtime issues as retryable once
+                return (video_id, True)
+            except (ParseError, RequestException, RuntimeError):
                 if attempt == 0:
                     time.sleep(0.5)
                     continue
-                else:
-                    # Fail fast after second attempt
-                    break
-        if i % 5 == 0:
-            print(f"Progress: processed {i}/{len(items)}, written {written}")
-    print(f"Categoriser done. Total written: {written}")
+                return (video_id, False)
+
+    written = 0
+    if not unique_items:
+        print("Categoriser: no items to process")
+        return 0
+
+    with ThreadPoolExecutor(max_workers=min(5, len(unique_items))) as executor:
+        future_to_vid = {executor.submit(classify_one, it): it["videoId"] for it in unique_items}
+        for future in as_completed(future_to_vid):
+            vid, ok = future.result()
+            if ok:
+                written += 1
+
+    print(f"Categoriser done. Written {written}/{len(unique_items)}")
     return written
 
 

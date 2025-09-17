@@ -15,6 +15,13 @@ def init_db():
         time_cached INTEGER
     )
     """)
+    # Control table for coordination flags (e.g., ingest in-flight)
+    execute_query(conn, """
+    CREATE TABLE IF NOT EXISTS control (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )
+    """)
     conn.close()
 
 def insert_metadata(video_id, metadata_json):
@@ -67,3 +74,24 @@ def delete_metadata_by_ids(video_ids):
     query = f"DELETE FROM metadata_cache WHERE video_id IN ({placeholders})"
     execute_query(conn, query, tuple(video_ids))
     conn.close()
+
+
+def set_ingest_active(active: bool):
+    """Set the ingestion in-flight flag in the control table."""
+    conn = connect_db(METADATA_DB_PATH)
+    execute_query(conn,
+        "REPLACE INTO control (key, value) VALUES ('ingest_active', ?)",
+        ("1" if active else "0",)
+    )
+    conn.close()
+
+
+def is_ingest_active() -> bool:
+    """Return True if ingestion is currently marked active."""
+    conn = connect_db(METADATA_DB_PATH)
+    rows = fetch_all(conn, "SELECT value FROM control WHERE key = 'ingest_active'", ())
+    conn.close()
+    if not rows:
+        return False
+    val = rows[0][0] if isinstance(rows[0], tuple) else rows[0]["value"]
+    return str(val) == "1"
