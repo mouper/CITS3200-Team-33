@@ -8,13 +8,20 @@ from .config import METADATA_DB_PATH, METADATA_TTL
 
 def init_db():
     conn = connect_db(METADATA_DB_PATH)
-    execute_query(conn, """
+    # Add video_length column if missing
+    conn.execute("""
     CREATE TABLE IF NOT EXISTS metadata_cache (
         video_id  TEXT PRIMARY KEY,
         metadata  TEXT,
-        time_cached INTEGER
+        time_cached INTEGER,
+        video_length REAL
     )
     """)
+    # Add video_length column for existing DBs
+    cursor = conn.execute("PRAGMA table_info(metadata_cache)")
+    columns = [col[1] for col in cursor.fetchall()]
+    if 'video_length' not in columns:
+        conn.execute("ALTER TABLE metadata_cache ADD COLUMN video_length REAL")
     # Control table for coordination flags (e.g., ingest in-flight)
     execute_query(conn, """
     CREATE TABLE IF NOT EXISTS control (
@@ -24,11 +31,11 @@ def init_db():
     """)
     conn.close()
 
-def insert_metadata(video_id, metadata_json):
+def insert_metadata(video_id, metadata_json, video_length=None):
     conn = connect_db(METADATA_DB_PATH)
     execute_query(conn,
-        "REPLACE INTO metadata_cache VALUES (?, ?, ?)",
-        (video_id, metadata_json, current_timestamp())
+        "REPLACE INTO metadata_cache (video_id, metadata, time_cached, video_length) VALUES (?, ?, ?, ?)",
+        (video_id, metadata_json, current_timestamp(), video_length)
     )
     conn.close()
 
@@ -43,16 +50,19 @@ def get_fresh_metadata():
     return rows
 
 def get_metadata_by_id(video_id):
-    """Get metadata for a specific video ID."""
+    """Get metadata and video_length for a specific video ID."""
     conn = connect_db(METADATA_DB_PATH)
     rows = fetch_all(conn,
-        "SELECT metadata FROM metadata_cache WHERE video_id = ?",
+        "SELECT metadata, video_length FROM metadata_cache WHERE video_id = ?",
         (video_id,)
     )
     conn.close()
     if rows:
         import json
-        return json.loads(rows[0][0])
+        return {
+            "metadata": json.loads(rows[0][0]),
+            "video_length": rows[0][1]
+        }
     return None
 
 def cleanup():
