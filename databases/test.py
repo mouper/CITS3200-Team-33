@@ -67,3 +67,14 @@ if os.path.exists(db_file):
 else:
     print(f"{db_file} not found")
 
+print("\n--- Inserting metadata with video length ---")
+database.insert_metadata("vid123", '{"title": "Test Video"}', video_length=120)
+
+print("\n--- Fetching metadata by ID ---")
+meta = database.get_metadata_by_id("vid123")
+print(meta)  # Should include metadata and video_length
+
+print("\n--- Fetching all fresh metadata ---")
+fresh = database.get_fresh_metadata()
+print(fresh)  # Each row should include video_length
+
