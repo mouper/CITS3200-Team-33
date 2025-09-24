@@ -17,13 +17,6 @@ def init_db():
     )
     """)
     
-    # Add blocked_at column to existing tables if it doesn't exist
-    try:
-        execute_query(conn, "ALTER TABLE blocked_videos ADD COLUMN blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    except:
-        # Column already exists, ignore error
-        pass
-    
     conn.close()
 
 def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_hours=None, metadata_json=None, blocked_at=None):
