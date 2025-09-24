@@ -9,7 +9,7 @@ from .config import METADATA_DB_PATH, METADATA_TTL
 def init_db():
     conn = connect_db(METADATA_DB_PATH)
     # Add video_length column if missing
-    conn.execute("""
+    execute_query(conn, """
     CREATE TABLE IF NOT EXISTS metadata_cache (
         video_id  TEXT PRIMARY KEY,
         metadata  TEXT,
