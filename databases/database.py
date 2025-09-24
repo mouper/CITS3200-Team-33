@@ -51,8 +51,8 @@ def set_ingest_active(active: bool):
 def is_ingest_active() -> bool:
     return metadata_cache_db.is_ingest_active()
 
-def set_user_settings(category, filter_strength, is_active, count=0):
-    return user_settings_db.set_settings(category, filter_strength, is_active, count)
+def set_user_settings(category, filter_strength, is_active, count=0, total_blocked_time=0):
+    return user_settings_db.set_settings(category, filter_strength, is_active, count, total_blocked_time)
 
 def get_user_settings(category):
     return user_settings_db.get_settings(category)
