@@ -28,12 +28,17 @@ for db_file, table in [
         print(f"{db_file} not found")
 
 print("\n--- Inserting into user_settings_db ---")
-database.set_user_settings("TestCategory", "Moderate", True, count=3)
+database.set_user_settings("TestCategory", "Moderate", True, count=3, total_blocked_time=120)
 
 print("\n--- Checking user settings ---")
 settings = database.get_user_settings("TestCategory")
 print(settings)
-print(f"Count value: {settings.get('count')}")  # Print count value
+print(f"Count value: {settings.get('count')}")
+print(f"Total blocked time: {settings.get('total_blocked_time')}")
+
+print("\n--- All user settings ---")
+all_settings = database.get_all_user_settings()
+print(all_settings)
 
 print("\n--- Peeking directly into the user_filter_settings table ---")
 db_file = "databases/user_settings.db"
