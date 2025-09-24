@@ -21,7 +21,7 @@ def init_db():
     cursor = conn.execute("PRAGMA table_info(metadata_cache)")
     columns = [col[1] for col in cursor.fetchall()]
     if 'video_length' not in columns:
-        conn.execute("ALTER TABLE metadata_cache ADD COLUMN video_length REAL")
+        execute_query(conn, "ALTER TABLE metadata_cache ADD COLUMN video_length REAL")
     # Control table for coordination flags (e.g., ingest in-flight)
     execute_query(conn, """
     CREATE TABLE IF NOT EXISTS control (
