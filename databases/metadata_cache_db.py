@@ -8,27 +8,22 @@ from .config import METADATA_DB_PATH, METADATA_TTL
 
 def init_db():
     conn = connect_db(METADATA_DB_PATH)
+    # Add video_length column if missing
     execute_query(conn, """
     CREATE TABLE IF NOT EXISTS metadata_cache (
         video_id  TEXT PRIMARY KEY,
         metadata  TEXT,
-        time_cached INTEGER
-    )
-    """)
-    # Control table for coordination flags (e.g., ingest in-flight)
-    execute_query(conn, """
-    CREATE TABLE IF NOT EXISTS control (
-        key TEXT PRIMARY KEY,
-        value TEXT
+        time_cached INTEGER,
+        video_length REAL
     )
     """)
     conn.close()
 
-def insert_metadata(video_id, metadata_json):
+def insert_metadata(video_id, metadata_json, video_length=None):
     conn = connect_db(METADATA_DB_PATH)
     execute_query(conn,
-        "REPLACE INTO metadata_cache VALUES (?, ?, ?)",
-        (video_id, metadata_json, current_timestamp())
+        "REPLACE INTO metadata_cache (video_id, metadata, time_cached, video_length) VALUES (?, ?, ?, ?)",
+        (video_id, metadata_json, current_timestamp(), video_length)
     )
     conn.close()
 
@@ -43,16 +38,19 @@ def get_fresh_metadata():
     return rows
 
 def get_metadata_by_id(video_id):
-    """Get metadata for a specific video ID."""
+    """Get metadata and video_length for a specific video ID."""
     conn = connect_db(METADATA_DB_PATH)
     rows = fetch_all(conn,
-        "SELECT metadata FROM metadata_cache WHERE video_id = ?",
+        "SELECT metadata, video_length FROM metadata_cache WHERE video_id = ?",
         (video_id,)
     )
     conn.close()
     if rows:
         import json
-        return json.loads(rows[0][0])
+        return {
+            "metadata": json.loads(rows[0][0]),
+            "video_length": rows[0][1]
+        }
     return None
 
 def cleanup():
