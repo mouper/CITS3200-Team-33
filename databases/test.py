@@ -28,12 +28,17 @@ for db_file, table in [
         print(f"{db_file} not found")
 
 print("\n--- Inserting into user_settings_db ---")
-database.set_user_settings("TestCategory", "Moderate", True, count=3)
+database.set_user_settings("TestCategory", "Moderate", True, count=3, total_blocked_time=120)
 
 print("\n--- Checking user settings ---")
 settings = database.get_user_settings("TestCategory")
 print(settings)
-print(f"Count value: {settings.get('count')}")  # Print count value
+print(f"Count value: {settings.get('count')}")
+print(f"Total blocked time: {settings.get('total_blocked_time')}")
+
+print("\n--- All user settings ---")
+all_settings = database.get_all_user_settings()
+print(all_settings)
 
 print("\n--- Peeking directly into the user_filter_settings table ---")
 db_file = "databases/user_settings.db"
@@ -66,4 +71,15 @@ if os.path.exists(db_file):
     conn.close()
 else:
     print(f"{db_file} not found")
+
+print("\n--- Inserting metadata with video length ---")
+database.insert_metadata("vid123", '{"title": "Test Video"}', video_length=120)
+
+print("\n--- Fetching metadata by ID ---")
+meta = database.get_metadata_by_id("vid123")
+print(meta)  # Should include metadata and video_length
+
+print("\n--- Fetching all fresh metadata ---")
+fresh = database.get_fresh_metadata()
+print(fresh)  # Each row should include video_length
 

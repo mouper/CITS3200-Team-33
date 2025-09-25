@@ -24,8 +24,8 @@ def cleanup_all():
     user_settings_db.cleanup()
     blocked_videos_db.cleanup()
 
-def insert_metadata(video_id, metadata_json):
-    return metadata_cache_db.insert_metadata(video_id, metadata_json)
+def insert_metadata(video_id, metadata_json, video_length=None):
+    return metadata_cache_db.insert_metadata(video_id, metadata_json, video_length)
 
 def insert_categorised(video_id, category):
     return categorised_db.insert_categorised(video_id, category)
@@ -33,11 +33,11 @@ def insert_categorised(video_id, category):
 def log_watch(video_id, start_time=None):
     return watched_db.log_watch(video_id, start_time)
 
-def get_fresh_metadata():
-    return metadata_cache_db.get_fresh_metadata()
-
 def get_metadata_by_id(video_id):
     return metadata_cache_db.get_metadata_by_id(video_id)
+
+def get_fresh_metadata():
+    return metadata_cache_db.get_fresh_metadata()
 
 def get_watch_durations():
     return watched_db.get_durations()
@@ -51,8 +51,8 @@ def set_ingest_active(active: bool):
 def is_ingest_active() -> bool:
     return metadata_cache_db.is_ingest_active()
 
-def set_user_settings(category, filter_strength, is_active, count=0):
-    return user_settings_db.set_settings(category, filter_strength, is_active, count)
+def set_user_settings(category, filter_strength, is_active, count=0, total_blocked_time=0):
+    return user_settings_db.set_settings(category, filter_strength, is_active, count, total_blocked_time)
 
 def get_user_settings(category):
     return user_settings_db.get_settings(category)
