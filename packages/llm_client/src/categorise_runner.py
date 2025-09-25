@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .metadata_triage import (
-    get_fresh_metadata_triaged,
+    get_fresh_metadata_unprocessed,
     ALLOWED_LABELS,
 )
 from .prompt_builder import assemble_prompt
@@ -27,7 +27,7 @@ from databases import database as db  # type: ignore
 from requests.exceptions import RequestException  # type: ignore
 
 def run_categoriser(limit=100):
-    fresh_payloads = metadata_triage.get_fresh_metadata_triaged(limit)
+    fresh_payloads = metadata_triage.get_fresh_metadata_unprocessed(limit)
     # Best-effort: load environment variables from a .env file if present
     try:
         from dotenv import load_dotenv, find_dotenv  # type: ignore
@@ -64,7 +64,7 @@ def run_categoriser(limit=100):
 
     def run_once(model_id: str, pretriaged_items: List[Dict[str, Any]] | None = None) -> int:
         # Allow caller to pass pre-triaged items so we don't re-triage here.
-        items = pretriaged_items if pretriaged_items is not None else get_fresh_metadata_triaged()
+        items = pretriaged_items if pretriaged_items is not None else get_fresh_metadata_unprocessed()
 
         # Deduplicate by videoId while preserving order
         seen: set = set()
