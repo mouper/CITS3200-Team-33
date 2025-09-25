@@ -68,7 +68,6 @@ def get_fresh_metadata_unprocessed(limit=100) -> List[Dict[str, Any]]:
     fresh_rows = _fetch_fresh_rows(limit)
 
     results: List[Dict[str, Any]] = []
-    
     for row in fresh_rows:
         vid = row["video_id"]
         if vid in categorised_ids:
