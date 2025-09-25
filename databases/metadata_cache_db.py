@@ -93,3 +93,12 @@ def is_ingest_active() -> bool:
         return False
     val = rows[0][0] if isinstance(rows[0], tuple) else rows[0]["value"]
     return str(val) == "1"
+
+def get_fresh_metadata_ordered(limit=100):
+    conn = connect_db(METADATA_DB_PATH)
+    rows = fetch_all(conn,
+        "SELECT * FROM metadata_cache WHERE time_cached >= ? ORDER BY time_cached DESC LIMIT ?",
+        (current_timestamp() - METADATA_TTL, limit)
+    )
+    conn.close()
+    return rows
