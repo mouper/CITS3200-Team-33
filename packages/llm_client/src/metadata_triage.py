@@ -47,10 +47,10 @@ def _get_categorised_ids() -> set:
     finally:
         conn.close()
 
-def _fetch_fresh_rows() -> List[Dict[str, Any]]:
+def _fetch_fresh_rows(limit=100) -> List[Dict[str, Any]]:
     # Import here to avoid import cycles at module import time
     from databases import database as db  # type: ignore
-    rows = db.get_fresh_metadata()
+    rows = db.get_fresh_metadata_ordered(limit)
     # Convert sqlite3.Row -> plain dict for safer downstream usage
     out: List[Dict[str, Any]] = []
     for r in rows:
@@ -59,15 +59,16 @@ def _fetch_fresh_rows() -> List[Dict[str, Any]]:
         out.append({"video_id": r["video_id"], "metadata": r["metadata"], "timestamp": ts})
     return out
 
-def get_fresh_metadata_unprocessed() -> List[Dict[str, Any]]:
+def get_fresh_metadata_unprocessed(limit=100) -> List[Dict[str, Any]]:
     """
     Fetch uncategorised fresh metadata rows, skipping video_ids already in categorised DB.
     Returns list of dicts: { video_id, metadata (dict), timestamp }
     """
     categorised_ids = _get_categorised_ids()
-    fresh_rows = _fetch_fresh_rows()
+    fresh_rows = _fetch_fresh_rows(limit)
 
     results: List[Dict[str, Any]] = []
+    
     for row in fresh_rows:
         vid = row["video_id"]
         if vid in categorised_ids:
