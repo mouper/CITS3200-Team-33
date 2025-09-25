@@ -103,5 +103,8 @@ def get_blocked_videos_stats_by_period():
 def delete_blocked_video(video_id):
     return blocked_videos_db.delete_blocked_video(video_id)
 
+def get_fresh_metadata_ordered(limit=100):
+    return metadata_cache_db.get_fresh_metadata_ordered(limit)
+
 # Auto‑create any missing DBs/tables when this module is loaded
 init_all()
