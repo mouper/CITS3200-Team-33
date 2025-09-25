@@ -41,7 +41,8 @@ async function waitForServerState(targetRunning, timeoutMs = 1500, stepMs = 100)
 async function readState() {
   return new Promise((resolve) => {
     chrome.storage.local.get(['mellowEnabled'], (result) => {
-      resolve(Boolean(result.mellowEnabled));
+      // Default to true if not set (first time usage)
+      resolve(result.mellowEnabled !== undefined ? Boolean(result.mellowEnabled) : true);
     });
   });
 }

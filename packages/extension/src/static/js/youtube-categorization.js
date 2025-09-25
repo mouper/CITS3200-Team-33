@@ -35,7 +35,7 @@ class YouTubeCategorizationManager {
         this.watchTrackingInterval = null;
     }
 
-    init() {
+    async init() {
         if (!this.isYouTubePage()) {
             return;
         }
@@ -45,14 +45,45 @@ class YouTubeCategorizationManager {
         // Inject CSS
         this.injectStyles();
         
-        // Start scraping
-        this.startScraping();
-        
         // Setup navigation listener
         this.setupNavigationListener();
         
         // Setup message listener
         this.setupMessageListener();
+        
+        // Check if extension is enabled before starting
+        const isEnabled = await this.isExtensionEnabled();
+        console.log('[YouTube Categorization] Extension enabled:', isEnabled);
+        
+        if (isEnabled) {
+            this.startExtension();
+        } else {
+            console.log('[YouTube Categorization] Extension is disabled, not starting');
+        }
+        
+        // Listen for extension enable/disable changes
+        this.setupExtensionStateListener();
+    }
+
+    isYouTubePage() {
+        return window.location.hostname.includes('youtube.com') || 
+               window.location.hostname.includes('youtu.be');
+    }
+
+    async isExtensionEnabled() {
+        return new Promise((resolve) => {
+            chrome.storage.local.get(['mellowEnabled'], (result) => {
+                // Default to true if not set (first time usage)
+                resolve(result.mellowEnabled !== undefined ? Boolean(result.mellowEnabled) : true);
+            });
+        });
+    }
+
+    startExtension() {
+        console.log('[YouTube Categorization] Starting extension functionality');
+        
+        // Start scraping
+        this.startScraping();
         
         // Check for existing categorization progress
         this.checkCategorizationStatus();
@@ -67,9 +98,67 @@ class YouTubeCategorizationManager {
         this.startWatchTracking();
     }
 
-    isYouTubePage() {
-        return window.location.hostname.includes('youtube.com') || 
-               window.location.hostname.includes('youtu.be');
+    stopExtension() {
+        console.log('[YouTube Categorization] Stopping extension functionality');
+        
+        // Stop scraping
+        this.stopScraping();
+        
+        // Hide any overlays
+        this.hideCategorizationOverlay();
+        
+        // Clear all category labels
+        this.clearAllCategoryLabels();
+        
+        // Stop intervals
+        if (this.progressCheckInterval) {
+            clearInterval(this.progressCheckInterval);
+            this.progressCheckInterval = null;
+        }
+        
+        if (this.watchTrackingInterval) {
+            clearInterval(this.watchTrackingInterval);
+            this.watchTrackingInterval = null;
+        }
+        
+        // Reset state
+        this.processedUrls.clear();
+        this.videoCategories.clear();
+        this.overlayedVideos.clear();
+        this.isCategorizing = false;
+        this.categorizerComplete = false;
+        this.overlaysApplied = false;
+    }
+
+    setupExtensionStateListener() {
+        // Listen for changes to the extension enabled state
+        chrome.storage.onChanged.addListener((changes, namespace) => {
+            if (namespace === 'local' && changes.mellowEnabled) {
+                const newState = Boolean(changes.mellowEnabled.newValue);
+                console.log('[YouTube Categorization] Extension state changed:', newState);
+                
+                if (newState) {
+                    this.startExtension();
+                } else {
+                    this.stopExtension();
+                }
+            }
+        });
+    }
+
+    clearAllCategoryLabels() {
+        // Remove all category overlays from the page
+        const overlays = document.querySelectorAll('.mellow-category-overlay');
+        overlays.forEach(overlay => overlay.remove());
+        
+        // Reset video container styles
+        const containers = document.querySelectorAll('[style*="pointer-events: none"]');
+        containers.forEach(container => {
+            container.style.pointerEvents = '';
+            container.style.userSelect = '';
+        });
+        
+        console.log(`[YouTube Categorization] Cleared ${overlays.length} category labels`);
     }
 
     injectStyles() {
@@ -100,9 +189,13 @@ class YouTubeCategorizationManager {
     }
 
     setupMessageListener() {
-        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
             if (request.action === 'startScraping') {
-                this.startScraping();
+                // Only start if extension is enabled
+                const isEnabled = await this.isExtensionEnabled();
+                if (isEnabled) {
+                    this.startScraping();
+                }
                 sendResponse({ success: true });
             } else if (request.action === 'stopScraping') {
                 this.stopScraping();
@@ -335,7 +428,11 @@ class YouTubeCategorizationManager {
 
     startPeriodicProgressCheck() {
         // Check for new videos to process every 5 seconds, even when overlay is hidden
-        setInterval(() => {
+        setInterval(async () => {
+            // Only check if extension is enabled
+            const isEnabled = await this.isExtensionEnabled();
+            if (!isEnabled) return;
+            
             if (!this.categorizationOverlay) {
                 // Only check if overlay is not already visible
                 chrome.runtime.sendMessage({
@@ -353,7 +450,11 @@ class YouTubeCategorizationManager {
 
     startPeriodicLabelRefresh() {
         // Refresh labels every 10 seconds to handle YouTube's dynamic DOM changes
-        setInterval(() => {
+        setInterval(async () => {
+            // Only refresh if extension is enabled
+            const isEnabled = await this.isExtensionEnabled();
+            if (!isEnabled) return;
+            
             if (this.videoCategories.size > 0) {
                 console.log('[YouTube Categorization] Refreshing labels...');
                 this.applyCategoryLabels();
