@@ -27,7 +27,7 @@ from databases import database as db  # type: ignore
 from requests.exceptions import RequestException  # type: ignore
 
 def run_categoriser(limit=100):
-    fresh_payloads = metadata_triage.get_fresh_metadata_unprocessed(limit)
+    fresh_payloads = get_fresh_metadata_unprocessed(limit)
     # Best-effort: load environment variables from a .env file if present
     try:
         from dotenv import load_dotenv, find_dotenv  # type: ignore
