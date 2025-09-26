@@ -621,11 +621,22 @@ Promise.all([
         
         // Content Removed card is updated in the async calculation above
         
-        // Update "Videos Blocked This Week" with actual count
-        if (heroText && heroText.textContent.includes('Videos Blocked This Week')) {
-          if (caption && caption.textContent.includes('Placeholder')) {
-            caption.textContent = `${periodStats.this_week} videos`;
-          }
+        // Update "Content With Highest Blocked Hours" with category name
+        if (heroText && heroText.textContent.includes('Content With Highest Blocked Hours')) {
+          // Fetch the category with highest blocked hours
+          fetch("http://127.0.0.1:5050/api/stats/max-blocked-hours-category")
+            .then(res => res.json())
+            .then(data => {
+              if (data.category) {
+                caption.textContent = data.category.category;
+              } else {
+                caption.textContent = "No blocked content yet";
+              }
+            })
+            .catch(error => {
+              console.warn('Failed to load max blocked hours category:', error);
+              caption.textContent = "Loading...";
+            });
         }
       });
       
@@ -676,10 +687,25 @@ Promise.all([
                   }
                 }
                 
-                if (heroText && heroText.textContent.includes('Videos Blocked This Week')) {
-                  if (caption && caption.textContent.includes('Placeholder')) {
-                    caption.textContent = `${stats.total_blocked} videos`;
-                  }
+                if (heroText && heroText.textContent.includes('Content With Highest Blocked Hours')) {
+                  // Fetch the category with highest blocked hours
+                  fetch("http://127.0.0.1:5050/api/stats/max-blocked-hours-category")
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.category) {
+                        const hours = data.category.total_blocked_time;
+                        const hoursFormatted = hours >= 1 
+                          ? `${hours.toFixed(1)} hours` 
+                          : `${(hours * 60).toFixed(0)} minutes`;
+                        caption.textContent = `${data.category.category} (${hoursFormatted})`;
+                      } else {
+                        caption.textContent = "No blocked content yet";
+                      }
+                    })
+                    .catch(error => {
+                      console.warn('Failed to load max blocked hours category:', error);
+                      caption.textContent = "Loading...";
+                    });
                 }
               });
             })
@@ -691,4 +717,124 @@ Promise.all([
         .catch(fallbackError => {
           console.warn('Fallback stats also failed:', fallbackError);
         });
+  })
+  .catch(error => {
+    console.warn('Failed to load current week blocked videos stats:', error);
+    // Fallback to total stats if week-specific data fails
+    fetch("http://127.0.0.1:5050/api/blocked-videos/stats")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const stats = data.stats;
+          // Use total_blocked from stats (which is the sum of all category counts)
+          document.getElementById("totalBlockedVideos").innerText = stats.total_blocked || "0";
+          
+          // Calculate content removal percentage and total blocked time using fallback data
+          fetch("http://127.0.0.1:5050/api/settings")
+            .then(res => res.json())
+            .then(settingsData => {
+              const totalBlocked = stats.total_blocked || 0;
+              const totalVideos = settingsData.items.reduce((sum, item) => sum + (item.total_video || 0), 0);
+              const totalBlockedTime = settingsData.items.reduce((sum, item) => sum + (item.total_blocked_time || 0), 0);
+              let contentRemovalPercentage = 0;
+              
+              if (totalVideos > 0) {
+                contentRemovalPercentage = (totalBlocked / totalVideos) * 100;
+              }
+              
+              const cards = document.querySelectorAll('.card');
+              cards.forEach(card => {
+                const heroText = card.querySelector('.tile-hero-txt');
+                const caption = card.querySelector('.tile-caption');
+                
+                if (heroText && heroText.textContent.includes('Hours of Content Removed')) {
+                  if (caption) {
+                    const hoursFormatted = totalBlockedTime >= 1 
+                      ? `${totalBlockedTime.toFixed(1)} hours` 
+                      : `${(totalBlockedTime * 60).toFixed(0)} minutes`;
+                    caption.textContent = `${hoursFormatted} blocked`;
+                  }
+                }
+                
+                if (heroText && heroText.textContent.includes('Content Removed')) {
+                  if (caption) {
+                    caption.textContent = `${contentRemovalPercentage.toFixed(1)}%`;
+                  }
+                }
+                
+                if (heroText && heroText.textContent.includes('Content With Highest Blocked Hours')) {
+                  // Fetch the category with highest blocked hours
+                  fetch("http://127.0.0.1:5050/api/stats/max-blocked-hours-category")
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.category) {
+                        const hours = data.category.total_blocked_time;
+                        const hoursFormatted = hours >= 1 
+                          ? `${hours.toFixed(1)} hours` 
+                          : `${(hours * 60).toFixed(0)} minutes`;
+                        caption.textContent = `${data.category.category} (${hoursFormatted})`;
+                      } else {
+                        caption.textContent = "No blocked content yet";
+                      }
+                    })
+                    .catch(error => {
+                      console.warn('Failed to load max blocked hours category:', error);
+                      caption.textContent = "Loading...";
+                    });
+                }
+              });
+            })
+            .catch(error => {
+              console.warn('Failed to load total videos for fallback:', error);
+            });
+        }
+      })
+      .catch(fallbackError => {
+        console.warn('Fallback stats also failed:', fallbackError);
+      });
+  });
+
+// Load Top Categories by Hours (independent of other API calls)
+console.log('Loading top categories...');
+fetch("http://127.0.0.1:5050/api/stats/top-categories-by-hours")
+  .then(res => {
+    console.log('Top categories response status:', res.status);
+    return res.json();
+  })
+  .then(data => {
+    console.log('Top categories data:', data);
+    const categories = data.categories || [];
+    const categoryList = document.querySelector('.top-categories-body');
+    console.log('Category list element:', categoryList);
+    
+    if (categoryList && categories.length > 0) {
+      console.log(`Found ${categories.length} categories, updating list`);
+      // Clear existing content
+      categoryList.innerHTML = '';
+      
+      // Add each category
+      categories.forEach((category, index) => {
+        const li = document.createElement('li');
+        const hours = category.total_blocked_time;
+        const hoursFormatted = hours >= 1 
+          ? `${hours.toFixed(1)} hours` 
+          : `${(hours * 60).toFixed(0)} minutes`;
+        
+        li.innerHTML = `
+          <span>${index + 1}. ${category.category}</span>
+          <span class="days-blocked">${hoursFormatted}</span>
+        `;
+        categoryList.appendChild(li);
+        console.log(`Added category: ${category.category} - ${hoursFormatted}`);
+      });
+    } else if (categoryList) {
+      console.log('No categories found or categoryList not found');
+      // Show message if no categories with blocked time
+      categoryList.innerHTML = '<li><span>No blocked content yet</span></li>';
+    } else {
+      console.log('Category list element not found');
+    }
+  })
+  .catch(error => {
+    console.error('Failed to load top categories:', error);
   });
