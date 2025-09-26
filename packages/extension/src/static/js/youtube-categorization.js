@@ -1388,6 +1388,8 @@ class YouTubeCategorizationManager {
     this.watchTrackingInterval = setInterval(() => {
       this.checkCurrentVideo();
     }, 5000); // Check every 5 seconds
+    // Run an immediate check so we capture the current page instantly
+    this.checkCurrentVideo();
   }
 
   async checkCurrentVideo() {
@@ -1395,9 +1397,38 @@ class YouTubeCategorizationManager {
     const videoId = this.extractVideoId(window.location.href);
 
     if (videoId && videoId !== this.currentVideoId) {
+      // New video detected
+      if (this.currentVideoId && this.currentCategory && this.watchStartTime) {
+        // Log the previous video watch time
+        const watchTimeMins = (Date.now() - this.watchStartTime) / (1000 * 60);
+        await this.updateFilterState(
+          this.currentVideoId,
+          this.currentCategory,
+          true,
+          watchTimeMins
+        );
+      }
+
       // Start tracking new video
       this.currentVideoId = videoId;
       this.watchStartTime = Date.now();
+
+      try {
+        await fetch("http://127.0.0.1:5050/api/watched/log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            video_id: videoId,
+            start_time: Math.floor(this.watchStartTime / 1000),
+            end_time: Math.floor(Date.now() / 1000),
+          }),
+        });
+      } catch (error) {
+        console.warn(
+          `[YouTube Categorization] Failed to log watch start for ${videoId}:`,
+          error
+        );
+      }
 
       // Get category for current video
       this.currentCategory = await this.getVideoCategory(videoId);
@@ -1405,50 +1436,35 @@ class YouTubeCategorizationManager {
       console.log(
         `[YouTube Categorization] Started tracking video ${videoId} (${this.currentCategory})`
       );
-
-      // Notify backend that watch has started
-      this.logWatchEvent({
-        video_id: videoId,
-        start_time: Math.floor(this.watchStartTime / 1000),
-        category: this.currentCategory,
-      });
-    }
-
-    if (videoId && this.currentVideoId === videoId && this.watchStartTime) {
-      const now = Date.now();
-      const watchTimeMins = (now - this.watchStartTime) / (1000 * 60);
-      this.logWatchEvent({
-        video_id: videoId,
-        end_time: Math.floor(now / 1000),
-        category: this.currentCategory,
-        watchtime_mins: watchTimeMins,
-      });
-
-      if (this.currentCategory) {
-        await this.updateFilterState(
-          videoId,
-          this.currentCategory,
-          true,
-          watchTimeMins
-        );
-      }
     } else if (!videoId && this.currentVideoId) {
       // Left video page
       if (this.currentCategory && this.watchStartTime) {
-        const now = Date.now();
-        const watchTimeMins = (now - this.watchStartTime) / (1000 * 60);
-        this.logWatchEvent({
-          video_id: this.currentVideoId,
-          end_time: Math.floor(now / 1000),
-          category: this.currentCategory,
-          watchtime_mins: watchTimeMins,
-        });
+        const watchTimeMins = (Date.now() - this.watchStartTime) / (1000 * 60);
         await this.updateFilterState(
           this.currentVideoId,
           this.currentCategory,
           true,
           watchTimeMins
         );
+      }
+
+      if (this.watchStartTime) {
+        try {
+          await fetch("http://127.0.0.1:5050/api/watched/log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              video_id: this.currentVideoId,
+              start_time: Math.floor(this.watchStartTime / 1000),
+              end_time: Math.floor(Date.now() / 1000),
+            }),
+          });
+        } catch (error) {
+          console.warn(
+            `[YouTube Categorization] Failed to finalize watch log for ${this.currentVideoId}:`,
+            error
+          );
+        }
       }
 
       this.currentVideoId = null;
@@ -1474,18 +1490,6 @@ class YouTubeCategorizationManager {
       );
     }
     return null;
-  }
-
-  async logWatchEvent(payload) {
-    try {
-      await fetch("http://127.0.0.1:5050/api/watched/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } catch (error) {
-      console.warn("[YouTube Categorization] Failed to log watch event", error);
-    }
   }
 }
 

@@ -30,8 +30,8 @@ def insert_metadata(video_id, metadata_json, video_length=None):
 def insert_categorised(video_id, category):
     return categorised_db.insert_categorised(video_id, category)
 
-def log_watch(video_id, start_time=None):
-    return watched_db.log_watch(video_id, start_time)
+def log_watch(video_id, start_time=None, end_time=None):
+    return watched_db.log_watch(video_id, start_time, end_time)
 
 def get_metadata_by_id(video_id):
     return metadata_cache_db.get_metadata_by_id(video_id)

@@ -57,7 +57,6 @@ def create_app() -> Flask:
     from .routes import blocked_videos
     from .routes import filter
     from .routes import watched
-    # from .routes import allostasis
     app.register_blueprint(metadata.bp)
     app.register_blueprint(classifier.bp)
     app.register_blueprint(settings.bp)

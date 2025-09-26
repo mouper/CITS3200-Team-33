@@ -1,91 +1,57 @@
-"""Watched events API routes."""
+"""Watched events API routes for logging and retrieving watch durations."""
 
-from __future__ import annotations
-
+import os
+import sys
 from typing import Any, Dict
-from datetime import datetime
+from flask import Blueprint, request, jsonify, current_app
 
-from flask import Blueprint, jsonify, request
+# Ensure database package is on path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-from databases import watched_db, categorised_db
-from server.allostatic_functions import update_allostatic_level
+from databases import database
 
 bp = Blueprint("watched", __name__, url_prefix="/api/watched")
 
 
-@bp.post("/log")
-def log_watch() -> Any:
-    """Log or update a watch session for a given video."""
-    payload: Dict[str, Any] = request.get_json(silent=True) or {}
-    video_id = payload.get("video_id")
-    start_time = payload.get("start_time")
-    end_time = payload.get("end_time")
-    category = payload.get("category")
-    watchtime_mins = payload.get("watchtime_mins")
-
-    if not video_id:
-        return jsonify({"error": "video_id is required"}), 400
-
+@bp.route("/log", methods=["POST"])
+def log_watch_event():
+    """Log or update a watched video with start/end timestamps."""
     try:
-        if start_time is not None:
-            watched_db.start_watch(video_id, int(start_time))
+        payload: Dict[str, Any] = request.get_json(force=True) or {}
+        video_id = (payload.get("video_id") or "").strip()
+        if not video_id:
+            return jsonify({"error": "video_id is required"}), 400
 
-        record = None
-        if end_time is not None:
-            record = watched_db.update_watch_end(video_id, int(end_time))
-        else:
-            record = watched_db.get_watch_entry(video_id)
+        start_time = payload.get("start_time")
+        end_time = payload.get("end_time")
 
-        if not record:
-            return jsonify({"success": True, "message": "watch logged"})
-
-        start_ts, end_ts = record[1], record[2]
-        if start_ts is None or end_ts is None:
-            duration_minutes = 0.0
-        else:
-            duration_minutes = max(0.0, (end_ts - start_ts) / 60.0)
-
-        new_probability = None
-        category = category or categorised_db.get_category(video_id)
-        if category:
-            effective_minutes = None
-            if watchtime_mins is not None:
-                effective_minutes = float(watchtime_mins)
-            elif duration_minutes:
-                effective_minutes = duration_minutes
-
-            new_probability = update_allostatic_level(
-                category,
-                watched=True,
-                watchtime_mins=effective_minutes or 0.0,
-                now=datetime.utcnow(),
-            )
+        database.log_watch(video_id, start_time=start_time, end_time=end_time)
+        current_app.logger.info(
+            "Logged watch event", extra={"video_id": video_id, "start": start_time, "end": end_time}
+        )
 
         return jsonify({
             "success": True,
             "video_id": video_id,
-            "start_time": start_ts,
-            "end_time": end_ts,
-            "duration_minutes": duration_minutes,
-            "probability": new_probability,
+            "start_time": start_time,
+            "end_time": end_time,
         })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception as exc:  # pragma: no cover
+        current_app.logger.error(f"Error logging watched event: {exc}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
-@bp.get("/durations")
-def get_durations() -> Any:
-    """Return the current watch durations for all videos."""
+@bp.route("/durations", methods=["GET"])
+def get_watch_durations():
+    """Return stored watch durations."""
     try:
-        rows = watched_db.get_durations()
+        rows = database.get_watch_durations()
         return jsonify({
-            "items": [
-                {
-                    "video_id": row[0],
-                    "duration_seconds": row[1],
-                }
-                for row in rows
-            ]
+            "success": True,
+            "items": [dict(row) for row in rows],
         })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception as exc:  # pragma: no cover
+        current_app.logger.error(f"Error retrieving watch durations: {exc}")
+        return jsonify({"error": "Internal server error"}), 500
