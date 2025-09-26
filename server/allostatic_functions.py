@@ -139,6 +139,7 @@ def decay_all_categories(now: Optional[datetime] = None) -> Dict[str, Any]:
             continue
         initial_p = row.get("current_level") or 0.0
         last_updated = _parse_last_updated(row.get("last_updated_time"))
+        # Use decay directly
         filter_instance = SimpleProbabilisticFilter(
             initial_p=initial_p,
             last_update=last_updated,
