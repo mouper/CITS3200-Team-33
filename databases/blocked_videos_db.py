@@ -5,7 +5,12 @@ TTL (Time-To-Live): 90 days
 
 from .db_utils import connect_db, execute_query, fetch_all, current_timestamp
 from .config import BLOCKED_VIDEOS_DB_PATH, BLOCKED_VIDEOS_TTL
+from . import categorised_db
+from . import user_settings_db
+from . import metadata_cache_db
 import json
+import os
+import requests
 
 def init_db():
     conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
@@ -20,10 +25,11 @@ def init_db():
     conn.close()
 
 def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_hours=None, metadata_json=None, blocked_at=None):
-    """Log a blocked video with its duration in hours and timestamp."""
-    conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
+    """Log a blocked video by updating category statistics only (no blocked_videos table)."""
     
     # Calculate duration in hours
+    hours = 0
+    
     if duration_hours is not None:
         hours = duration_hours
     elif duration_seconds is not None:
@@ -34,86 +40,107 @@ def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_h
     elif metadata_json:
         try:
             metadata = json.loads(metadata_json) if isinstance(metadata_json, str) else metadata_json
-            duration = metadata.get('duration')
+            
+            # Try different possible locations for duration in metadata
+            duration = None
+            
+            # Check direct duration field
+            if metadata.get('duration'):
+                duration = metadata['duration']
+            
+            # Check nested metadata structure
+            elif metadata.get('metadata') and metadata['metadata'].get('duration'):
+                duration = metadata['metadata']['duration']
+            
+            # Check contentDetails structure (YouTube API format)
+            elif metadata.get('contentDetails') and metadata['contentDetails'].get('duration'):
+                duration = metadata['contentDetails']['duration']
+            
             if duration:
                 seconds = parse_duration_to_seconds(duration)
                 hours = seconds / 3600.0 if seconds else 0
             else:
                 hours = 0
-        except (json.JSONDecodeError, TypeError):
+                
+        except (json.JSONDecodeError, TypeError) as e:
             hours = 0
     else:
+        # No duration information available - use 0 hours
         hours = 0
+        print(f"Warning: No duration available for video {video_id}, using 0 hours")
     
-    # Use provided timestamp or current time
-    timestamp = blocked_at or current_timestamp()
-    
-    execute_query(conn, """
-    REPLACE INTO blocked_videos (video_id, duration_hours, blocked_at)
-    VALUES (?, ?, ?)
-    """, (video_id, hours, timestamp))
-    
-    conn.close()
+    # Update category statistics directly
+    try:
+        # Get all categorised videos to find the category for this video_id
+        categorised_videos = categorised_db.get_all_categorised()
+        video_category = None
+        
+        for video in categorised_videos:
+            if video['video_id'] == video_id:
+                video_category = video['category']
+                break
+        
+        # If we found the category, update the blocked statistics with duration in hours
+        if video_category:
+            user_settings_db.increment_blocked_stats(video_category, hours)
+        else:
+            print(f"Warning: No category found for blocked video {video_id}")
+    except Exception as e:
+        # Log error but don't fail the blocked video logging
+        print(f"Warning: Could not update category stats for blocked video {video_id}: {e}")
 
 def get_blocked_videos(limit=None):
-    """Get blocked videos with optional limit."""
-    conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
-    
-    # Check if blocked_at column exists
-    try:
-        query = "SELECT video_id, duration_hours, blocked_at FROM blocked_videos ORDER BY blocked_at DESC"
-        if limit:
-            query += " LIMIT ?"
-            rows = fetch_all(conn, query, (limit,))
-        else:
-            rows = fetch_all(conn, query)
-    except:
-        # Fallback to old schema if blocked_at column doesn't exist
-        query = "SELECT video_id, duration_hours FROM blocked_videos ORDER BY video_id"
-        if limit:
-            query += " LIMIT ?"
-            rows = fetch_all(conn, query, (limit,))
-        else:
-            rows = fetch_all(conn, query)
-        
-        # Convert Row objects to dicts and add blocked_at for backward compatibility
-        rows = [dict(row) for row in rows]
-        for row in rows:
-            row['blocked_at'] = None
-    
-    conn.close()
-    # Convert Row objects to dictionaries for JSON serialization
-    return [dict(row) for row in rows]
+    """Get blocked videos from user_filter_settings (no individual video records)."""
+    # Since we don't store individual blocked videos, return empty list
+    # The actual blocked video information is now aggregated in user_filter_settings
+    return []
 
 def get_blocked_videos_stats():
-    """Get simple statistics about blocked videos."""
-    conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
+    """Get simple statistics about blocked videos from user_filter_settings."""
+    # Get stats from user_filter_settings instead of blocked_videos table
+    all_settings = user_settings_db.get_all_settings()
     
-    # Total blocked videos
-    total_blocked = fetch_all(conn, "SELECT COUNT(*) as count FROM blocked_videos")[0]['count']
-    
-    # Total duration blocked in hours
-    total_hours = fetch_all(conn, """
-        SELECT SUM(duration_hours) as total_hours FROM blocked_videos 
-        WHERE duration_hours IS NOT NULL
-    """)[0]['total_hours'] or 0
-    
-    # Get date range
-    date_range = fetch_all(conn, """
-        SELECT MIN(blocked_at) as earliest, MAX(blocked_at) as latest 
-        FROM blocked_videos 
-        WHERE blocked_at IS NOT NULL
-    """)[0]
-    
-    conn.close()
+    total_blocked = sum(setting['count'] for setting in all_settings)
+    total_hours = sum(setting['total_blocked_time'] for setting in all_settings)
     
     return {
         'total_blocked': total_blocked,
         'total_duration_hours': total_hours,
         'total_duration_formatted': f"{total_hours:.2f} hours",
-        'earliest_blocked': date_range['earliest'],
-        'latest_blocked': date_range['latest']
+        'earliest_blocked': None,  # No individual records, so no date range
+        'latest_blocked': None
     }
+
+def fetch_duration_from_youtube_api(video_id):
+    """Fetch video duration from YouTube API when metadata is not available."""
+    try:
+        # Load environment variables from .env file
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(os.path.dirname(__file__), '../../server/.env'))
+        
+        api_key = os.getenv("YT_API_KEY")
+        if not api_key:
+            return 0
+        
+        url = "https://www.googleapis.com/youtube/v3/videos"
+        params = {
+            'part': 'contentDetails',
+            'id': video_id,
+            'key': api_key
+        }
+        
+        response = requests.get(url, params=params, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('items'):
+                duration_str = data['items'][0]['contentDetails']['duration']
+                seconds = parse_duration_to_seconds(duration_str)
+                return seconds / 3600.0 if seconds else 0  # Convert to hours
+        
+        return 0
+    except Exception as e:
+        print(f"Warning: Could not fetch duration from YouTube API for {video_id}: {e}")
+        return 0
 
 def parse_duration_to_seconds(duration_str):
     """Convert YouTube duration format (PT3M34S) to seconds."""
@@ -171,89 +198,31 @@ def cleanup():
     pass
 
 def get_blocked_videos_by_date_range(start_date=None, end_date=None):
-    """Get blocked videos within a date range."""
-    conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
-    
-    query = "SELECT video_id, duration_hours, blocked_at FROM blocked_videos WHERE 1=1"
-    params = []
-    
-    if start_date:
-        query += " AND blocked_at >= ?"
-        params.append(start_date)
-    
-    if end_date:
-        query += " AND blocked_at <= ?"
-        params.append(end_date)
-    
-    query += " ORDER BY blocked_at DESC"
-    
-    rows = fetch_all(conn, query, params)
-    conn.close()
-    # Convert Row objects to dictionaries
-    return [dict(row) for row in rows]
+    """Get blocked videos within a date range (no individual records available)."""
+    # Since we don't store individual blocked videos, return empty list
+    return []
 
 def get_blocked_videos_today():
-    """Get videos blocked today."""
-    conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
-    
-    rows = fetch_all(conn, """
-        SELECT video_id, duration_hours, blocked_at 
-        FROM blocked_videos 
-        WHERE DATE(blocked_at) = DATE('now')
-        ORDER BY blocked_at DESC
-    """)
-    
-    conn.close()
-    # Convert Row objects to dictionaries
-    return [dict(row) for row in rows]
+    """Get videos blocked today (no individual records available)."""
+    # Since we don't store individual blocked videos, return empty list
+    return []
 
 def get_blocked_videos_this_week():
-    """Get videos blocked this week."""
-    conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
-    
-    rows = fetch_all(conn, """
-        SELECT video_id, duration_hours, blocked_at 
-        FROM blocked_videos 
-        WHERE blocked_at >= DATE('now', '-7 days')
-        ORDER BY blocked_at DESC
-    """)
-    
-    conn.close()
-    # Convert Row objects to dictionaries
-    return [dict(row) for row in rows]
+    """Get videos blocked this week (no individual records available)."""
+    # Since we don't store individual blocked videos, return empty list
+    return []
 
 def get_blocked_videos_stats_by_period():
-    """Get statistics broken down by time periods."""
-    conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
-    
-    # Today
-    today_count = fetch_all(conn, """
-        SELECT COUNT(*) as count FROM blocked_videos 
-        WHERE DATE(blocked_at) = DATE('now')
-    """)[0]['count']
-    
-    # This week
-    week_count = fetch_all(conn, """
-        SELECT COUNT(*) as count FROM blocked_videos 
-        WHERE blocked_at >= DATE('now', '-7 days')
-    """)[0]['count']
-    
-    # This month
-    month_count = fetch_all(conn, """
-        SELECT COUNT(*) as count FROM blocked_videos 
-        WHERE blocked_at >= DATE('now', 'start of month')
-    """)[0]['count']
-    
-    conn.close()
-    
+    """Get statistics broken down by time periods (no individual records available)."""
+    # Since we don't store individual blocked videos with timestamps, return zeros
     return {
-        'today': today_count,
-        'this_week': week_count,
-        'this_month': month_count
+        'today': 0,
+        'this_week': 0,
+        'this_month': 0
     }
 
 def delete_blocked_video(video_id):
-    """Remove a specific blocked video record."""
-    conn = connect_db(BLOCKED_VIDEOS_DB_PATH)
-    execute_query(conn, "DELETE FROM blocked_videos WHERE video_id = ?", (video_id,))
-    conn.close()
+    """Remove a specific blocked video record (no individual records to delete)."""
+    # Since we don't store individual blocked videos, nothing to delete
+    # The statistics are aggregated in user_filter_settings
+    pass
