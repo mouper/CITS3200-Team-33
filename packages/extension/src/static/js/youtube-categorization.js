@@ -1395,18 +1395,6 @@ class YouTubeCategorizationManager {
     const videoId = this.extractVideoId(window.location.href);
 
     if (videoId && videoId !== this.currentVideoId) {
-      // New video detected
-      if (this.currentVideoId && this.currentCategory && this.watchStartTime) {
-        // Log the previous video watch time
-        const watchTimeMins = (Date.now() - this.watchStartTime) / (1000 * 60);
-        await this.updateFilterState(
-          this.currentVideoId,
-          this.currentCategory,
-          true,
-          watchTimeMins
-        );
-      }
-
       // Start tracking new video
       this.currentVideoId = videoId;
       this.watchStartTime = Date.now();
@@ -1417,10 +1405,44 @@ class YouTubeCategorizationManager {
       console.log(
         `[YouTube Categorization] Started tracking video ${videoId} (${this.currentCategory})`
       );
+
+      // Notify backend that watch has started
+      this.logWatchEvent({
+        video_id: videoId,
+        start_time: Math.floor(this.watchStartTime / 1000),
+        category: this.currentCategory,
+      });
+    }
+
+    if (videoId && this.currentVideoId === videoId && this.watchStartTime) {
+      const now = Date.now();
+      const watchTimeMins = (now - this.watchStartTime) / (1000 * 60);
+      this.logWatchEvent({
+        video_id: videoId,
+        end_time: Math.floor(now / 1000),
+        category: this.currentCategory,
+        watchtime_mins: watchTimeMins,
+      });
+
+      if (this.currentCategory) {
+        await this.updateFilterState(
+          videoId,
+          this.currentCategory,
+          true,
+          watchTimeMins
+        );
+      }
     } else if (!videoId && this.currentVideoId) {
       // Left video page
       if (this.currentCategory && this.watchStartTime) {
-        const watchTimeMins = (Date.now() - this.watchStartTime) / (1000 * 60);
+        const now = Date.now();
+        const watchTimeMins = (now - this.watchStartTime) / (1000 * 60);
+        this.logWatchEvent({
+          video_id: this.currentVideoId,
+          end_time: Math.floor(now / 1000),
+          category: this.currentCategory,
+          watchtime_mins: watchTimeMins,
+        });
         await this.updateFilterState(
           this.currentVideoId,
           this.currentCategory,
@@ -1452,6 +1474,18 @@ class YouTubeCategorizationManager {
       );
     }
     return null;
+  }
+
+  async logWatchEvent(payload) {
+    try {
+      await fetch("http://127.0.0.1:5050/api/watched/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      console.warn("[YouTube Categorization] Failed to log watch event", error);
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from .db_utils import connect_db
+from .db_utils import connect_db, fetch_all
 from .config import GRAPH_STATS_DB_PATH
 
 def init_db(db_path=GRAPH_STATS_DB_PATH):
