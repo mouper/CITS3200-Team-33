@@ -39,6 +39,18 @@ def total_blocked_sum():
     total = database.get_total_blocked_sum()
     return jsonify({"total_blocked": total})
 
+@bp.get("/api/stats/top-categories-by-hours")
+def top_categories_by_hours():
+    """Return top 5 categories by total blocked hours."""
+    categories = database.get_top_categories_by_hours(limit=5)
+    return jsonify({"categories": categories})
+
+@bp.get("/api/stats/max-blocked-hours-category")
+def max_blocked_hours_category():
+    """Return category with highest total blocked hours."""
+    category = database.get_max_blocked_hours_category()
+    return jsonify({"category": category})
+
 
 @bp.get("/version")
 def version() -> Any:
