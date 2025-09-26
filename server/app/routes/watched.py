@@ -7,8 +7,7 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
-from databases import watched_db
-from databases.graph_stats import get_block_level
+from databases import watched_db, categorised_db
 from server.allostatic_functions import update_allostatic_level
 
 bp = Blueprint("watched", __name__, url_prefix="/api/watched")
@@ -47,6 +46,7 @@ def log_watch() -> Any:
             duration_minutes = max(0.0, (end_ts - start_ts) / 60.0)
 
         new_probability = None
+        category = category or categorised_db.get_category(video_id)
         if category:
             effective_minutes = None
             if watchtime_mins is not None:

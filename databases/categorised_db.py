@@ -26,6 +26,20 @@ def insert_categorised(video_id, category):
     )
     conn.close()
 
+def get_category(video_id):
+    conn = connect_db(CATEGORIES_DB_PATH)
+    try:
+        rows = fetch_all(conn,
+            "SELECT category FROM categorised WHERE video_id = ?",
+            (video_id,)
+        )
+        if rows:
+            row = rows[0]
+            return row[0]
+        return None
+    finally:
+        conn.close()
+
 def get_all_categorised():
     """Get all categorized videos."""
     conn = connect_db(CATEGORIES_DB_PATH)

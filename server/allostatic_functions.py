@@ -7,9 +7,9 @@ import random
 from datetime import datetime
 import sqlite3
 import os
-from typing import Optional
+from typing import Optional, Dict, Any
 
-from databases.graph_stats import get_block_level, set_block_level
+from databases.graph_stats import get_block_level, set_block_level, get_all_block_levels
 
 # Get the project root directory
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
@@ -95,16 +95,12 @@ def _parse_last_updated(value: Optional[object]) -> Optional[datetime]:
     if isinstance(value, datetime):
         return value
     if isinstance(value, str):
-        try:
-            return datetime.fromisoformat(value)
-        except ValueError:
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
             try:
-                return datetime.strptime(value, "%Y-%m-%d %H:%M:%S.%f")
+                return datetime.strptime(value, fmt)
             except ValueError:
-                try:
-                    return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-                except ValueError:
-                    return None
+                continue
+        return None
     return None
 
 
@@ -131,3 +127,31 @@ def update_allostatic_level(category: str, *, watched: bool, watchtime_mins: flo
     )
     set_block_level(category=category, current_level=updated)
     return updated
+
+
+def decay_all_categories(now: Optional[datetime] = None) -> Dict[str, Any]:
+    rows = get_all_block_levels()
+    results = []
+    now_ts = now or datetime.utcnow()
+    for row in rows:
+        category = row.get("category")
+        if not category:
+            continue
+        initial_p = row.get("current_level") or 0.0
+        last_updated = _parse_last_updated(row.get("last_updated_time"))
+        filter_instance = SimpleProbabilisticFilter(
+            initial_p=initial_p,
+            last_update=last_updated,
+        )
+        decayed = filter_instance.update(
+            now=now_ts,
+            watched=False,
+            watchtime_mins=0.0,
+            category=category,
+        )
+        set_block_level(category=category, current_level=decayed)
+        results.append({
+            "category": category,
+            "current_level": decayed,
+        })
+    return {"items": results, "timestamp": now_ts.isoformat()}
