@@ -15,24 +15,26 @@ def init_db(db_path=USER_SETTINGS_DB_PATH):
             is_active BOOLEAN NOT NULL CHECK(is_active IN (0, 1)),
             last_updated_time TIMESTAMP,
             count INTEGER DEFAULT 0,
-            total_blocked_time INTEGER DEFAULT 0
+            total_blocked_time INTEGER DEFAULT 0,
+            total_video INTEGER DEFAULT 0
         )
     ''')
     conn.close()
 
-def set_settings(category, filter_strength, is_active, count=0, total_blocked_time=0, db_path=USER_SETTINGS_DB_PATH):
+def set_settings(category, filter_strength, is_active, count=0, total_blocked_time=0, total_video=0, db_path=USER_SETTINGS_DB_PATH):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO user_filter_settings (category, filter_strength, is_active, last_updated_time, count, total_blocked_time)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO user_filter_settings (category, filter_strength, is_active, last_updated_time, count, total_blocked_time, total_video)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(category) DO UPDATE SET
             filter_strength=excluded.filter_strength,
             is_active=excluded.is_active,
             last_updated_time=excluded.last_updated_time,
             count=excluded.count,
-            total_blocked_time=excluded.total_blocked_time
-    ''', (category, filter_strength, int(is_active), datetime.now(), count, total_blocked_time))
+            total_blocked_time=excluded.total_blocked_time,
+            total_video=excluded.total_video
+    ''', (category, filter_strength, int(is_active), datetime.now(), count, total_blocked_time, total_video))
     conn.commit()
     conn.close()
 
@@ -40,7 +42,7 @@ def get_settings(category, db_path=USER_SETTINGS_DB_PATH):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT category, filter_strength, is_active, last_updated_time, count, total_blocked_time
+        SELECT category, filter_strength, is_active, last_updated_time, count, total_blocked_time, total_video
         FROM user_filter_settings
         WHERE category = ?
     ''', (category,))
@@ -53,7 +55,8 @@ def get_settings(category, db_path=USER_SETTINGS_DB_PATH):
             'is_active': bool(result[2]),
             'last_updated_time': result[3],
             'count': result[4],
-            'total_blocked_time': result[5]
+            'total_blocked_time': result[5],
+            'total_video': result[6]
         }
     else:
         return None
@@ -62,7 +65,7 @@ def get_all_settings(db_path=USER_SETTINGS_DB_PATH):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT category, filter_strength, is_active, last_updated_time, count, total_blocked_time
+        SELECT category, filter_strength, is_active, last_updated_time, count, total_blocked_time, total_video
         FROM user_filter_settings
         ORDER BY category
     ''')
@@ -75,7 +78,8 @@ def get_all_settings(db_path=USER_SETTINGS_DB_PATH):
             'is_active': bool(r[2]),
             'last_updated_time': r[3],
             'count': r[4],
-            'total_blocked_time': r[5]
+            'total_blocked_time': r[5],
+            'total_video': r[6]
         }
         for r in rows
     ]
@@ -129,6 +133,61 @@ def get_all_strength_levels(db_path=USER_SETTINGS_DB_PATH):
     
     # Convert to dictionary: category -> filter_strength
     return {row[0]: row[1] for row in rows}
+
+def increment_total_video(category, db_path=USER_SETTINGS_DB_PATH):
+    """
+    Increment the total_video count for a category when a video is categorized.
+    Creates the category if it doesn't exist.
+    """
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    
+    # First, try to update existing category
+    cursor.execute('''
+        UPDATE user_filter_settings 
+        SET total_video = total_video + 1, last_updated_time = ?
+        WHERE category = ?
+    ''', (datetime.now(), category))
+    
+    # If no rows were affected, create the category
+    if cursor.rowcount == 0:
+        cursor.execute('''
+            INSERT INTO user_filter_settings 
+            (category, filter_strength, is_active, count, total_blocked_time, total_video, last_updated_time)
+            VALUES (?, 'Moderate', 1, 0, 0, 1, ?)
+        ''', (category, datetime.now()))
+    
+    conn.commit()
+    conn.close()
+
+def increment_blocked_stats(category, duration_hours=0, db_path=USER_SETTINGS_DB_PATH):
+    """
+    Increment the count and total_blocked_time for a category when a video is blocked.
+    duration_hours: Duration in hours to add to total_blocked_time
+    Creates the category if it doesn't exist.
+    """
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    
+    # First, try to update existing category
+    cursor.execute('''
+        UPDATE user_filter_settings 
+        SET count = count + 1, 
+            total_blocked_time = total_blocked_time + ?,
+            last_updated_time = ?
+        WHERE category = ?
+    ''', (duration_hours, datetime.now(), category))
+    
+    # If no rows were affected, create the category
+    if cursor.rowcount == 0:
+        cursor.execute('''
+            INSERT INTO user_filter_settings 
+            (category, filter_strength, is_active, count, total_blocked_time, total_video, last_updated_time)
+            VALUES (?, 'Moderate', 1, 1, ?, 0, ?)
+        ''', (category, duration_hours, datetime.now()))
+    
+    conn.commit()
+    conn.close()
 
 if __name__ == "__main__":
     init_db()
