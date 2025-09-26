@@ -547,29 +547,69 @@ Promise.all([
         return total + (video.duration_hours || 0);
       }, 0);
       
-      // Calculate content removal percentage
+      // Calculate content removal percentage: (total blocked / total videos) * 100
       let contentRemovalPercentage = 0;
-      if (Array.isArray(categorizedData)) {
-        // Filter categorized videos from this week (last 7 days)
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        
-        const thisWeekCategorized = categorizedData.filter(video => {
-          // Handle Unix timestamp (seconds) - convert to milliseconds
-          const videoDate = new Date(video.timestamp * 1000);
-          return videoDate >= oneWeekAgo;
-        });
-        
-        const totalCategorizedThisWeek = thisWeekCategorized.length;
-        const blockedThisWeek = periodStats.this_week || 0;
-        
-        if (totalCategorizedThisWeek > 0) {
-          contentRemovalPercentage = (blockedThisWeek / totalCategorizedThisWeek) * 100;
-        }
-      }
       
-      // Update "Videos Blocked in Total" with this week's count
-      document.getElementById("totalBlockedVideos").innerText = periodStats.this_week || "0";
+      // Update "Videos Blocked in Total" with total count across all categories
+      fetch("http://127.0.0.1:5050/api/settings/total-blocked")
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("totalBlockedVideos").innerText = data.total_blocked || "0";
+        })
+        .catch(error => {
+          console.warn('Failed to load total blocked videos:', error);
+          document.getElementById("totalBlockedVideos").innerText = "0";
+        });
+
+      // Calculate content removal percentage and total blocked time
+      // Use existing endpoints to get the data
+      fetch("http://127.0.0.1:5050/api/settings/total-blocked")
+        .then(res => res.json())
+        .then(blockedData => {
+          const totalBlocked = blockedData.total_blocked || 0;
+          
+          // Get total videos and total blocked time by querying all settings
+          fetch("http://127.0.0.1:5050/api/settings")
+            .then(res => res.json())
+            .then(settingsData => {
+              const totalVideos = settingsData.items.reduce((sum, item) => sum + (item.total_video || 0), 0);
+              const totalBlockedTime = settingsData.items.reduce((sum, item) => sum + (item.total_blocked_time || 0), 0);
+              
+              if (totalVideos > 0) {
+                contentRemovalPercentage = (totalBlocked / totalVideos) * 100;
+              }
+              
+              // Update the Content Removed and Hours Saved This Week cards
+              const cards = document.querySelectorAll('.card');
+              cards.forEach(card => {
+                const heroText = card.querySelector('.tile-hero-txt');
+                const caption = card.querySelector('.tile-caption');
+                
+                if (heroText && heroText.textContent.includes('Content Removed')) {
+                  if (caption) {
+                    caption.textContent = `${contentRemovalPercentage.toFixed(1)}%`;
+                  }
+                }
+                
+                if (heroText && heroText.textContent.includes('Hours of Content Removed')) {
+                  if (caption) {
+                    const hoursFormatted = totalBlockedTime >= 1 
+                      ? `${totalBlockedTime.toFixed(1)} hours` 
+                      : `${(totalBlockedTime * 60).toFixed(0)} minutes`;
+                    caption.textContent = `${hoursFormatted} blocked`;
+                  }
+                }
+              });
+            })
+            .catch(error => {
+              console.warn('Failed to load settings data:', error);
+              contentRemovalPercentage = 0;
+            });
+        })
+        .catch(error => {
+          console.warn('Failed to load total blocked data:', error);
+          contentRemovalPercentage = 0;
+        });
       
       // Update dashboard cards with current week data
       const cards = document.querySelectorAll('.card');
@@ -577,21 +617,9 @@ Promise.all([
         const heroText = card.querySelector('.tile-hero-txt');
         const caption = card.querySelector('.tile-caption');
         
-        if (heroText && heroText.textContent.includes('Hours Saved This Week')) {
-          if (caption && caption.textContent.includes('Placeholder')) {
-            const hoursFormatted = weekDurationHours >= 1 
-              ? `${weekDurationHours.toFixed(1)} hours` 
-              : `${(weekDurationHours * 60).toFixed(0)} minutes`;
-            caption.textContent = `${hoursFormatted} blocked`;
-          }
-        }
+        // Hours of Content Removed card is updated in the async calculation above
         
-        // Update "Content Removed" with percentage
-        if (heroText && heroText.textContent.includes('Content Removed')) {
-          if (caption && caption.textContent.includes('Placeholder')) {
-            caption.textContent = `${contentRemovalPercentage.toFixed(1)}%`;
-          }
-        }
+        // Content Removed card is updated in the async calculation above
         
         // Update "Videos Blocked This Week" with actual count
         if (heroText && heroText.textContent.includes('Videos Blocked This Week')) {
@@ -612,31 +640,52 @@ Promise.all([
       .then(data => {
         if (data.success) {
           const stats = data.stats;
-          document.getElementById("totalBlockedVideos").innerText = stats.total_blocked || "N/A";
+          // Use total_blocked from stats (which is the sum of all category counts)
+          document.getElementById("totalBlockedVideos").innerText = stats.total_blocked || "0";
           
-          const cards = document.querySelectorAll('.card');
-          cards.forEach(card => {
-            const heroText = card.querySelector('.tile-hero-txt');
-            const caption = card.querySelector('.tile-caption');
-            
-            if (heroText && heroText.textContent.includes('Hours Saved This Week')) {
-              if (caption && caption.textContent.includes('Placeholder')) {
-                caption.textContent = `${stats.total_duration_formatted} blocked`;
+          // Calculate content removal percentage and total blocked time using fallback data
+          fetch("http://127.0.0.1:5050/api/settings")
+            .then(res => res.json())
+            .then(settingsData => {
+              const totalBlocked = stats.total_blocked || 0;
+              const totalVideos = settingsData.items.reduce((sum, item) => sum + (item.total_video || 0), 0);
+              const totalBlockedTime = settingsData.items.reduce((sum, item) => sum + (item.total_blocked_time || 0), 0);
+              let contentRemovalPercentage = 0;
+              
+              if (totalVideos > 0) {
+                contentRemovalPercentage = (totalBlocked / totalVideos) * 100;
               }
-            }
-            
-            if (heroText && heroText.textContent.includes('Content Removed')) {
-              if (caption && caption.textContent.includes('Placeholder')) {
-                caption.textContent = `${stats.total_blocked} videos`;
-              }
-            }
-            
-            if (heroText && heroText.textContent.includes('Videos Blocked This Week')) {
-              if (caption && caption.textContent.includes('Placeholder')) {
-                caption.textContent = `${stats.total_blocked} videos`;
-              }
-            }
-          });
+              
+              const cards = document.querySelectorAll('.card');
+              cards.forEach(card => {
+                const heroText = card.querySelector('.tile-hero-txt');
+                const caption = card.querySelector('.tile-caption');
+                
+                if (heroText && heroText.textContent.includes('Hours of Content Removed')) {
+                  if (caption) {
+                    const hoursFormatted = totalBlockedTime >= 1 
+                      ? `${totalBlockedTime.toFixed(1)} hours` 
+                      : `${(totalBlockedTime * 60).toFixed(0)} minutes`;
+                    caption.textContent = `${hoursFormatted} blocked`;
+                  }
+                }
+                
+                if (heroText && heroText.textContent.includes('Content Removed')) {
+                  if (caption) {
+                    caption.textContent = `${contentRemovalPercentage.toFixed(1)}%`;
+                  }
+                }
+                
+                if (heroText && heroText.textContent.includes('Videos Blocked This Week')) {
+                  if (caption && caption.textContent.includes('Placeholder')) {
+                    caption.textContent = `${stats.total_blocked} videos`;
+                  }
+                }
+              });
+            })
+            .catch(error => {
+              console.warn('Failed to load total videos for fallback:', error);
+            });
         }
       })
         .catch(fallbackError => {
