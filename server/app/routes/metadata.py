@@ -22,6 +22,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from databases import database
+from databases.blocked_videos_db import parse_duration_to_seconds
 
 bp = Blueprint('metadata', __name__, url_prefix='/api/metadata')
 
@@ -134,8 +135,19 @@ def fetch_youtube_videos_by_id(
                 "tags": sn.get("tags", []),
             }
 
+            # Parse duration to hours for video_length
+            video_length_hours = None
+            if row["duration"]:
+                try:
+                    # Parse ISO 8601 duration (e.g., "PT10M30S" -> 10.5 minutes -> 0.175 hours)
+                    duration_seconds = parse_duration_to_seconds(row["duration"])
+                    if duration_seconds:
+                        video_length_hours = duration_seconds / 3600.0
+                except Exception as e:
+                    current_app.logger.warning(f"Failed to parse duration {row['duration']}: {e}")
+            
             # Store into metadata cache (DB layer will JSON-encode dicts safely)
-            database.insert_metadata(row["video_id"], json.dumps(row))
+            database.insert_metadata(row["video_id"], json.dumps(row), video_length_hours)
             results.append(row)
 
     return results
