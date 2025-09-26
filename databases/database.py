@@ -27,8 +27,11 @@ def cleanup_all():
 def insert_metadata(video_id, metadata_json, video_length=None):
     return metadata_cache_db.insert_metadata(video_id, metadata_json, video_length)
 
-def insert_categorised(video_id, category):
-    return categorised_db.insert_categorised(video_id, category)
+def insert_categorised(video_id, category, should_block=False, duration_hours=None, duration=None, duration_seconds=None, metadata_json=None):
+    return categorised_db.insert_categorised(video_id, category, should_block, duration_hours, duration, duration_seconds, metadata_json)
+
+def get_all_categorised():
+    return categorised_db.get_all_categorised()
 
 def log_watch(video_id, start_time=None):
     return watched_db.log_watch(video_id, start_time)
@@ -51,8 +54,8 @@ def set_ingest_active(active: bool):
 def is_ingest_active() -> bool:
     return metadata_cache_db.is_ingest_active()
 
-def set_user_settings(category, filter_strength, is_active, count=0, total_blocked_time=0):
-    return user_settings_db.set_settings(category, filter_strength, is_active, count, total_blocked_time)
+def set_user_settings(category, filter_strength, is_active, count=0, total_blocked_time=0, total_video=0):
+    return user_settings_db.set_settings(category, filter_strength, is_active, count, total_blocked_time, total_video)
 
 def get_user_settings(category):
     return user_settings_db.get_settings(category)
@@ -102,6 +105,13 @@ def get_blocked_videos_stats_by_period():
 
 def delete_blocked_video(video_id):
     return blocked_videos_db.delete_blocked_video(video_id)
+
+# Category statistics functions
+def increment_total_video(category):
+    return user_settings_db.increment_total_video(category)
+
+def increment_blocked_stats(category, duration_hours=0):
+    return user_settings_db.increment_blocked_stats(category, duration_hours)
 
 # Auto‑create any missing DBs/tables when this module is loaded
 init_all()
