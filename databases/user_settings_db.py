@@ -215,5 +215,57 @@ def increment_blocked_stats(category, duration_hours=0, db_path=USER_SETTINGS_DB
     conn.commit()
     conn.close()
 
+def get_top_categories_by_hours(limit=5, db_path=USER_SETTINGS_DB_PATH):
+    """
+    Get top categories by total_blocked_time.
+    Returns list of dicts with category and total_blocked_time.
+    """
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT category, total_blocked_time
+        FROM user_filter_settings
+        WHERE total_blocked_time > 0
+        ORDER BY total_blocked_time DESC
+        LIMIT ?
+    ''', (limit,))
+    
+    results = []
+    for row in cursor.fetchall():
+        results.append({
+            'category': row[0],
+            'total_blocked_time': row[1]
+        })
+    
+    conn.close()
+    return results
+
+def get_max_blocked_hours_category(db_path=USER_SETTINGS_DB_PATH):
+    """
+    Get the category with the highest total_blocked_time.
+    Returns dict with category and total_blocked_time, or None if no data.
+    """
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT category, total_blocked_time
+        FROM user_filter_settings
+        WHERE total_blocked_time > 0
+        ORDER BY total_blocked_time DESC
+        LIMIT 1
+    ''')
+    
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result:
+        return {
+            'category': result[0],
+            'total_blocked_time': result[1]
+        }
+    return None
+
 if __name__ == "__main__":
     init_db()
