@@ -246,7 +246,15 @@ async function renderSettingsCards() {
       <div class="settings-body">
         <div class="setting-group">
           <div class="setting-row">
-            <label class="setting-label">Block All Content</label>
+            <label class="setting-label">
+              Block All Content
+              <div class="tooltip-container">
+                <span class="tooltip-icon">i</span>
+                <div class="tooltip-content">
+                  Completely blocks all content from this category. When enabled, no content from this category will be shown regardless of your viewing history.
+                </div>
+              </div>
+            </label>
             <div class="button-group">
               <input type="radio" id="yes-${slug}" name="block-${slug}" class="radio-input radio-yes" ${row.filter_strength === 'Blocked' ? "checked" : ""} />
               <label for="yes-${slug}" class="setting-btn">Yes</label>
@@ -258,7 +266,20 @@ async function renderSettingsCards() {
 
         <div class="setting-group strength-group">
           <div class="strength-header">
-            <label class="setting-label">Filter Strength</label>
+            <label class="setting-label">
+              Filter Strength
+              <div class="tooltip-container">
+                <span class="tooltip-icon">i</span>
+                <div class="tooltip-content">
+                  <strong>Allostatic Regulation:</strong> Adjusts filtering based on your viewing patterns.<br><br>
+                  <strong>Weak (40%):</strong> Light filtering, allows most content<br>
+                  <strong>Moderate (80%):</strong> Balanced filtering<br>
+                  <strong>Strong (120%):</strong> Aggressive filtering<br>
+                  <strong>Extra Strong (160%):</strong> Maximum filtering<br><br>
+                  Higher levels block more content, with the system learning from your viewing habits to adapt over time.
+                </div>
+              </div>
+            </label>
             <span class="strength-label">${row.filter_strength || 'Weak'}</span>
           </div>
           <div class="slider-container">
