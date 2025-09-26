@@ -8,8 +8,8 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from databases import watched_db
-from databases.graph_stats import get_block_level, set_block_level
-from server.allostatic_functions import SimpleProbabilisticFilter
+from databases.graph_stats import get_block_level
+from server.allostatic_functions import update_allostatic_level
 
 bp = Blueprint("watched", __name__, url_prefix="/api/watched")
 
@@ -48,38 +48,18 @@ def log_watch() -> Any:
 
         new_probability = None
         if category:
-            existing_level = get_block_level(category)
-            initial_p = 0.0
-            last_update = None
-            if existing_level:
-                initial_p = existing_level.get("current_level") or 0.0
-                stored_ts = existing_level.get("last_updated_time")
-                if isinstance(stored_ts, str):
-                    try:
-                        last_update = datetime.fromisoformat(stored_ts)
-                    except ValueError:
-                        last_update = None
-                elif stored_ts:
-                    last_update = stored_ts
-
-            filter_instance = SimpleProbabilisticFilter(
-                initial_p=initial_p,
-                last_update=last_update,
-            )
-
             effective_minutes = None
             if watchtime_mins is not None:
                 effective_minutes = float(watchtime_mins)
             elif duration_minutes:
                 effective_minutes = duration_minutes
 
-            new_probability = filter_instance.update(
-                now=datetime.utcnow(),
+            new_probability = update_allostatic_level(
+                category,
                 watched=True,
                 watchtime_mins=effective_minutes or 0.0,
-                category=category,
+                now=datetime.utcnow(),
             )
-            set_block_level(category=category, current_level=new_probability)
 
         return jsonify({
             "success": True,

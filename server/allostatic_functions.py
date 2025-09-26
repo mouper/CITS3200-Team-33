@@ -7,6 +7,9 @@ import random
 from datetime import datetime
 import sqlite3
 import os
+from typing import Optional
+
+from databases.graph_stats import get_block_level, set_block_level
 
 # Get the project root directory
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
@@ -84,3 +87,47 @@ class SimpleProbabilisticFilter:
                 self.P = min(self.P + increment, 1.0)
         self.last_update = now
         return self.P
+
+
+def _parse_last_updated(value: Optional[object]) -> Optional[datetime]:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            try:
+                return datetime.strptime(value, "%Y-%m-%d %H:%M:%S.%f")
+            except ValueError:
+                try:
+                    return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    return None
+    return None
+
+
+def update_allostatic_level(category: str, *, watched: bool, watchtime_mins: float, now: Optional[datetime] = None) -> float:
+    existing = get_block_level(category)
+    initial_p = 0.0
+    last_update = None
+    if existing:
+        try:
+            initial_p = float(existing.get("current_level") or 0.0)
+        except (TypeError, ValueError):
+            initial_p = 0.0
+        last_update = _parse_last_updated(existing.get("last_updated_time"))
+
+    filter_instance = SimpleProbabilisticFilter(
+        initial_p=initial_p,
+        last_update=last_update,
+    )
+    updated = filter_instance.update(
+        now=now or datetime.utcnow(),
+        watched=watched,
+        watchtime_mins=watchtime_mins,
+        category=category,
+    )
+    set_block_level(category=category, current_level=updated)
+    return updated
