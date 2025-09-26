@@ -191,53 +191,89 @@ class YouTubeCategorizationManager {
 
   setupNavigationListener() {
     let currentUrl = window.location.href;
+    let pendingForcedRefresh = false;
 
-    const handleUrlChange = async () => {
-      if (window.location.href !== currentUrl) {
-        currentUrl = window.location.href;
-        console.log(
-          "[YouTube Categorization] Navigation detected, restarting and clearing cache"
-        );
+    const handleUrlChange = async ({ force = false } = {}) => {
+      const newUrl = window.location.href;
+      const hasUrlChanged = newUrl !== currentUrl;
+      if (!hasUrlChanged && !force) {
+        return;
+      }
 
-        // Clear local state
-        this.restartScraping();
+      currentUrl = newUrl;
+      console.log(
+        "[YouTube Categorization] Navigation detected, restarting and clearing cache"
+      );
 
-        // Instruct background to clear any queued URLs
-        chrome.runtime.sendMessage({ action: "clearQueue" }, () => {
-          if (chrome.runtime.lastError) {
-            console.warn(
-              "[YouTube Categorization] Background clearQueue error:",
-              chrome.runtime.lastError
-            );
-          }
-        });
+      // Clear local state
+      this.restartScraping();
 
-        // Ask backend to clear metadata cache for fresh page
-        try {
-          const res = await fetch(
-            "http://127.0.0.1:5050/api/metadata/clear-cache",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ source: "page_navigate" }),
-            }
-          );
-          if (!res.ok) {
-            console.warn(
-              "[YouTube Categorization] Failed to clear backend cache:",
-              res.status
-            );
-          }
-        } catch (error) {
+      // Instruct background to clear any queued URLs
+      chrome.runtime.sendMessage({ action: "clearQueue" }, () => {
+        if (chrome.runtime.lastError) {
           console.warn(
-            "[YouTube Categorization] Error clearing backend cache:",
-            error
+            "[YouTube Categorization] Background clearQueue error:",
+            chrome.runtime.lastError
           );
         }
+      });
+
+      // Ask backend to clear metadata cache for fresh page
+      try {
+        const res = await fetch(
+          "http://127.0.0.1:5050/api/metadata/clear-cache",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ source: "page_navigate" }),
+          }
+        );
+        if (!res.ok) {
+          console.warn(
+            "[YouTube Categorization] Failed to clear backend cache:",
+            res.status
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "[YouTube Categorization] Error clearing backend cache:",
+          error
+        );
       }
     };
 
-    window.addEventListener("yt-navigate-finish", handleUrlChange);
+    const scheduleForcedRefresh = () => {
+      if (pendingForcedRefresh) {
+        return;
+      }
+      pendingForcedRefresh = true;
+      setTimeout(() => {
+        pendingForcedRefresh = false;
+        handleUrlChange({ force: true });
+      }, 0);
+    };
+
+    window.addEventListener("yt-navigate-start", scheduleForcedRefresh);
+    window.addEventListener("yt-navigate-finish", scheduleForcedRefresh);
+    window.addEventListener("popstate", scheduleForcedRefresh);
+
+    if (!window.__MELLOW_HISTORY_WRAPPED__) {
+      const wrapHistoryMethod = (method) => {
+        const original = history[method];
+        if (typeof original !== "function") {
+          return;
+        }
+        history[method] = function historyPatchedMethod(...args) {
+          const result = original.apply(this, args);
+          scheduleForcedRefresh();
+          return result;
+        };
+      };
+
+      wrapHistoryMethod("pushState");
+      wrapHistoryMethod("replaceState");
+      window.__MELLOW_HISTORY_WRAPPED__ = true;
+    }
 
     // MutationObserver fallback for non-YouTube navigation events
     const observer = new MutationObserver(() => handleUrlChange());
@@ -247,7 +283,7 @@ class YouTubeCategorizationManager {
     });
 
     // Fallback interval check in case MutationObserver misses changes
-    setInterval(handleUrlChange, 1000);
+    setInterval(() => handleUrlChange(), 1000);
   }
 
   setupMessageListener() {

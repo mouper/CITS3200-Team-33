@@ -114,7 +114,7 @@ def start_loop(model_id: str | None = None, interval_seconds: float | None = Non
         _stop_event.clear()
 
     model = model_id or os.getenv("OPENAI_MODEL_ID", "gpt-4.1-nano")
-    interval = interval_seconds if interval_seconds is not None else float(os.getenv("CLASSIFIER_POLL_INTERVAL", "0.5"))
+    interval = interval_seconds if interval_seconds is not None else float(os.getenv("CLASSIFIER_POLL_INTERVAL", "0.01"))
 
     _thread = threading.Thread(target=_poll_and_classify, args=(model, interval), daemon=True)
     _thread.start()
@@ -128,7 +128,7 @@ def stop_loop() -> bool:
         return False
     _stop_event.set()
     # Give the thread a moment to exit
-    _thread.join(timeout=1.0)
+    _thread.join(timeout=0.5)
     return True
 
 
