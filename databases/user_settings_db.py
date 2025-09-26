@@ -116,6 +116,32 @@ def total_block(db_path=USER_SETTINGS_DB_PATH):
     conn.close()
     return totalV
 
+def total_videos(db_path=USER_SETTINGS_DB_PATH):
+    conn = connect_db(db_path) 
+    cur = conn.cursor()
+    cur.execute("SELECT sum(total_video) FROM user_filter_settings")
+    totalV = cur.fetchone()[0]
+    conn.close()
+    return totalV
+
+def total_videos_sum(db_path=USER_SETTINGS_DB_PATH):
+    """Get sum of all total_video values across all categories, regardless of active status."""
+    conn = connect_db(db_path) 
+    cur = conn.cursor()
+    cur.execute("SELECT sum(total_video) FROM user_filter_settings")
+    totalV = cur.fetchone()[0]
+    conn.close()
+    return totalV or 0
+
+def total_blocked_sum(db_path=USER_SETTINGS_DB_PATH):
+    """Get sum of all count values across all categories, regardless of active status."""
+    conn = connect_db(db_path) 
+    cur = conn.cursor()
+    cur.execute("SELECT sum(count) FROM user_filter_settings")
+    totalV = cur.fetchone()[0]
+    conn.close()
+    return totalV or 0
+
 def get_all_strength_levels(db_path=USER_SETTINGS_DB_PATH):
     """
     Returns a dictionary mapping category names to their filter strength levels.
