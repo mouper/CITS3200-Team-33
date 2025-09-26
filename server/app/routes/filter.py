@@ -17,7 +17,7 @@ from flask import Blueprint, jsonify, request
 import sys
 import os
 sys.path.append(os.path.dirname(__file__))
-from simple_filter import SimpleProbabilisticFilter
+from allostatic_functions import SimpleProbabilisticFilter
 
 bp = Blueprint("filter", __name__)
 
