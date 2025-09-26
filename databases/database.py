@@ -122,5 +122,11 @@ def increment_total_video(category):
 def increment_blocked_stats(category, duration_hours=0):
     return user_settings_db.increment_blocked_stats(category, duration_hours)
 
+def get_top_categories_by_hours(limit=5):
+    return user_settings_db.get_top_categories_by_hours(limit)
+
+def get_max_blocked_hours_category():
+    return user_settings_db.get_max_blocked_hours_category()
+
 # Auto‑create any missing DBs/tables when this module is loaded
 init_all()
