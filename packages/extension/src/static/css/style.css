@@ -488,86 +488,29 @@ img.icon-svg { width: 37px; height: 37px; display: block; }
   font-size: 14px;
 }
 
+/* Tooltip styles */
+.tooltip-container { position: relative; display: inline-block; }
+.tooltip-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 6px; border-radius: 50%; background: rgba(255,255,255,0.1); color: #a6adbb; font-size: 11px; font-weight: bold; cursor: help; transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.1); }
+.tooltip-icon:hover { background: rgba(255,255,255,0.2); color: #f0f1f3; border-color: rgba(255,255,255,0.2); }
+
+/* Base tooltip */
+.tooltip-content { position: absolute; top: 50%; left: calc(100% + 8px); transform: translateY(-50%); padding: 6px 8px; background: #1a1a1e; border: 1px solid #2d2d31; border-radius: 4px; color: #f0f1f3; font-size: 11px; line-height: 1.25; opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0.15s ease; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.25); max-width: 320px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.tooltip-container:hover .tooltip-content { opacity: 1; visibility: visible; }
+.tooltip-content::after { content: ''; position: absolute; top: 50%; left: -6px; transform: translateY(-50%); border: 6px solid transparent; border-right-color: #1a1a1e; }
+
+/* Callout rectangle variant for longer content (Filter Strength) */
+.tooltip-content.tooltip-wide { top: 0; transform: none; max-width: none; width: max-content; min-width: 260px; white-space: normal; word-break: normal; hyphens: auto; overflow: visible; text-overflow: clip; line-height: 1.4; padding: 10px 14px; border-radius: 8px; box-sizing: border-box; font-size: 12px; background: #151516; border-color: #2a2a2e; box-shadow: 0 6px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.02) inset; }
+.tooltip-content.tooltip-wide::after { content: ''; position: absolute; top: 10px; left: -8px; border: 8px solid transparent; border-right-color: #151516; }
+.tooltip-content.tooltip-wide::before { content: ''; position: absolute; top: 10px; left: -9px; border: 9px solid transparent; border-right-color: #2a2a2e; }
+
+/* Adjust setting label to align icon nicely */
+.setting-label { display: inline-flex; align-items: center; gap: 4px; }
+
 /* Match modal action buttons typography to category-select */
 .modal-footer .btn-primary,
 .modal-footer .btn-secondary {
   font-family: "Instrument Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   font-size: 14px;
-}
-
-/* Tooltip styles */
-.tooltip-container {
-  position: relative;
-  display: inline-block;
-}
-
-.tooltip-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  color: #a6adbb;
-  font-size: 11px;
-  font-weight: bold;
-  cursor: help;
-  transition: all 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.tooltip-icon:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #f0f1f3;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.tooltip-content {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 8px;
-  padding: 12px 16px;
-  background: #1a1a1e;
-  border: 1px solid #2d2d31;
-  border-radius: 8px;
-  color: #f0f1f3;
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  max-width: 280px;
-  white-space: normal;
-  text-align: left;
-}
-
-.tooltip-content::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: #1a1a1e;
-}
-
-.tooltip-container:hover .tooltip-content {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Adjust setting label to accommodate tooltip */
-.setting-label {
-  display: flex;
-  align-items: center;
-  gap: 0;
 }
 
 @media (max-width: 900px) {

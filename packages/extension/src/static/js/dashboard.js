@@ -250,9 +250,7 @@ async function renderSettingsCards() {
               Block All Content
               <div class="tooltip-container">
                 <span class="tooltip-icon">i</span>
-                <div class="tooltip-content">
-                  Completely blocks all content from this category. When enabled, no content from this category will be shown regardless of your viewing history.
-                </div>
+                <div class="tooltip-content">Blocks every video in this category.</div>
               </div>
             </label>
             <div class="button-group">
@@ -265,18 +263,17 @@ async function renderSettingsCards() {
         </div>
 
         <div class="setting-group strength-group">
-          <div class="strength-header">
+            <div class="strength-header">
             <label class="setting-label">
               Filter Strength
               <div class="tooltip-container">
                 <span class="tooltip-icon">i</span>
-                <div class="tooltip-content">
-                  <strong>Allostatic Regulation:</strong> Adjusts filtering based on your viewing patterns.<br><br>
-                  <strong>Weak (40%):</strong> Light filtering, allows most content<br>
-                  <strong>Moderate (80%):</strong> Balanced filtering<br>
-                  <strong>Strong (120%):</strong> Aggressive filtering<br>
-                  <strong>Extra Strong (160%):</strong> Maximum filtering<br><br>
-                  Higher levels block more content, with the system learning from your viewing habits to adapt over time.
+                <div class="tooltip-content tooltip-wide">
+                  Allostatic regulation: adapts to your viewing over time.\<br />
+                  Weak (~40%): Light\<br />
+                  Moderate (~80%): Balanced\<br />
+                  Strong (~120%): Aggressive\<br />
+                  Extra Strong (~160%): Maximum
                 </div>
               </div>
             </label>
