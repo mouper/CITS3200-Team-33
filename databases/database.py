@@ -72,6 +72,15 @@ def get_max_blocked_category():
 def get_total_blocked_videos():
     return user_settings_db.total_block()
 
+def get_total_videos():
+    return user_settings_db.total_videos()
+
+def get_total_videos_sum():
+    return user_settings_db.total_videos_sum()
+
+def get_total_blocked_sum():
+    return user_settings_db.total_blocked_sum()
+
 def set_block_level(category, current_level):
     return graph_stats.set_block_level(category, current_level)
 
