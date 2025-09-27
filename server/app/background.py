@@ -40,14 +40,12 @@ def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
             get_fresh_metadata_triaged,
         )  # type: ignore
         from llm_client.src.categorise_runner import run_once  # type: ignore
-        from server.allostatic_functions import decay_all_categories  # type: ignore
     except Exception as exc:  # pragma: no cover
         _status["last_error"] = f"Import error: {exc}"
         return
 
     _status["loop_running"] = True
     assert _stop_event is not None
-    last_decay_ts = 0.0
     while not _stop_event.is_set():
         try:
             # Do not poll while a classification run is in-flight
@@ -60,16 +58,6 @@ def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
                     continue
             except Exception:
                 pass
-
-            now_ts = time.time()
-            if now_ts - last_decay_ts >= 5.0:
-                try:
-                    decay_all_categories()
-                except Exception as decay_exc:  # pragma: no cover
-                    _status["last_error"] = f"Decay error: {decay_exc}"
-                finally:
-                    last_decay_ts = now_ts
-
             pending_rows = get_fresh_metadata_unprocessed()
             pending_count = len(pending_rows)
             _status["pending_count"] = pending_count
@@ -106,7 +94,7 @@ def start_background(app: Any) -> None:
     if getattr(app, "_bg_started", False):
         return
 
-    autorun = os.getenv("CLASSIFIER_AUTORUN", "false").lower() in {"1", "true", "yes", "on"}
+    autorun = os.getenv("CLASSIFIER_AUTORUN", "true").lower() in {"1", "true", "yes", "on"}
     if not autorun:
         app._bg_started = True  # type: ignore[attr-defined]
         return
