@@ -28,17 +28,24 @@ def init_db():
 
 def insert_categorised(video_id, category, should_block=False, duration_hours=None, duration=None, duration_seconds=None, metadata_json=None):
     conn = connect_db(CATEGORIES_DB_PATH)
+    
+    # Check if video already exists
+    existing_video = fetch_all(conn, "SELECT video_id FROM categorised WHERE video_id = ?", (video_id,))
+    is_new_video = len(existing_video) == 0
+    
     execute_query(conn,
         "REPLACE INTO categorised VALUES (?, ?, ?)",
         (video_id, category, current_timestamp())
     )
     conn.close()
     
-    # Increment total_video count for this category
-    user_settings_db.increment_total_video(category)
+    # Only increment stats for new videos, not updates
+    if is_new_video:
+        # Increment total_video count for this category (for all categorizations)
+        user_settings_db.increment_total_video(category)
     
-    # If video should be blocked, also increment count and add duration
-    if should_block:
+    # If video should be blocked, increment count and add duration (only for new videos)
+    if should_block and is_new_video:
         # Calculate duration in hours
         hours = 0
         
