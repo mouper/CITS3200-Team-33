@@ -120,160 +120,6 @@ CITS3200-Team-33/                 # Root project repo
 
 ---
 
-## Running the browser extension
-
-1. Open Chrome → go to chrome://extensions.
-2. Toggle Developer mode.
-3. Click “Load unpacked” → select the src folder (location = CITS3200-Team-33/packages/extension/src)
-4. Pin the extension. Click the toolbar icon → in the popup, click “Open Dashboard”.
-
----
-
-### Start the backend when the frontend is running
-
-Option A — Windows (recommended during development):
-
-```
-scripts\dev.ps1
-```
-
-- Starts the Flask server on `http://127.0.0.1:5050` and tries to open Chrome with the unpacked extension loaded.
-- The dashboard shows a status line under “Overview”: `Backend: Online` or `Backend: Offline`.
-
-Option B — Manual steps:
-
-1. Start the Flask server (from repo root):
-
-```
-python server\run.py
-```
-
-2. Load/open the extension dashboard (see steps above under “Running the browser extension”).
-3. Confirm health: visit `http://127.0.0.1:5050/health` (should return `{ "status": "ok" }`).
-   - The dashboard will also show the status line.
-
-Notes:
-
-- Default host/port are `127.0.0.1:5050`. Change by setting `FLASK_RUN_PORT` (or `PORT`).
-- CORS is enabled for `/api/*`, `/health`, and `/version` for local dev. Lock this down for production.
-
----
-
-## Running categorisation on cached videos (llm-client)
-
-Prerequisites:
-
-- Python with `requests` (and optionally `python-dotenv` if you use a `.env` file)
-- Your `.env` at the repo root with:
-  - `OPENAI_API_KEY=sk-...`
-  - Optional: `OPENAI_MODEL_ID=gpt-5-nano`
-
-### Option A: One-off categorisation run (reads from metadata cache DB, writes to categorised DB)
-
-1. Ensure the DBs are initialised and the metadata cache has items.
-   - If you already have the `databases/` layer running elsewhere, you can skip this.
-2. From repo root, run:
-
-```
-python -c "import os,sys; sys.path.insert(0,'packages/llm-client/src'); from categorise_runner import run_once; model=os.getenv('OPENAI_MODEL_ID','gpt-5-nano'); print('Rows written:', run_once(model))"
-```
-
-This will:
-
-- Fetch fresh (uncategorised) metadata rows from the cache
-- Build a compact prompt
-- Call the model with your `OPENAI_API_KEY`
-- Parse and validate strict JSON
-- Persist to `categorised_videos` DB
-
-### Option B: Dry-run with dummy input (no DB writes)
-
-From repo root:
-
-```
-python packages/llm-client/tests/e2e_llm_dummy_test.py
-```
-
-This prints the raw input, triaged payload, full prompt, live LLM response, and the final JSON that would be written to the DB.
-
----
-
-## Running the local Flask service (server)
-
-A lightweight Flask service is scaffolded under `server/` to expose local endpoints for metadata, classification, watched events, allostatic settings, and stats. Implementation stubs are provided; handlers will be added next.
-
-Setup:
-
-1. Create a Python venv and install deps:
-
-```
-python -m venv .venv
-. .venv/Scripts/activate  # Windows PowerShell command
-source .venv/bin/activate # macOS/ Linux command
-pip install -r server/requirements.txt
-```
-
-2. Create env file:
-
-```
-copy server/env.example server/.env # Windows PowerShell command
-cp server/env.example server/.env # macOS/ Linux command
-
-```
-
-3. Run the server:
-
-```
-python server/run.py
-```
-
-The service binds to `127.0.0.1` on the port from `server/.env` (default 5050). Future `/api/*` endpoints will require the `X-LOCAL-TOKEN` header from the env file.
-
----
-
-## Populating the databases with test data
-
-1. The following steps must be done in the virtual environment with the .db files created ( after all the steps above in 'Running the local Flask service (server)' has been completed)
-
-2. Create a smaller test json file
-
-```
-python scripts/json_sampler.py --fraction 0.2 --seed 42
-# change the value after --fraction to change the size of data sampled e.g. --fraction 0.2 = 20% of 397 (the number of videos in youtube_sample_397.json)
-```
-
-3. Ensure the classifier autorunner is running (so it detects cache rows and categorises)
-
-python server/run.py
-
-```
-
-4. Load only the metadata cache with your JSON (autorunner will triage + categorise)
-
-```
-
-python scripts/load_into_cache.py --file data/test_metadata.json
-
-The autorunner will triage fresh rows, remove them from `metadata_cache`, and write results to `categorised.db`.
-
-```
-
-5. Populate watched.db and user_settings.db with sample data
-
-```
-
-SEED_WATCHED_COUNT=25 python scripts/seed_sample_data.
-
-# change SEED_WATCHED_COUNT to change the number of watched videos added
-
-# watched video ids are populated from categorised.db
-
-# settings are populated for all categories with a default 'Moderate' strength + random categories are selected as active
-
-```
-
-```
-
 # YouTube URL Scraping Integration
 
 This feature enables dynamic scraping of YouTube video URLs from the homepage and automatic metadata processing.
@@ -303,54 +149,6 @@ This feature enables dynamic scraping of YouTube video URLs from the homepage an
    - Continuously monitors for fresh metadata
    - Automatically categorizes new videos
    - Moves processed videos to categorized database
-
-## Setup Instructions
-
-### 1. Environment Variables
-
-Set your YouTube API key:
-```bash
-export YT_API_KEY="your_youtube_api_key_here"
-```
-
-Enable background categorization:
-```bash
-export CLASSIFIER_AUTORUN=true
-```
-
-### 2. Start the Server
-
-```bash
-cd server
-python run.py
-```
-
-The server will run on `http://localhost:5050` by default.
-
-### 3. Load the Extension
-
-1. Open Chrome/Edge and go to `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked" and select `packages/extension/src/`
-4. The extension should now be active
-
-### 4. Test the Integration
-
-Run the test script:
-```bash
-python test_youtube_scraping_integration.py
-```
-
-### 5. Use on YouTube
-
-1. Visit `https://www.youtube.com`
-2. Open browser developer tools (F12)
-3. Check the Console tab for scraper logs
-4. The extension will automatically:
-   - Detect recommended videos
-   - Extract their URLs
-   - Send them to your server
-   - Process metadata and categorize them
 
 ## Configuration
 
@@ -434,3 +232,70 @@ The scraper detects URLs in these formats:
 - Failed requests are retried with exponential backoff
 - Old URLs are cleaned up automatically
 - Background processing runs continuously but efficiently
+
+---
+
+# Setup and Usage Instructions
+
+## 1. Setup the Extension and Server
+
+1. Create a Python venv and install deps:
+
+```
+python -m venv .venv
+. .venv/Scripts/activate  # Windows PowerShell command
+source .venv/bin/activate # macOS/ Linux command
+pip install -r server/requirements.txt
+```
+
+2. Create env file:
+
+```
+copy server/env.example server/.env # Windows PowerShell command
+cp server/env.example server/.env # macOS/ Linux command
+
+```
+
+3. Populate environment variables:
+
+Populate the following keys in the .env file with your real confidential keys.
+```
+# External APIs
+YT_API_KEY=your-youtube-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+4. Run the server:
+
+```
+python server/run.py
+```
+
+The service binds to `127.0.0.1` on the port from `server/.env` (default 5050). Future `/api/*` endpoints will require the `X-LOCAL-TOKEN` header from the env file.
+
+When the server starts for the first time, it automatically initializes all databases and sets user settings to default values. The following categories are set as active by default:
+- Sensational/Outrage News
+- Politics
+- Gaming
+- Sexual and Explicit
+- Violent and Graphic
+- Controversial and Conspiracy Theories
+
+
+## 3. Load the Extension
+
+1. Open Chrome/Edge and go to `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked" and select `packages/extension/src/`
+4. Pin the extension
+5. The extension should now be active 
+   - Please note that the server must be running for the extension to function
+
+
+## 4. Use the Extension
+
+1. Click the toolbar icon → in the popup, click “Open Dashboard”
+2. Adjust the content category filter settings
+3. Visit `https://www.youtube.com`
+4. Wait for the initial categoriser loading screen to end
+5. Enjoy your customised YouTube video feed!

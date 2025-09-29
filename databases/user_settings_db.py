@@ -2,6 +2,63 @@ from datetime import datetime
 from .db_utils import connect_db
 from .config import USER_SETTINGS_DB_PATH
 import sqlite3
+import json
+import os
+from pathlib import Path
+
+def _seed_default_categories(db_path=USER_SETTINGS_DB_PATH):
+    """Seed the database with all categories from categories.v2.json on first run."""
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    
+    # Check if database is already seeded
+    cursor.execute("SELECT COUNT(*) FROM user_filter_settings")
+    count = cursor.fetchone()[0]
+    
+    if count > 0:
+        # Database already has data, don't reseed
+        conn.close()
+        return
+    
+    # Load categories from categories.v2.json
+    try:
+        # Get the path to the categories file relative to this database file
+        current_dir = Path(__file__).resolve().parent
+        repo_root = current_dir.parent
+        cat_path = repo_root / "packages" / "llm_client" / "models" / "categories.v2.json"
+        
+        with open(cat_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            categories = data.get("allowedLabels", [])
+    except Exception as e:
+        print(f"Warning: Could not load categories.v2.json: {e}")
+        conn.close()
+        return
+    
+    # Categories that should be active by default
+    active_categories = {
+        "Sensational/Outrage News",
+        "Politics",
+        "Gaming",
+        "Sexual and Explicit", 
+        "Violent and Graphic", 
+        "Controversial and Conspiracy Theories"
+    }
+    
+    # Insert all categories with appropriate settings
+    for category in categories:
+        is_active = category in active_categories
+        filter_strength = "Moderate"  # Default strength for all categories
+        
+        cursor.execute('''
+            INSERT INTO user_filter_settings (category, filter_strength, is_active, last_updated_time, count, total_blocked_time)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (category, filter_strength, int(is_active), datetime.now(), 0, 0))
+    
+    conn.commit()
+    conn.close()
+    print(f"Seeded {len(categories)} categories with {len(active_categories)} active by default")
+
 
 def init_db(db_path=USER_SETTINGS_DB_PATH):
     conn = connect_db(db_path)
@@ -20,6 +77,9 @@ def init_db(db_path=USER_SETTINGS_DB_PATH):
         )
     ''')
     conn.close()
+    
+    # Seed with default categories on first run
+    _seed_default_categories(db_path)
 
 def set_settings(category, filter_strength, is_active, count=0, total_blocked_time=0, total_video=0, db_path=USER_SETTINGS_DB_PATH):
     conn = connect_db(db_path)

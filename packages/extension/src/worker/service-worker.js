@@ -32,9 +32,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   switch (request.action) {
     case 'processVideoUrls':
-      handleVideoUrls(request.urls, request.timestamp);
-      sendResponse({ success: true });
-      break;
+      // Check if extension is enabled before processing
+      chrome.storage.local.get(['mellowEnabled'], (result) => {
+        // Default to true if not set (first time usage)
+        const isEnabled = result.mellowEnabled !== undefined ? Boolean(result.mellowEnabled) : true;
+        if (isEnabled) {
+          handleVideoUrls(request.urls, request.timestamp);
+          sendResponse({ success: true });
+        } else {
+          console.log('[Service Worker] Extension disabled, ignoring video URLs');
+          sendResponse({ success: true, ignored: true });
+        }
+      });
+      return true; // Keep message channel open for async response
       
     case 'getProcessingStatus':
       sendResponse({

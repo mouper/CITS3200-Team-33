@@ -14,7 +14,7 @@ MODEL_ID = "gpt-5-nano"
 PROMPT_VERSION = "v1"
 
 _THIS_DIR = Path(__file__).resolve().parent
-_CAT_FILE = (_THIS_DIR.parent / "models" / "categories.v1.json").resolve()
+_CAT_FILE = (_THIS_DIR.parent / "models" / "categories.v2.json").resolve()
 
 def load_categories(categories_path: Optional[os.PathLike] = None) -> Tuple[List[str], str]:
     """Load categories from a JSON file.
