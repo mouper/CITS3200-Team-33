@@ -308,6 +308,21 @@ def get_video_metadata(video_id: str):
         current_app.logger.error(f"Error getting video metadata: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
+
+@bp.route('/clear-cache', methods=['POST'])
+def clear_metadata_cache():
+    """Clear all cached metadata.
+
+    Used when navigating to a new YouTube context to ensure fresh fetches.
+    """
+    try:
+        deleted = database.clear_metadata_cache()
+        current_app.logger.info("Cleared metadata cache via API call")
+        return jsonify({'success': True, 'deleted': deleted})
+    except Exception as exc:
+        current_app.logger.error(f"Error clearing metadata cache: {exc}")
+        return jsonify({'error': 'Failed to clear metadata cache'}), 500
+
 @bp.route('/categorization-progress', methods=['GET'])
 def get_categorization_progress():
     """Get categorization progress statistics."""

@@ -48,6 +48,9 @@ def get_watch_durations():
 def delete_metadata_by_ids(video_ids):
     return metadata_cache_db.delete_metadata_by_ids(video_ids)
 
+def clear_metadata_cache():
+    return metadata_cache_db.clear_all_metadata()
+
 def set_ingest_active(active: bool):
     return metadata_cache_db.set_ingest_active(active)
 
