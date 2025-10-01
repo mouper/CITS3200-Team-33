@@ -52,14 +52,14 @@ else:
     print(f"{db_file} not found")
 
 print("\n--- Inserting into category_block_stats ---")
-from . import graph_stats
-graph_stats.set_block_level("TestCategory", 0.75)
+from . import category_block_stats
+category_block_stats.set_block_level("TestCategory", 0.75)
 
 print("\n--- Checking block level for TestCategory ---")
-print(graph_stats.get_block_level("TestCategory"))
+print(category_block_stats.get_block_level("TestCategory"))
 
 print("\n--- All block levels ---")
-print(graph_stats.get_all_block_levels())
+print(category_block_stats.get_all_block_levels())
 
 print("\n--- Peeking directly into the category_block_stats table ---")
 db_file = "databases/category_block_stats.db"
