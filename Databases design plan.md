@@ -55,24 +55,7 @@ TTL: 30 days (WATCHED_TTL)
 - Get: Retrieve watch records or computed durations for analytics.
 - Delete: Remove watch records older than TTL during cleanup.
 
-## 4. Blocked Videos DB  
-**Purpose:** Store blocked video IDs with an estimated watch duration and the time they were blocked.
-TTL: 90 days (BLOCKED_VIDEOS_TTL)
-
-**Schema:**
-
-| Column        | Type            | Notes                                               |
-|---------------|-----------------|-----------------------------------------------------|
-| video_id      | TEXT PRIMARY KEY| Unique ID (PK)                                      |
-| duration_hours| REAL            | Duration in hours (e.g., 0.5 for 30 minutes)        |
-| end_time      | TIMESTAMP       | When the video was blocked                          |
-
-**Lifecycle:**
-- Create: Insert or update a blocked video with computed duration_hours and blocked_at.
-- Get: Retrieve blocked videos (optionally limited) and summary stats.
-- Delete: Unblock specific videos on request or purge entries older than 90 days.
-
-## 5. User Filter Settings DB 
+## 4. User Filter Settings DB 
 **Purpose:** Persist per-category filtering preferences and simple usage counters.
 **Schema:**
 
