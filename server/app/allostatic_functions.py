@@ -3,10 +3,7 @@
 import math
 import random
 from datetime import datetime
-from databases.user_settings_db import (
-    get_all_strength_levels,
-    fetch_recently_updated_categories,
-)
+from databases.user_settings_db import get_all_strength_levels
 from databases.category_block_stats import (
     set_block_level,
     get_all_block_levels,
@@ -89,7 +86,7 @@ class ProbabilisticDecayFilter:
         Writes each category's block level to the graph database.
         """
         now = datetime.utcnow()
-        recent_categories = fetch_recently_updated_categories(since_minutes)
+        recent_categories = get_all_block_levels(since_minutes)
         results = []
         for entry in recent_categories:
             category = entry['category']
