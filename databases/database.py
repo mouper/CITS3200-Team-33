@@ -6,7 +6,7 @@ from . import metadata_cache_db
 from . import categorised_db
 from . import watched_db
 from . import user_settings_db
-from . import graph_stats
+from . import category_block_stats
 from . import blocked_videos_db
 
 def init_all():
@@ -14,7 +14,7 @@ def init_all():
     categorised_db.init_db()
     watched_db.init_db()
     user_settings_db.init_db()
-    graph_stats.init_db()
+    category_block_stats.init_db()
     blocked_videos_db.init_db()
 
 def cleanup_all():
@@ -73,13 +73,13 @@ def get_total_blocked_videos():
     return user_settings_db.total_block()
 
 def set_block_level(category, current_level):
-    return graph_stats.set_block_level(category, current_level)
+    return category_block_stats.set_block_level(category, current_level)
 
 def get_block_level(category):
-    return graph_stats.get_block_level(category)
+    return category_block_stats.get_block_level(category)
 
 def get_all_block_levels():
-    return graph_stats.get_all_block_levels()
+    return category_block_stats.get_all_block_levels()
 
 # Blocked videos functions
 def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_hours=None, metadata_json=None, blocked_at=None):
