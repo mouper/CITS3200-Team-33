@@ -1003,7 +1003,39 @@ class YouTubeCategorizationManager {
     overlay.className = `mellow-category-overlay ${
       shouldBlock ? "blocked" : "unblocked"
     }`;
-    overlay.textContent = category;
+    
+     // Create structured content for blocked videos
+     if (shouldBlock) {
+       // Main text: "Blocked by [icon] Mellow"
+       const mainText = document.createElement("div");
+       mainText.className = "tile-hero-txt";
+       
+       // Add proper icon structure
+       const iconBox = document.createElement("div");
+       iconBox.className = "icon-box";
+       const iconImg = document.createElement("img");
+       iconImg.className = "icon-svg";
+       iconImg.src = chrome.runtime.getURL("static/assets/category.svg");
+       iconImg.alt = "";
+       iconBox.appendChild(iconImg);
+       
+       const textBefore = document.createTextNode("Blocked by ");
+       const textAfter = document.createTextNode(" Mellow");
+       mainText.appendChild(textBefore);
+       mainText.appendChild(iconBox);
+       mainText.appendChild(textAfter);
+       
+       // Sub text: "Category: [category name]"
+       const subText = document.createElement("div");
+       subText.className = "setting-label";
+       subText.textContent = `Category: ${category}`;
+       
+       overlay.appendChild(mainText);
+       overlay.appendChild(subText);
+     } else {
+       // For unblocked videos, keep the simple category text
+       overlay.textContent = category;
+     }
 
     console.log(
       `[YouTube Categorization] Creating overlay for video ${videoId} with class: ${overlay.className}`
@@ -1103,17 +1135,8 @@ class YouTubeCategorizationManager {
     }
     }
 
-  createTestOverlay(container, category, videoId) {
-    // Don't create test overlays anymore - let's focus on making real overlays work
-    console.log(
-      `[YouTube Categorization] Skipping test overlay - focusing on real overlay fixes`
-    );
 
-    // Try a different approach - find the actual image element and overlay on that
-    this.tryImageOverlay(container, category, videoId);
-  }
-
-  tryImageOverlay(container, category, videoId) {
+  tryImageOverlay(container, category, videoId, shouldBlock = false) {
     console.log(`[YouTube Categorization] Trying image overlay approach...`);
 
     // Find the actual image element
@@ -1154,35 +1177,44 @@ class YouTubeCategorizationManager {
 
     // Create overlay on image container
     const overlay = document.createElement("div");
-    overlay.className = "mellow-category-overlay";
-    overlay.textContent = category;
+    overlay.className = `mellow-category-overlay ${shouldBlock ? "blocked" : "unblocked"}`;
+    
+    // Create structured content for blocked videos
+    if (shouldBlock) {
+      // Main text: "Blocked by [icon] Mellow"
+      const mainText = document.createElement("div");
+      mainText.className = "tile-hero-txt";
+      
+      // Add proper icon structure
+      const iconBox = document.createElement("div");
+      iconBox.className = "icon-box";
+      const iconImg = document.createElement("img");
+      iconImg.className = "icon-svg";
+      iconImg.src = chrome.runtime.getURL("static/assets/category.svg");
+      iconImg.alt = "";
+      iconBox.appendChild(iconImg);
+      
+      const textBefore = document.createTextNode("Blocked by ");
+      const textAfter = document.createTextNode(" Mellow");
+      mainText.appendChild(textBefore);
+      mainText.appendChild(iconBox);
+      mainText.appendChild(textAfter);
+      
+      // Sub text: "Category: [category name]"
+      const subText = document.createElement("div");
+      subText.className = "setting-label";
+      subText.textContent = `Category: ${category}`;
+      
+      overlay.appendChild(mainText);
+      overlay.appendChild(subText);
+    } else {
+      // For unblocked videos, keep the simple category text
+      overlay.textContent = category;
+    }
 
     // Make container relative
     imageContainer.style.position = "relative";
 
-    overlay.style.cssText = `
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            background: rgba(0, 0, 0, 0.85) !important;
-            color: white !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 14px !important;
-            font-weight: bold !important;
-            z-index: 9999 !important;
-            text-align: center !important;
-            padding: 8px !important;
-            box-sizing: border-box !important;
-            word-wrap: break-word !important;
-            text-transform: capitalize !important;
-            pointer-events: auto !important;
-            border: 2px solid rgba(255, 255, 255, 0.3) !important;
-            cursor: default !important;
-        `;
 
     imageContainer.appendChild(overlay);
 

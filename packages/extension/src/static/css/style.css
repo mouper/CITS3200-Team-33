@@ -248,18 +248,18 @@ body {
   gap: 14px;
 }
 .icon-box {
-  width: 45px;
-  height: 45px;
-  background: var(--iconBackground);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 45px !important;
+  height: 45px !important;
+  background: var(--iconBackground) !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 .icon-placeholder {
   font-size: 20px;
 }
-img.icon-svg { width: 37px; height: 37px; display: block; }
+img.icon-svg { width: 37px !important; height: 37px !important; display: block !important; }
 .header-text {
   flex: 1;
   align-items: center;  
@@ -318,9 +318,9 @@ img.icon-svg { width: 37px; height: 37px; display: block; }
   margin-bottom: 8px;
 }
 .setting-label {
-  color: #f0f1f3;
-  font-size: 14px;
-  margin: 0;
+  color: #f0f1f3 !important;
+  font-size: 14px !important;
+  margin: 0 !important;
 }
 .setting-controls {
   display: flex;
