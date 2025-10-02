@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import requests
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -45,6 +46,33 @@ except Exception:
 
 class ParseError(Exception):
     pass
+
+
+def determine_if_should_block(category: str) -> bool:
+    """
+    Determine if a video should be blocked based on the category and filter settings.
+    Uses the filter API to make the decision.
+    """
+    try:
+        # Call the filter API to determine if this category should be blocked
+        response = requests.post(
+            'http://127.0.0.1:5050/api/filter/decide',
+            json={'category': category},
+            timeout=5
+        )
+        
+        if response.ok:
+            data = response.json()
+            return data.get('should_filter', False)
+        else:
+            # If filter API is unavailable, default to not blocking
+            print(f"Warning: Filter API returned {response.status_code}, defaulting to not blocking")
+            return False
+            
+    except Exception as e:
+        # If there's any error, default to not blocking
+        print(f"Warning: Error calling filter API: {e}, defaulting to not blocking")
+        return False
 
 
 def parse_and_validate(content: str, allowed_labels: List[str]) -> str:
@@ -97,7 +125,9 @@ def run_once(model_id: str, pretriaged_items: List[Dict[str, Any]] | None = None
             try:
                 content = call_classifier(local_client, model_id, system, labels_block, user_payload)
                 category = parse_and_validate(content, ALLOWED_LABELS)
-                db.insert_categorised(video_id, category)
+                # Determine if video should be blocked based on filter settings
+                should_block = determine_if_should_block(category)
+                db.insert_categorised(video_id, category, should_block=should_block)
                 return (video_id, True)
             except (ParseError, RequestException, RuntimeError):
                 if attempt == 0:
