@@ -1,64 +1,95 @@
 Databases design plan
 
-## 1. Metadata Cache DB  
-Purpose: Temporarily store raw metadata from YouTube API until categorisation is done.  
 TTL (Time-To-Live): defines how long data remains valid before it is automatically deleted from the database.
 
-**Possible Schema:**
+## 1. Metadata Cache DB  
+**Purpose:** Temporarily store raw metadata from YouTube API until categorisation is done.  
+TTL: 6 hours (METADATA_TTL)
 
-| Column       | Type           | Notes                               |
-|--------------|----------------|-------------------------------------|
-| videoID      | VARCHAR        | YouTube’s unique ID (PK)            |
-| title        | TEXT           | Video title                         |
-| description  | TEXT           | Full description                    |
-| tags         | TEXT / JSON    | Store as JSON array for flexibility |
-| timeFetched  | DATETIME       | For TTL/deletion scheduling         |
+**Schema:**
+
+| Column       | Type            | Notes                               |
+|--------------|-----------------|-------------------------------------|
+| video_id     | TEXT PRIMARY KEY| Unique ID (PK)                      |
+| metadata     | TEXT            | Video metadata (JSON as text)       |
+| time_cached  | INTEGER         | Unix timestamp                      |
+| video_length | REAL            | Length of video (seconds)           |
 
 **Lifecycle:**
-- **Create:** Insert when YouTube API returns new results.  
-- **Get:** Retrieve to feed into LLM for categorisation.  
-- **Delete:** Immediately after category is determined.
+- Create: Insert metadata on fetch (upsert) with current timestamp.
+- Get: Retrieve cached entries fresher than TTL for categorisation.
+- Delete: Remove entries older than TTL during cleanup.
 
 ## 2. Categorised DB 
 **Purpose:** Record category assignment for quick lookup and avoid recategorising.  
-**Possible schema:**
+TTL: 24 hours (CATEGORIES_TTL)
 
-| Column         | Type           | Notes                          |
-|----------------|----------------|--------------------------------|
-| videoID        | VARCHAR        | PK                             |
-| category       | TEXT           | Category label assigned by LLM |
-| timeCategorised| DATETIME       | Used for 24h deletion          |
+**Schema:**
+
+| Column          | Type            | Notes                          |
+|-----------------|-----------------|--------------------------------|
+| video_id        | TEXT PRIMARY KEY| Unique ID (PK)                 |
+| category        | TEXT            | Category label assigned by LLM |
+| time_categorised| INTEGER         | Unix timestamp                 |
 
 **Lifecycle:**
-- **Create:** Insert after category assigned.  
-- **Get:** Used to skip already categorised videos.  
-- **Delete:** Background job removes rows older than 24 hours.
+- Create: Insert category assignment for a video (upsert) with current timestamp.
+- Get: Retrieve categorised videos to skip reprocessing.
+- Delete: Remove entries older than 24 hours during cleanup.
 
 
 ## 3. Watched DB  
 **Purpose:** Track stimulus activity and watch events.  
-**Suggested schema:**
+TTL: 30 days (WATCHED_TTL)
 
-| Column       | Type        | Notes                                               |
-|--------------|-------------|-----------------------------------------------------|
-| videoID      | VARCHAR     | PK or composite key with timestamp if re-watched    |
-| start_time   | INTEGER     | When viewing began                                  |
-| end_time     | INTEGER     | When viewing ended/log saved                        |
+**Schema:**
+
+| Column       | Type            | Notes                                               |
+|--------------|-----------------|-----------------------------------------------------|
+| video_id     | TEXT PRIMARY KEY| Unique ID (PK)                                      |
+| start_time   | INTEGER         | Unix timestamp when viewing began                   |
+| end_time     | INTEGER         | Unix timestamp when viewing ended                   |
 
 **Lifecycle:**
-- **Create:** Insert when a video is watched.  
-- **Get:** Aggregate over a time window to compute stimulus level.  
-- **Delete:** Optional archival or cleanup depending on analysis horizon.
+- Create: Insert or update a watch record when a video is watched, setting start and end times.
+- Get: Retrieve watch records or computed durations for analytics.
+- Delete: Remove watch records older than TTL during cleanup.
+
+## 4. User Filter Settings DB 
+**Purpose:** Persist per-category filtering preferences and simple usage counters.
+**Schema:**
+
+| Column           | Type            | Notes                                                                      |
+|------------------|-----------------|----------------------------------------------------------------------------|
+|category          | TEXT PRIMARY KEY| Category name (PK)                                                         |
+|filter_strength   | TEXT            | filter strength value: 'Weak','Moderate','Strong','Extra Strong','Blocked' |
+|is_active         | BOOLEAN NOT NULL| (0, 1): flag indicating whether a category is currently enforced           |
+|last_updated_time | TIMESTAMP       | Timestamp set on insert/update                                             |
+|count             | INTEGER         | DEFAULT 0: count of blocked videos per category                            |
+|total_blocked_time| INTEGER         | DEFAULT 0: total blocked video duration for the category                   |
+
+**Lifecycle:**
+- Create: Seed default categories on first run and upsert settings when preferences change.
+- Get: Retrieve settings for a category or all categories.
+- Delete: Typically retained; delete/reset only when clearing all settings or removing a category.
+
+## 5. Graph Stats DB 
+**Purpose:** Persist per-category block levels (0–1) to drive the graph/visualization.
+**Schema:**
+
+| Column           | Type                                                 | Notes                        |
+|------------------|------------------------------------------------------|------------------------------|
+| category         | TEXT PRIMARY KEY                                     | Category (PK)                |
+| current_level    | REAL CHECK(current_level >= 0 AND current_level <= 1)| Current block level (0–1)    |
+| last_updated_time| TIMESTAMP                                            | When the level last changed  |
+
+**Lifecycle:**
+- Create: Upsert a category’s block level with the current timestamp when it changes.
+- Get: Fetch a single category’s level or all levels to drive the graph.
+- Delete: Not typically deleted; rows are updated in place or removed if a category is deprecated.
 
 ### Implementation Notes
-- **Choice of DB:**  
-  - SQLite for client-side light footprint.  
-  - Use three tables in one SQLite DB, or three separate DB files for strong physical separation.
-- **Tags column:** Store as JSON text — avoids tuple limitations in SQL, easy to parse.
-- **Retention:**  
-  - **Metadata Cache:** Delete immediately after categorisation.  
-  - **Categorised:** Expire after 24h via scheduled clean-up.  
-  - **Watched:** Only delete when long-term analytics window passed.
-- **Methods:**
-  - `create_row(data)`, `get_row(videoID)`, `delete_row(videoID)` for each table.
-  - Could wrap in a small repository layer for reusability.
+- SQLite per DB file; open/execute/close per op (reuse one connection for batches).
+- Time columns: mix of INTEGER (Unix) and TIMESTAMP strings; convert consistently when comparing.
+- TTL cleanup: delete rows older than configured TTLs.
+- Indexes: add indexes on time columns to speed cleanup and ordering.
