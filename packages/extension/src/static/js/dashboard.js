@@ -269,11 +269,9 @@ async function renderSettingsCards() {
               <div class="tooltip-container">
                 <span class="tooltip-icon">i</span>
                 <div class="tooltip-content tooltip-wide">
-                  Allostatic regulation: adapts to your viewing over time.\<br />
-                  Weak (~40%): Light\<br />
-                  Moderate (~80%): Balanced\<br />
-                  Strong (~120%): Aggressive\<br />
-                  Extra Strong (~160%): Maximum
+                  Changing filter strength adjusts how strictly videos in this category are hidden.\<br />
+                  Lower strength is more lenient; higher strength is more strict.\<br />
+                  The filter adapts over time based on your viewing.
                 </div>
               </div>
             </label>
