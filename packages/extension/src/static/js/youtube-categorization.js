@@ -887,20 +887,38 @@ class YouTubeCategorizationManager {
     return null;
   }
 
+    async checkAndBlockVideo(videoId, thumbnail) {
+        // Check if this video should be blocked based on its current category
+        try {
+            // Get the current category for this video
+            const response = await fetch(`http://127.0.0.1:5050/api/categorised/${videoId}`);
+            if (response.ok) {
+                const data = await response.json();
+                const category = data.category;
+                
+                if (category) {
+                    console.log(`[YouTube Categorization] Found category "${category}" for video ${videoId}, checking if should block`);
+                    
+                    // Check if this video should be blocked
+                    const shouldBlock = await this.shouldBlockVideo(videoId, category);
+                    
+                    if (shouldBlock) {
+                        console.log(`[YouTube Categorization] Video ${videoId} should be blocked, calling logBlockedVideo`);
+                        this.logBlockedVideo(videoId, category);
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn(`[YouTube Categorization] Could not check blocking status for video ${videoId}:`, error);
+        }
+    }
+
   async addCategoryLabelToThumbnail(thumbnail, category) {
     // Extract video ID to track which videos we've already processed
     const videoId = this.extractVideoIdFromThumbnail(thumbnail);
     if (!videoId) {
       console.log(
         `[YouTube Categorization] Could not extract video ID for overlay`
-      );
-      return;
-    }
-
-    // Check if we've already added an overlay for this video
-    if (this.overlayedVideos.has(videoId)) {
-      console.log(
-        `[YouTube Categorization] Video ${videoId} already has overlay, skipping`
       );
       return;
     }
@@ -913,9 +931,20 @@ class YouTubeCategorizationManager {
         shouldBlock ? "BLOCKED" : "ALLOWED"
       }`
     );
-    console.log(
-      `[YouTube Categorization] About to add overlay for video ${videoId} - shouldBlock: ${shouldBlock}`
-    );
+
+    // If video should be blocked, call logBlockedVideo regardless of overlay status
+    if (shouldBlock) {
+      console.log(`[YouTube Categorization] Video ${videoId} should be blocked, calling logBlockedVideo`);
+      this.logBlockedVideo(videoId, category);
+    }
+
+    // Check if we've already added an overlay for this video
+    if (this.overlayedVideos.has(videoId)) {
+      console.log(`[YouTube Categorization] Video ${videoId} already has overlay, skipping overlay creation`);
+      return;
+    }
+
+    console.log(`[YouTube Categorization] About to add overlay for video ${videoId} - shouldBlock: ${shouldBlock}`);
 
     // Always show the category overlay, but only block interactions if filtered
     await this.addCategoryOverlay(thumbnail, category, videoId, shouldBlock);
@@ -1072,7 +1101,7 @@ class YouTubeCategorizationManager {
     if (!checkVisibility()) {
       setTimeout(() => checkVisibility(), 100);
     }
-  }
+    }
 
   createTestOverlay(container, category, videoId) {
     // Don't create test overlays anymore - let's focus on making real overlays work
@@ -1215,60 +1244,41 @@ class YouTubeCategorizationManager {
   }
 
   async logBlockedVideo(videoId, category) {
-    // Log a blocked video to the database with its duration
+    // Log a blocked video using the new categorization approach
     try {
       console.log(`[YouTube Categorization] ===== LOGGING BLOCKED VIDEO =====`);
-      console.log(
-        `[YouTube Categorization] Logging blocked video: ${videoId} (${category})`
-      );
-
+      console.log(`[YouTube Categorization] Logging blocked video: ${videoId} (${category})`);
+      
       // Get video metadata to extract duration
       const metadata = await this.getVideoMetadata(videoId);
-      console.log(
-        `[YouTube Categorization] Got metadata for ${videoId}:`,
-        metadata
-      );
-
-      // Send to blocked videos API
-      console.log(
-        `[YouTube Categorization] Sending POST request to blocked-videos API for ${videoId}`
-      );
-      const response = await fetch(
-        "http://127.0.0.1:5050/api/blocked-videos/log",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            video_id: videoId,
-            duration: metadata?.duration,
-            metadata_json: metadata ? JSON.stringify(metadata) : null,
-          }),
-        }
-      );
-
-      console.log(
-        `[YouTube Categorization] Blocked videos API response status: ${response.status} for ${videoId}`
-      );
-
+      console.log(`[YouTube Categorization] Got metadata for ${videoId}:`, metadata);
+      
+      // Use the new categorization approach with should_block=True
+      console.log(`[YouTube Categorization] Sending POST request to categorization API for ${videoId}`);
+      const response = await fetch('http://127.0.0.1:5050/api/categorised/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          video_id: videoId,
+          category: category,
+          should_block: true,
+          duration: metadata?.metadata?.duration,
+          metadata_json: metadata ? JSON.stringify(metadata) : null
+        })
+      });
+      
+      console.log(`[YouTube Categorization] Categorization API response status: ${response.status} for ${videoId}`);
+      
       if (response.ok) {
         const responseData = await response.json();
-        console.log(
-          `[YouTube Categorization] Successfully logged blocked video: ${videoId}`,
-          responseData
-        );
+        console.log(`[YouTube Categorization] Successfully categorized and blocked video: ${videoId}`, responseData);
       } else {
-        console.warn(
-          `[YouTube Categorization] Failed to log blocked video: ${videoId}`,
-          response.status
-        );
+        console.warn(`[YouTube Categorization] Failed to categorize and block video: ${videoId}`, response.status);
       }
     } catch (error) {
-      console.error(
-        `[YouTube Categorization] Error logging blocked video: ${videoId}`,
-        error
-      );
+      console.error(`[YouTube Categorization] Error categorizing and blocking video: ${videoId}`, error);
     }
   }
 

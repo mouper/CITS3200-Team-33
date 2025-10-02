@@ -26,6 +26,25 @@ def list_settings() -> Any:
     return jsonify({"items": rows})
 
 
+@bp.get("/api/settings/active/count")
+def active_count() -> Any:
+    """Return count of active users for the dashboard."""
+    count = database.count_active_users()
+    return jsonify({"active_users": count})
+
+@bp.get("/api/settings/max-blocked")
+def max_blocked_category():
+    """Return category with highest blocked videos."""
+    category = database.get_max_blocked_category()
+    return jsonify({"category": category})
+
+@bp.get("/api/settings/total-blocked")
+def total_blocked_videos():
+    """Return total blocked videos across all categories."""
+    total = database.get_total_blocked_videos()
+    return jsonify({"total_blocked": total})
+
+
 @bp.get("/api/settings/<path:category>")
 def get_settings(category: str) -> Any:
     row = database.get_user_settings(category)
@@ -49,22 +68,3 @@ def upsert_settings(category: str) -> Any:
     database.set_user_settings(category, filter_strength, is_active)
     row = database.get_user_settings(category)
     return jsonify(row), 201
-
-
-@bp.get("/api/settings/active/count")
-def active_count() -> Any:
-    """Return count of active users for the dashboard."""
-    count = database.count_active_users()
-    return jsonify({"active_users": count})
-
-@bp.get("/api/settings/max-blocked")
-def max_blocked_category():
-    """Return category with highest blocked videos."""
-    category = database.get_max_blocked_category()
-    return jsonify({"category": category})
-
-@bp.get("/api/settings/total-blocked")
-def total_blocked_videos():
-    """Return total blocked videos across all categories."""
-    total = database.get_total_blocked_videos()
-    return jsonify({"total_blocked": total})
