@@ -18,13 +18,16 @@ class YouTubeCategorizationManager {
     // Categorization state
     this.isCategorizing = false;
     this.categorizationOverlay = null;
-    this.progressCheckInterval = null;
     this.videoCategories = new Map(); // video_id -> category
-    this.lastScrapedCount = 0;
-    this.stableCount = 0; // How many times the count has been stable
     this.overlayedVideos = new Set(); // Track videos that already have overlays
-    this.categorizerComplete = false; // Track if categorizer is done
-    this.overlaysApplied = false; // Track if overlays have been applied
+    
+    // Fixed duration loading
+    this.loadingTimeout = null;
+    this.isInitialLoad = true;
+    this.lastScrollY = 0;
+    this.scrollLoadingTimeout = null;
+    this.pendingVideosCount = 0;
+    this.domObserverTimeout = null;
 
     this.init();
 
@@ -93,14 +96,23 @@ class YouTubeCategorizationManager {
     // Start scraping
     this.startScraping();
 
+    // Show fixed-duration loading screen for initial page load
+    if (this.isInitialLoad) {
+      this.showFixedDurationLoading(5000); // 5 seconds for initial load
+      this.isInitialLoad = false;
+    }
+
     // Check for existing categorization progress
     this.checkCategorizationStatus();
 
-    // Start periodic progress checking (even when overlay is not visible)
-    this.startPeriodicProgressCheck();
+    // Start scroll detection for new video loading
+    this.startScrollDetection();
 
     // Start periodic label refresh to handle YouTube's dynamic DOM
     this.startPeriodicLabelRefresh();
+
+    // Start DOM mutation observer for immediate overlay application
+    this.startDOMObserver();
 
     // Start watch behavior tracking
     this.startWatchTracking();
@@ -118,11 +130,7 @@ class YouTubeCategorizationManager {
     // Clear all category labels
     this.clearAllCategoryLabels();
 
-    // Stop intervals
-    if (this.progressCheckInterval) {
-      clearInterval(this.progressCheckInterval);
-      this.progressCheckInterval = null;
-    }
+    // Stop intervals (progressCheckInterval no longer used in fixed-duration approach)
 
     if (this.watchTrackingInterval) {
       clearInterval(this.watchTrackingInterval);
@@ -207,6 +215,12 @@ class YouTubeCategorizationManager {
 
       // Clear local state
       this.restartScraping();
+
+      // Immediately apply any existing category overlays to new page
+      setTimeout(() => {
+        console.log("[YouTube Categorization] Applying overlays after navigation");
+        this.refreshCategoriesAndApplyLabels();
+      }, 1000); // Wait 1 second for page to load
 
       // Instruct background to clear any queued URLs
       chrome.runtime.sendMessage({ action: "clearQueue" }, () => {
@@ -488,13 +502,13 @@ class YouTubeCategorizationManager {
     );
   }
 
-  showCategorizationOverlay() {
+  showFixedDurationLoading(duration) {
     if (this.categorizationOverlay) {
       console.log("[YouTube Categorization] Overlay already visible");
       return;
     }
 
-    console.log("[YouTube Categorization] Showing categorization overlay");
+    console.log(`[YouTube Categorization] Showing fixed-duration loading for ${duration}ms`);
     this.isCategorizing = true;
 
     const overlay = document.createElement("div");
@@ -508,21 +522,13 @@ class YouTubeCategorizationManager {
                     <div class="mellow-progress-bar">
                         <div class="mellow-progress-fill" id="mellow-progress-fill"></div>
                     </div>
-                    <div class="mellow-progress-text" id="mellow-progress-text">Starting analysis...</div>
+                    <div class="mellow-progress-text" id="mellow-progress-text">Analyzing videos...</div>
                 </div>
                 
                 <div class="mellow-processing-stats">
                     <div class="mellow-stat">
-                        <div class="mellow-stat-number" id="mellow-videos-found">0</div>
-                        <div class="mellow-stat-label">Videos Found</div>
-                    </div>
-                    <div class="mellow-stat">
-                        <div class="mellow-stat-number" id="mellow-videos-processed">0</div>
-                        <div class="mellow-stat-label">Processed</div>
-                    </div>
-                    <div class="mellow-stat">
-                        <div class="mellow-stat-number" id="mellow-videos-categorized">0</div>
-                        <div class="mellow-stat-label">Categorized</div>
+                        <div class="mellow-stat-number" id="mellow-countdown">${Math.ceil(duration / 1000)}</div>
+                        <div class="mellow-stat-label">Seconds Remaining</div>
                     </div>
                 </div>
             </div>
@@ -531,211 +537,248 @@ class YouTubeCategorizationManager {
     document.body.appendChild(overlay);
     this.categorizationOverlay = overlay;
 
-    // Start monitoring progress (if not already running)
-    if (!this.progressCheckInterval) {
-      this.startProgressMonitoring();
+    // Start countdown and progress animation
+    this.startFixedDurationProgress(duration);
+
+    // Trigger immediate categorization
+    this.triggerImmediateCategorization();
+
+    // Hide overlay after fixed duration
+    this.loadingTimeout = setTimeout(() => {
+      console.log("[YouTube Categorization] Fixed duration completed, applying filters and hiding overlay");
+      
+      try {
+        this.applyFiltersAndLabels();
+      } catch (error) {
+        console.error("[YouTube Categorization] Error in applyFiltersAndLabels:", error);
+      }
+      
+      // Always hide overlay after a short delay, regardless of errors
+      setTimeout(() => {
+        console.log("[YouTube Categorization] Force hiding overlay after timeout");
+        this.hideCategorizationOverlay();
+      }, 300);
+      
+      // Fallback: Force hide overlay after 1 second if still visible
+      setTimeout(() => {
+        if (this.categorizationOverlay) {
+          console.warn("[YouTube Categorization] Fallback: Force removing stuck overlay");
+          this.categorizationOverlay.remove();
+          this.categorizationOverlay = null;
+          this.isCategorizing = false;
+        }
+      }, 1000);
+    }, duration);
+  }
+
+  startFixedDurationProgress(duration) {
+    const progressFill = document.getElementById("mellow-progress-fill");
+    const countdown = document.getElementById("mellow-countdown");
+    
+    if (!progressFill || !countdown) return;
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      const remaining = Math.max(Math.ceil((duration - elapsed) / 1000), 0);
+
+      progressFill.style.width = `${progress}%`;
+      countdown.textContent = remaining;
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+      }
+    }, 100); // Update every 100ms for smooth animation
+  }
+
+  startScrollDetection() {
+    let scrollTimeout;
+    
+    window.addEventListener('scroll', () => {
+      const currentScrollY = window.scrollY;
+      
+      // Clear existing timeout
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+      
+      // Debounce scroll events
+      scrollTimeout = setTimeout(() => {
+        // Check if user scrolled down significantly
+        if (currentScrollY > this.lastScrollY + 500) {
+          this.lastScrollY = currentScrollY;
+          this.onNewVideosLoaded();
+        }
+      }, 200);
+    });
+  }
+
+  onNewVideosLoaded() {
+    // Don't show loading if already showing
+    if (this.categorizationOverlay) return;
+    
+    // Count new videos that appeared
+    const currentVideoCount = this.countVisibleVideos();
+    if (currentVideoCount > this.pendingVideosCount + 5) { // At least 5 new videos
+      console.log("[YouTube Categorization] New videos detected on scroll, showing loading");
+      this.pendingVideosCount = currentVideoCount;
+      this.showFixedDurationLoading(3000); // 3 seconds for scroll loading
     }
   }
 
-  startProgressMonitoring() {
-    this.progressCheckInterval = setInterval(() => {
-      this.checkCategorizationProgress();
-    }, 2000); // Check every 2 seconds
+  countVisibleVideos() {
+    const thumbnailSelectors = [
+      "img[src*='i.ytimg.com/vi/']",
+      "img[src*='yt3.ggpht.com']"
+    ];
+    
+    let count = 0;
+    thumbnailSelectors.forEach(selector => {
+      count += document.querySelectorAll(selector).length;
+    });
+    
+    return count;
   }
 
-  startPeriodicProgressCheck() {
-    // Check for new videos to process every 5 seconds, even when overlay is hidden
-    setInterval(async () => {
-      // Only check if extension is enabled
-      const isEnabled = await this.isExtensionEnabled();
-      if (!isEnabled) return;
-
-      if (!this.categorizationOverlay) {
-        // Only check if overlay is not already visible
-        chrome.runtime.sendMessage(
-          {
-            action: "getCategorizationProgress",
-          },
-          (response) => {
-            if (
-              response &&
-              response.success &&
-              response.data.unprocessedVideos > 0
-            ) {
-              console.log(
-                `[YouTube Categorization] Found ${response.data.unprocessedVideos} unprocessed videos, showing overlay`
-              );
-              this.showCategorizationOverlay();
-              this.updateProgressDisplay(response.data);
-            }
-          }
-        );
+  triggerImmediateCategorization() {
+    console.log("[YouTube Categorization] Triggering immediate categorization");
+    
+    // Scrape all visible videos immediately
+    this.scrapeUrls();
+    
+    // Force categorization to start
+    chrome.runtime.sendMessage({
+      action: "forceCategorization"
+    }, (response) => {
+      if (response && response.success) {
+        console.log("[YouTube Categorization] Successfully triggered categorization");
+      } else {
+        console.warn("[YouTube Categorization] Failed to trigger categorization:", response?.error);
       }
-    }, 5000); // Check every 5 seconds
+    });
   }
+
+  applyFiltersAndLabels() {
+    console.log("[YouTube Categorization] Applying filters and labels");
+    
+    try {
+      // Apply category labels immediately
+      this.addCategoryLabels();
+      
+      // Apply any blocking filters after a short delay
+      setTimeout(() => {
+        console.log("[YouTube Categorization] Applying category labels to DOM");
+        this.applyCategoryLabels();
+      }, 100);
+      
+      // Apply again after a longer delay to catch any late-loading content
+      setTimeout(() => {
+        console.log("[YouTube Categorization] Second pass - applying category labels");
+        this.refreshCategoriesAndApplyLabels();
+      }, 1000);
+      
+      // Third pass for very dynamic content
+      setTimeout(() => {
+        console.log("[YouTube Categorization] Third pass - applying category labels");
+        this.refreshCategoriesAndApplyLabels();
+      }, 3000);
+    } catch (error) {
+      console.error("[YouTube Categorization] Error applying filters and labels:", error);
+    }
+  }
+
 
   startPeriodicLabelRefresh() {
-    // Refresh labels every 10 seconds to handle YouTube's dynamic DOM changes
+    // Refresh labels every 0.5 seconds to handle YouTube's dynamic DOM changes
     setInterval(async () => {
       // Only refresh if extension is enabled
       const isEnabled = await this.isExtensionEnabled();
       if (!isEnabled) return;
 
-      if (this.videoCategories.size > 0) {
-        console.log("[YouTube Categorization] Refreshing labels...");
-        this.applyCategoryLabels();
-      }
-    }, 10000); // Check every 10 seconds
+      // Always try to fetch and apply categories, even if we don't have any yet
+      this.refreshCategoriesAndApplyLabels();
+    }, 500); // Check every 0.5 seconds
   }
 
-  async checkCategorizationProgress() {
-    try {
-      // Use chrome.runtime.sendMessage to communicate with service worker
-      chrome.runtime.sendMessage(
-        {
-          action: "getCategorizationProgress",
-        },
-        (response) => {
-          if (response && response.success) {
-            this.updateProgressDisplay(response.data);
-          } else {
-            console.warn(
-              "[YouTube Categorization] Error getting progress:",
-              response?.error
-            );
+  refreshCategoriesAndApplyLabels() {
+    // Fetch latest categorized videos and apply labels
+    chrome.runtime.sendMessage(
+      {
+        action: "getCategorizedVideos",
+      },
+      (response) => {
+        if (response && response.success && response.data.length > 0) {
+          const previousSize = this.videoCategories.size;
+          this.videoCategories = new Map(
+            response.data.map((item) => [item.video_id, item.category])
+          );
+          
+          // Log if we got new categories
+          if (this.videoCategories.size !== previousSize) {
+            console.log(`[YouTube Categorization] Updated categories: ${previousSize} -> ${this.videoCategories.size}`);
           }
+          
+          // Always apply labels when we have categories
+          this.applyCategoryLabels();
+        } else if (this.videoCategories.size > 0) {
+          // Even if fetch failed, apply existing categories
+          this.applyCategoryLabels();
         }
-      );
-    } catch (error) {
-      console.warn("[YouTube Categorization] Error checking progress:", error);
-    }
-  }
-
-  updateProgressDisplay(data) {
-    const {
-      totalVideos,
-      processedVideos,
-      categorizedVideos,
-      progress,
-      isComplete,
-      freshCount,
-      unprocessedVideos,
-    } = data;
-
-    // Debug the progress data
-    console.log("[YouTube Categorization] Progress data:", {
-      totalVideos,
-      processedVideos,
-      categorizedVideos,
-      progress,
-      isComplete,
-      freshCount,
-      unprocessedVideos,
-      pendingInCategorizer: data.pendingInCategorizer,
-      categorizerRunning: data.categorizerRunning,
-    });
-
-    // Show overlay if there are videos to process and it's not currently showing
-    if (unprocessedVideos > 0 && !this.categorizationOverlay) {
-      console.log(
-        "[YouTube Categorization] New videos to process, showing overlay"
-      );
-      this.categorizerComplete = false;
-      this.overlaysApplied = false;
-      this.showCategorizationOverlay();
-    }
-
-    if (!this.categorizationOverlay) {
-      return;
-    }
-
-    // Update progress bar
-    const progressFill = document.getElementById("mellow-progress-fill");
-    const progressText = document.getElementById("mellow-progress-text");
-
-    if (progressFill) {
-      progressFill.style.width = `${progress}%`;
-    }
-
-    if (progressText) {
-      if (isComplete) {
-        progressText.textContent = "Categorization complete!";
-      } else if (data.pendingInCategorizer > 0) {
-        progressText.textContent = `Categorizing ${
-          data.pendingInCategorizer
-        } videos... ${progress.toFixed(1)}%`;
-      } else if (freshCount > 0) {
-        progressText.textContent = `Preparing ${freshCount} videos... ${progress.toFixed(
-          1
-        )}%`;
-      } else if (data.categorizerRunning) {
-        progressText.textContent = `Categorizer running... ${progress.toFixed(
-          1
-        )}%`;
-      } else {
-        progressText.textContent = `Starting analysis... ${progress.toFixed(
-          1
-        )}%`;
       }
-    }
-
-    // Update stats
-    const videosFound = document.getElementById("mellow-videos-found");
-    const videosProcessed = document.getElementById("mellow-videos-processed");
-    const videosCategorized = document.getElementById(
-      "mellow-videos-categorized"
     );
+  }
 
-    if (videosFound) videosFound.textContent = totalVideos;
-    if (videosProcessed) videosProcessed.textContent = processedVideos;
-    if (videosCategorized) videosCategorized.textContent = categorizedVideos;
-
-    // Check if categorization is truly complete based on categorizer status
-    // isComplete now properly accounts for categorizer pending_count
-    console.log("[YouTube Categorization] Completion check:", {
-      isComplete,
-      pendingInCategorizer: data.pendingInCategorizer,
-      unprocessedVideos,
-      categorizerRunning: data.categorizerRunning,
-      currentCategorizerComplete: this.categorizerComplete,
-      currentOverlaysApplied: this.overlaysApplied,
+  startDOMObserver() {
+    // Create a MutationObserver to watch for new video elements
+    const observer = new MutationObserver((mutations) => {
+      let hasNewVideos = false;
+      
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check if the added node contains video thumbnails
+              const hasVideoThumbnails = node.querySelector && (
+                node.querySelector('img[src*="i.ytimg.com/vi/"]') ||
+                node.querySelector('a[href*="/watch?v="]') ||
+                node.matches && (
+                  node.matches('ytd-video-renderer') ||
+                  node.matches('ytd-rich-item-renderer') ||
+                  node.matches('.yt-lockup-view-model')
+                )
+              );
+              
+              if (hasVideoThumbnails) {
+                hasNewVideos = true;
+              }
+            }
+          });
+        }
+      });
+      
+      if (hasNewVideos && this.videoCategories.size > 0) {
+        console.log("[YouTube Categorization] DOM mutation detected new videos, applying overlays");
+        // Debounce the application to avoid excessive calls
+        clearTimeout(this.domObserverTimeout);
+        this.domObserverTimeout = setTimeout(() => {
+          this.applyCategoryLabels();
+        }, 200);
+      }
     });
 
-    if (isComplete) {
-      console.log(
-        "[YouTube Categorization] Categorizer reports completion - applying labels"
-      );
-      this.categorizerComplete = true;
-      this.addCategoryLabels();
-    } else if (
-      data.pendingInCategorizer !== undefined &&
-      data.pendingInCategorizer === 0 &&
-      unprocessedVideos === 0
-    ) {
-      console.log(
-        "[YouTube Categorization] No pending videos in categorizer - applying labels"
-      );
-      this.categorizerComplete = true;
-      this.addCategoryLabels();
-    } else {
-      // Reset completion if we have pending videos
-      if (data.pendingInCategorizer > 0 || unprocessedVideos > 0) {
-        console.log(
-          "[YouTube Categorization] Still processing videos - keeping overlay visible"
-        );
-        this.categorizerComplete = false;
-        this.overlaysApplied = false;
-      }
-    }
+    // Start observing the document with the configured parameters
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
 
-    // Only hide overlay when both categorizer is complete AND overlays are applied
-    if (this.categorizerComplete && this.overlaysApplied) {
-      console.log(
-        "[YouTube Categorization] Both categorizer complete and overlays applied - hiding progress overlay"
-      );
-      this.hideCategorizationOverlay();
-    }
+    console.log("[YouTube Categorization] DOM observer started");
   }
+
+  // Old progress monitoring method - removed in favor of fixed-duration loading
+
+  // Old progress display method - removed in favor of fixed-duration loading
 
   hideCategorizationOverlay() {
     if (this.categorizationOverlay) {
@@ -748,9 +791,15 @@ class YouTubeCategorizationManager {
       }, 500);
     }
 
-    if (this.progressCheckInterval) {
-      clearInterval(this.progressCheckInterval);
-      this.progressCheckInterval = null;
+    // Clear any loading timeouts
+    if (this.loadingTimeout) {
+      clearTimeout(this.loadingTimeout);
+      this.loadingTimeout = null;
+    }
+
+    if (this.scrollLoadingTimeout) {
+      clearTimeout(this.scrollLoadingTimeout);
+      this.scrollLoadingTimeout = null;
     }
 
     this.isCategorizing = false;
@@ -795,8 +844,13 @@ class YouTubeCategorizationManager {
 
   applyCategoryLabels() {
     console.log(
-      `[YouTube Categorization] Applying labels for ${this.videoCategories.size} categorized videos`
+      `[YouTube Categorization] Starting applyCategoryLabels for ${this.videoCategories.size} categorized videos`
     );
+    
+    if (this.videoCategories.size === 0) {
+      console.log("[YouTube Categorization] No categorized videos to apply labels to");
+      return;
+    }
 
     // Find all video thumbnails and add category labels
     const thumbnailSelectors = [
@@ -854,27 +908,8 @@ class YouTubeCategorizationManager {
     console.log(
       `[YouTube Categorization] Applied ${labelsAdded} labels out of ${totalThumbnails} thumbnails`
     );
-
-    // Only mark overlays as applied if the categorizer is actually complete
-    // Don't mark complete if there are videos that could still be categorized
-    if (this.categorizerComplete) {
-      this.overlaysApplied = true;
-      console.log(
-        "[YouTube Categorization] Overlay application complete (categorizer is done)"
-      );
-
-      // Check if we can hide the progress overlay now
-      if (this.categorizerComplete && this.overlaysApplied) {
-        console.log(
-          "[YouTube Categorization] Both categorizer complete and overlays applied - hiding progress overlay"
-        );
-        this.hideCategorizationOverlay();
-      }
-    } else {
-      console.log(
-        "[YouTube Categorization] Overlay application done but categorizer still processing - keeping overlay visible"
-      );
-    }
+    
+    console.log("[YouTube Categorization] applyCategoryLabels completed successfully");
   }
 
   extractVideoIdFromThumbnail(thumbnail) {
