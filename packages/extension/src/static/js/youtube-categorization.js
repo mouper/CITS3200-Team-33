@@ -703,11 +703,11 @@ class YouTubeCategorizationManager {
 
   refreshCategoriesAndApplyLabels() {
     // Fetch latest categorized videos and apply labels
-    chrome.runtime.sendMessage(
-      {
+      chrome.runtime.sendMessage(
+        {
         action: "getCategorizedVideos",
-      },
-      (response) => {
+        },
+        (response) => {
         if (response && response.success && response.data.length > 0) {
           const previousSize = this.videoCategories.size;
           this.videoCategories = new Map(
@@ -852,6 +852,9 @@ class YouTubeCategorizationManager {
       return;
     }
 
+    // Also check for and block entire sections (Shorts/Playables)
+    this.applySectionBlocking();
+
     // Find all video thumbnails and add category labels
     const thumbnailSelectors = [
       // Modern YouTube layout with yt-lockup-view-model
@@ -908,8 +911,284 @@ class YouTubeCategorizationManager {
     console.log(
       `[YouTube Categorization] Applied ${labelsAdded} labels out of ${totalThumbnails} thumbnails`
     );
-    
+
     console.log("[YouTube Categorization] applyCategoryLabels completed successfully");
+  }
+
+  async applySectionBlocking() {
+    console.log("[YouTube Categorization] Checking for sections to block (Shorts/Playables)");
+    
+    // Find all potential section containers - simplified approach
+    const allRichShelves = document.querySelectorAll('ytd-rich-shelf-renderer');
+    console.log(`[YouTube Categorization] Found ${allRichShelves.length} rich shelf renderers`);
+    
+    allRichShelves.forEach((shelf, index) => {
+      console.log(`[YouTube Categorization] Analyzing shelf ${index + 1}/${allRichShelves.length}`);
+      this.checkAndBlockSection(shelf);
+    });
+
+    // Also check for the specific contents div you mentioned
+    const contentsDivs = document.querySelectorAll('#contents.style-scope.ytd-rich-shelf-renderer');
+    console.log(`[YouTube Categorization] Found ${contentsDivs.length} contents divs`);
+    
+    contentsDivs.forEach((contentsDiv, index) => {
+      console.log(`[YouTube Categorization] Analyzing contents div ${index + 1}/${contentsDivs.length}`);
+      // Get the parent rich shelf renderer
+      const parentShelf = contentsDiv.closest('ytd-rich-shelf-renderer');
+      if (parentShelf) {
+        this.checkAndBlockSection(parentShelf);
+      }
+    });
+  }
+
+  async checkAndBlockSection(sectionElement) {
+    // Check if this section should be blocked based on content analysis
+    const sectionType = this.identifySectionType(sectionElement);
+    
+    if (!sectionType) {
+      return; // Not a section we want to block
+    }
+
+    console.log(`[YouTube Categorization] Analyzing ${sectionType} section for blocking`);
+
+    // Check if this section type should be blocked
+    const shouldBlockSection = await this.shouldBlockSectionType(sectionType);
+    
+    if (shouldBlockSection) {
+      console.log(`[YouTube Categorization] Blocking entire ${sectionType} section`);
+      this.applySectionOverlay(sectionElement, sectionType);
+    } else {
+      console.log(`[YouTube Categorization] ${sectionType} section allowed`);
+    }
+  }
+
+  identifySectionType(sectionElement) {
+    console.log(`[YouTube Categorization] Identifying section type for element:`, sectionElement);
+    
+    // Check various indicators to identify section type
+    const sectionText = sectionElement.textContent.toLowerCase();
+    const sectionHTML = sectionElement.innerHTML.toLowerCase();
+    
+    console.log(`[YouTube Categorization] Section text preview: "${sectionText.substring(0, 100)}..."`);
+    
+    // Check for Shorts indicators
+    const hasShorts = sectionHTML.includes('shorts') || 
+        sectionText.includes('shorts') ||
+        sectionElement.hasAttribute('is-shorts') ||
+        sectionElement.querySelector('[aria-label*="Shorts"]') ||
+        sectionElement.querySelector('[title*="Shorts"]');
+        
+    if (hasShorts) {
+      console.log(`[YouTube Categorization] Identified as Shorts section`);
+      return 'Shorts';
+    }
+    
+    // Check for Playables/Games indicators
+    const hasPlayables = sectionHTML.includes('playables') || 
+        sectionText.includes('playables') ||
+        sectionHTML.includes('games') || 
+        sectionText.includes('games') ||
+        sectionElement.querySelector('[aria-label*="Playables"]') ||
+        sectionElement.querySelector('[title*="Playables"]') ||
+        sectionElement.querySelector('[aria-label*="Games"]');
+        
+    if (hasPlayables) {
+      console.log(`[YouTube Categorization] Identified as Playables section`);
+      return 'Playables';
+    }
+
+    // Check if it's a rich shelf with short-form content
+    if (sectionElement.matches('ytd-rich-shelf-renderer')) {
+      const videos = sectionElement.querySelectorAll('[href*="/shorts/"]');
+      if (videos.length > 0) {
+        console.log(`[YouTube Categorization] Identified as Shorts section (contains ${videos.length} shorts links)`);
+        return 'Shorts';
+      }
+    }
+
+    // Check for any section title/header that might indicate content type
+    const titleElements = sectionElement.querySelectorAll('h2, h3, [role="heading"], .title, .header');
+    titleElements.forEach(titleEl => {
+      const titleText = titleEl.textContent.toLowerCase();
+      console.log(`[YouTube Categorization] Found title element: "${titleText}"`);
+      if (titleText.includes('shorts')) {
+        console.log(`[YouTube Categorization] Identified as Shorts section from title`);
+        return 'Shorts';
+      }
+      if (titleText.includes('playables') || titleText.includes('games')) {
+        console.log(`[YouTube Categorization] Identified as Playables section from title`);
+        return 'Playables';
+      }
+    });
+
+    console.log(`[YouTube Categorization] Could not identify section type`);
+    return null; // Unknown or non-blockable section
+  }
+
+  async shouldBlockSectionType(sectionType) {
+    console.log(`[YouTube Categorization] Checking if ${sectionType} section should be blocked`);
+    
+    // Map section types to categories that might be blocked
+    const categoryMapping = {
+      'Shorts': 'shorts',
+      'Playables': 'gaming'
+    };
+    
+    const category = categoryMapping[sectionType];
+    if (!category) {
+      console.log(`[YouTube Categorization] No category mapping for ${sectionType}, allowing section`);
+      return false;
+    }
+
+    console.log(`[YouTube Categorization] Mapped ${sectionType} to category: ${category}`);
+
+    try {
+      // Use the same blocking logic as individual videos
+      const response = await fetch(`http://127.0.0.1:5050/api/filter/decide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          video_id: `section_${sectionType.toLowerCase()}`,
+          category: category
+        })
+      });
+
+      console.log(`[YouTube Categorization] Section filter API response status: ${response.status}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[YouTube Categorization] Section filter response for ${sectionType}:`, data);
+        const shouldBlock = data.should_filter || false;
+        console.log(`[YouTube Categorization] ${sectionType} section blocking decision: ${shouldBlock}`);
+        return shouldBlock;
+      } else {
+        console.warn(`[YouTube Categorization] Section filter API failed with status: ${response.status}`);
+      }
+    } catch (error) {
+      console.warn(`[YouTube Categorization] Error checking section blocking for ${sectionType}:`, error);
+    }
+
+    // Fallback: Check if we have any videos in this category that are blocked
+    console.log(`[YouTube Categorization] API failed, using fallback logic for ${sectionType}`);
+    return this.shouldBlockSectionFallback(sectionType, category);
+  }
+
+  shouldBlockSectionFallback(sectionType, category) {
+    // Fallback logic: if we have any videos of this category that would be blocked, block the section
+    let hasBlockedVideos = false;
+    
+    for (const [videoId, videoCategory] of this.videoCategories.entries()) {
+      if (videoCategory.toLowerCase().includes(category.toLowerCase()) || 
+          category.toLowerCase().includes(videoCategory.toLowerCase())) {
+        // For now, assume if we have videos of this category, we might want to block sections
+        // This is a simple heuristic - you can make it more sophisticated
+        hasBlockedVideos = true;
+        break;
+      }
+    }
+
+    console.log(`[YouTube Categorization] Fallback decision for ${sectionType}: ${hasBlockedVideos ? 'BLOCK' : 'ALLOW'} (based on having videos of category ${category})`);
+    
+    // For testing purposes, let's be more aggressive and block Shorts sections by default
+    if (sectionType === 'Shorts') {
+      console.log(`[YouTube Categorization] Applying aggressive Shorts blocking for testing`);
+      return true;
+    }
+    
+    return hasBlockedVideos;
+  }
+
+  applySectionOverlay(sectionElement, sectionType) {
+    // Check if already has an overlay
+    if (sectionElement.querySelector('.mellow-section-overlay')) {
+      console.log(`[YouTube Categorization] Section already has overlay, skipping`);
+      return;
+    }
+
+    console.log(`[YouTube Categorization] Applying blocking overlay to ${sectionType} section`);
+
+    // Ensure the section has relative positioning
+    sectionElement.style.position = 'relative';
+    sectionElement.style.overflow = 'visible';
+
+    // Create the section blocking overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'mellow-section-overlay blocked';
+    
+    // Create content container
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'mellow-section-overlay-content';
+    
+    // Create title
+    const title = document.createElement('h3');
+    title.textContent = `${sectionType} Section Blocked`;
+    
+    // Create description
+    const description = document.createElement('p');
+    description.textContent = `This ${sectionType.toLowerCase()} section has been filtered based on your preferences.`;
+    
+    // Create button
+    const showButton = document.createElement('button');
+    showButton.className = 'mellow-show-section-btn';
+    showButton.textContent = 'Show Anyway';
+    
+    // Assemble the overlay
+    contentDiv.appendChild(title);
+    contentDiv.appendChild(description);
+    contentDiv.appendChild(showButton);
+    overlay.appendChild(contentDiv);
+
+    // Add click handler for "Show Anyway" button BEFORE adding to DOM
+    showButton.addEventListener('click', (e) => {
+      console.log(`[YouTube Categorization] Show Anyway button clicked for ${sectionType} section`);
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      try {
+        // Remove the overlay
+        overlay.remove();
+        
+        // Re-enable interactions with the section
+        sectionElement.style.pointerEvents = 'auto';
+        sectionElement.style.userSelect = 'auto';
+        
+        console.log(`[YouTube Categorization] Successfully unblocked ${sectionType} section`);
+      } catch (error) {
+        console.error(`[YouTube Categorization] Error unblocking section:`, error);
+      }
+      
+      return false;
+    }, true);
+
+    // Add mousedown handler to ensure button works
+    showButton.addEventListener('mousedown', (e) => {
+      console.log(`[YouTube Categorization] Show Anyway button mousedown for ${sectionType} section`);
+      e.stopPropagation();
+    }, true);
+
+    // Disable interactions with the section
+    sectionElement.style.pointerEvents = 'none';
+    sectionElement.style.userSelect = 'none';
+
+    // Add overlay click prevention (but allow button clicks through)
+    overlay.addEventListener('click', (e) => {
+      // Don't prevent clicks on the button
+      if (e.target === showButton || showButton.contains(e.target)) {
+        console.log(`[YouTube Categorization] Allowing button click through`);
+        return;
+      }
+      
+      console.log(`[YouTube Categorization] Preventing overlay click`);
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }, true);
+
+    // Append overlay to section
+    sectionElement.appendChild(overlay);
+
+    console.log(`[YouTube Categorization] Successfully blocked ${sectionType} section with working button`);
   }
 
   extractVideoIdFromThumbnail(thumbnail) {
