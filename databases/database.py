@@ -33,8 +33,8 @@ def insert_categorised(video_id, category, should_block=False, duration_hours=No
 def get_all_categorised():
     return categorised_db.get_all_categorised()
 
-def log_watch(video_id, start_time=None):
-    return watched_db.log_watch(video_id, start_time)
+def log_watch(video_id, start_time=None, end_time=None):
+    return watched_db.log_watch(video_id, start_time, end_time)
 
 def get_metadata_by_id(video_id):
     return metadata_cache_db.get_metadata_by_id(video_id)

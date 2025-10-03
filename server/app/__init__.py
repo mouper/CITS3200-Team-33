@@ -57,15 +57,15 @@ def create_app() -> Flask:
     from .routes import blocked_videos
     from .routes import filter
     from .routes import categorised
-    # from .routes import watched, allostasis
+    from .routes import watched
+    # from .routes import allostasis
     app.register_blueprint(metadata.bp)
     app.register_blueprint(classifier.bp)
     app.register_blueprint(settings.bp)
     app.register_blueprint(blocked_videos.bp)
     app.register_blueprint(filter.bp)
     app.register_blueprint(categorised.bp)
-    # app.register_blueprint(watched.bp)
-    # app.register_blueprint(allostasis.bp)
+    app.register_blueprint(watched.bp)
     app.register_blueprint(stats.bp)
 
     # Start background autorun (if enabled via env)
