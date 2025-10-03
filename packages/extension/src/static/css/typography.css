@@ -149,12 +149,12 @@ body {
 }
 
 .category-header {
-    position: relative;
-    font-size: 1.25rem;
-    font-family: 'Instrument Sans';
-    color: #fefaf6;
-    text-align: left;
-    text-shadow: 6px 6px 25px #0e0e0e;
+    position: relative !important;
+    font-size: 1.25rem !important;
+    font-family: 'Instrument Sans' !important;
+    color: #fefaf6 !important;
+    text-align: left !important;
+    text-shadow: 6px 6px 25px #0e0e0e !important;
 }
 
 .category-desc {
