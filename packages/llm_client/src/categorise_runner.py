@@ -113,7 +113,7 @@ def run_once(model_id: str, pretriaged_items: List[Dict[str, Any]] | None = None
         pass
 
     # Now process everything with concurrency up to 5
-    print(f"Categoriser: processing {len(unique_items)} item(s) with concurrency=5")
+    print(f"Categoriser: processing {len(unique_items)} item(s) with concurrency=50")
 
     def classify_one(item: Dict[str, Any]) -> Tuple[str, bool]:
         video_id = item["videoId"]
@@ -140,7 +140,7 @@ def run_once(model_id: str, pretriaged_items: List[Dict[str, Any]] | None = None
         print("Categoriser: no items to process")
         return 0
 
-    with ThreadPoolExecutor(max_workers=min(5, len(unique_items))) as executor:
+    with ThreadPoolExecutor(max_workers=min(50, len(unique_items))) as executor:
         future_to_vid = {executor.submit(classify_one, it): it["videoId"] for it in unique_items}
         for future in as_completed(future_to_vid):
             vid, ok = future.result()
