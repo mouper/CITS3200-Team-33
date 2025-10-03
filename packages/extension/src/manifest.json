@@ -42,7 +42,14 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["static/css/youtube-categorization.css"],
+      "resources": [
+        "static/css/youtube-categorization.css",
+        "static/css/colours.css",
+        "static/css/style.css",
+        "static/css/typography.css",
+        "static/assets/category.svg",
+        "static/assets/fonts/*.ttf"
+      ],
       "matches": ["*://*.youtube.com/*", "*://*.youtu.be/*"]
     }
   ]

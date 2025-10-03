@@ -1,4 +1,6 @@
 /* YouTube Categorization Overlay Styles */
+@import url("typography.css");
+@import url("colours.css");
 
 .mellow-categorization-overlay {
     position: fixed;
@@ -106,21 +108,18 @@
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: rgba(0, 0, 0, 0.85) !important;
+    width: 101% !important;
+    height: 101% !important;
     color: white !important;
     display: flex !important;
+    flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 16px !important;
-    font-weight: bold !important;
     z-index: 9999 !important;
     text-align: center !important;
     padding: 10px !important;
     box-sizing: border-box !important;
     word-wrap: break-word !important;
-    text-transform: capitalize !important;
     border: 2px solid rgba(255, 255, 255, 0.3) !important;
 }
 
@@ -128,8 +127,11 @@
 .mellow-category-overlay.blocked {
     pointer-events: auto !important;
     cursor: not-allowed !important;
-    background: rgba(0, 0, 0, 0.9) !important;
-    border: 2px solid rgba(255, 0, 0, 0.5) !important;
+    background: #0f0f10 !important; /* YouTube dark theme background color */
+    border: 2px solid #0f0f10 !important;
+    text-align: center !important;
+    padding: 5px !important;
+    word-wrap: normal !important;
 }
 
 /* Unblocked video overlay - allows clicks through */
@@ -139,6 +141,44 @@
     background: rgba(0, 0, 0, 0.6) !important;
     border: 2px solid rgba(255, 255, 255, 0.3) !important;
 }
+
+/* Override existing classes for overlay context */
+.mellow-category-overlay .tile-hero-txt {
+    font-size: 22px !important;
+    font-weight: 200 !important;
+    position: relative !important;
+    font-family: 'Instrument Sans' !important;
+    color: #fefaf6 !important;
+    text-align: center !important;
+    text-shadow: 6px 6px 25px #0e0e0e !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+}
+
+.mellow-category-overlay .setting-label {
+    color: var(--darkAccent) !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    font-family: 'Figtree' !important;
+  }
+
+.mellow-category-overlay .icon-box {
+    width: 47px !important;
+    height: 47px !important;
+    background: var(--iconBackground) !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.mellow-category-overlay .icon-svg {
+    width: 39px !important; height: 39px !important; display: block !important;
+}
+
 
 /* Ensure thumbnails have relative positioning for labels */
 ytd-video-renderer,
