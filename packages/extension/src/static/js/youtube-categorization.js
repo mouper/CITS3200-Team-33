@@ -178,7 +178,7 @@ class YouTubeCategorizationManager {
           }
           
           // Wait before retrying (exponential backoff)
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
           this.debugLog(`[YouTube Categorization] Waiting ${delay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {
@@ -559,7 +559,7 @@ class YouTubeCategorizationManager {
   restartScraping() {
     this.stopScraping();
     this.processedUrls.clear();
-    setTimeout(() => this.startScraping(), 2000);
+    setTimeout(() => this.startScraping(), 1500);
   }
 
   scrapeUrls() {
@@ -799,7 +799,7 @@ class YouTubeCategorizationManager {
       // Always try to fetch and apply categories, even on video pages
       // This is necessary to update temporary overlays on sidebar videos
       this.refreshCategoriesAndApplyLabels();
-    }, 10000); // Check every 10 seconds instead of 3 seconds
+    }, 5000); // Check every 5 seconds instead of 3 seconds
   }
 
   refreshCategoriesAndApplyLabels() {
@@ -983,7 +983,7 @@ class YouTubeCategorizationManager {
     loadingContent.className = "temp-loading-content";
     loadingContent.innerHTML = `
       <div class="loading-spinner"></div>
-      <div class="loading-text">Categorizing...</div>
+      <div class="loading-text">Categorising...</div>
     `;
     
     overlay.appendChild(loadingContent);
@@ -1901,13 +1901,13 @@ class YouTubeCategorizationManager {
         );
       } else {
         this.debugWarn(
-          `[YouTube Categorization] Failed to categorize and block video: ${videoId}`,
+          `[YouTube Categorization] Failed to categorise and block video: ${videoId}`,
           response.status
         );
       }
     } catch (error) {
       this.debugError(
-        `[YouTube Categorization] Error categorizing and blocking video: ${videoId}`,
+        `[YouTube Categorization] Error categorising and blocking video: ${videoId}`,
         error
       );
     }
@@ -2032,7 +2032,7 @@ class YouTubeCategorizationManager {
     // Track when user starts watching a video
     this.watchTrackingInterval = setInterval(() => {
       this.checkCurrentVideo();
-    }, 30000); // Increased from 10 seconds to 30 seconds to reduce CPU usage
+    }, 20000); // Increased from 10 seconds to 30 seconds to reduce CPU usage
   }
 
   async checkCurrentVideo() {
