@@ -57,12 +57,9 @@ def decide_filter() -> Any:
         
         # Debug: Check category strength
         strength = filter_instance.get_category_strength(category)
-        print(f"DEBUG: Category '{category}' strength: {strength}")
         
         should_filter = filter_instance.should_filter(category)
         current_probability = filter_instance.get_probability()
-        
-        print(f"DEBUG: should_filter: {should_filter}, probability: {current_probability}")
         
         return jsonify({
             "should_filter": should_filter,
@@ -73,7 +70,6 @@ def decide_filter() -> Any:
             "timestamp": datetime.utcnow().isoformat()
         })
     except Exception as e:
-        print(f"DEBUG: Error in decide_filter: {e}")
         return jsonify({"error": str(e)}), 500
 
 @bp.post("/api/filter/update")

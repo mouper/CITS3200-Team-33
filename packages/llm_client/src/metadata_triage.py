@@ -180,7 +180,6 @@ def get_fresh_metadata_triaged() -> List[Dict[str, Any]]:
       }
     """
     rows = get_fresh_metadata_unprocessed()
-    print(f"Triage: fetched {len(rows)} uncategorised rows")
     results: List[Dict[str, Any]] = []
     for r in rows:
         meta = r.get("metadata") or {}
@@ -195,5 +194,4 @@ def get_fresh_metadata_triaged() -> List[Dict[str, Any]]:
                 "CATEGORIES_VERSION": CATEGORIES_VERSION,
             },
         })
-    print(f"Triage: prepared {len(results)} payloads")
     return results

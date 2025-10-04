@@ -136,6 +136,10 @@
     transition: all 0.1s ease !important;
     pointer-events: none !important;
     cursor: not-allowed !important;
+    
+    /* Enable container queries */
+    container-type: size !important;
+    container-name: video-overlay !important;
 }
 
 /* Blocked video overlay - prevents clicks */
@@ -218,6 +222,9 @@ ytd-playlist-video-renderer {
     text-align: center !important;
     box-sizing: border-box !important;
     border-radius: 10px !important;
+    /* Enable container queries */
+    container-type: size !important;
+    container-name: section-overlay !important;
 }
 
 .mellow-section-overlay.blocked {
@@ -313,6 +320,209 @@ ytd-playlist-video-renderer {
 }
 
 /* Ensure section containers have relative positioning */
-ytd-rich-shelf-renderer {
+ytd-rich-shelf-renderer,
+ytd-reel-shelf-renderer,
+ytm-rich-shelf-renderer {
     position: relative !important;
+}
+
+/* ========================================
+   Container Query Breakpoints for Overlays
+   ======================================== */
+
+/* Small: 0px - 200px wide */
+@container video-overlay (max-width: 200px) {
+    .main-text {
+        font-size: 12px !important;
+        gap: 4px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    .sub-text {
+        font-size: 9px !important;
+    }
+    
+    .icon-box {
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 4px !important;
+    }
+    
+    .icon-svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+    
+    .mellow-category-overlay.blocked {
+        padding: 4px !important;
+    }
+    .loading-text {
+        font-size: 10px !important;
+        gap: 4px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .loading-spinner {
+        width: 16px !important;
+        height: 16px !important;
+        border-width: 2px !important;
+    }
+}
+
+/* Medium: 200px - 300px wide */
+@container video-overlay (min-width: 200px) and (max-width: 300px) {
+    .main-text {
+        font-size: 16px !important;
+        gap: 6px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .sub-text {
+        font-size: 11px !important;
+    }
+    
+    .icon-box {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 6px !important;
+    }
+    
+    .icon-svg {
+        width: 22px !important;
+        height: 22px !important;
+    }
+    
+    .mellow-category-overlay.blocked {
+        padding: 5px !important;
+    }
+    
+    .loading-text {
+        font-size: 12px !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .loading-spinner {
+        width: 20px !important;
+        height: 20px !important;
+        border-width: 3px !important;
+    }
+}
+
+/* Large: 300px - 400px wide */
+@container video-overlay (min-width: 300px) and (max-width: 400px) {
+    .main-text {
+        font-size: 16px !important;
+        gap: 5px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .sub-text {
+        font-size: 12px !important;
+    }
+    
+    .icon-box {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 7px !important;
+    }
+    
+    .icon-svg {
+        width: 26px !important;
+        height: 26px !important;
+    }
+    
+    .loading-text {
+        font-size: 13px !important;
+        gap: 7px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .loading-spinner {
+        width: 24px !important;
+        height: 24px !important;
+        border-width: 3px !important;
+    }
+}
+
+/* ========================================
+   Section Overlay Specific Container Queries
+   ======================================== */
+
+/* Small section containers: 0px - 200px wide */
+@container section-overlay (max-width: 200px) {
+    .mellow-section-overlay-content .main-text {
+        font-size: 12px !important;
+        gap: 4px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    .mellow-section-overlay-content .mellow-show-section-btn {
+        padding: 6px 10px !important;
+        font-size: 9px !important;
+        margin-top: 8px !important;
+    }
+    
+    .mellow-section-overlay-content .icon-box {
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 4px !important;
+    }
+    
+    .mellow-section-overlay-content .icon-svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+}
+
+/* Medium section containers: 200px - 300px wide */
+@container section-overlay (min-width: 200px) and (max-width: 300px) {
+    .mellow-section-overlay-content .main-text {
+        font-size: 14px !important;
+        gap: 5px !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .mellow-section-overlay-content .mellow-show-section-btn {
+        padding: 7px 11px !important;
+        font-size: 10px !important;
+        margin-top: 9px !important;
+    }
+
+    .mellow-section-overlay-content .icon-box {
+        width: 24px !important;
+        height: 24px !important;
+        border-radius: 5px !important;
+    }
+    
+    .mellow-section-overlay-content .icon-svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+}
+
+/* Large section containers: 300px - 500px wide */
+@container section-overlay (min-width: 300px) and (max-width: 500px) {
+    .mellow-section-overlay-content .main-text {
+        font-size: 16px !important;
+        gap: 6px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .mellow-section-overlay-content .mellow-show-section-btn {
+        padding: 8px 12px !important;
+        font-size: 11px !important;
+        margin-top: 10px !important;
+    }
+
+    .mellow-section-overlay-content .icon-box {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 6px !important;
+    }
+    
+    .mellow-section-overlay-content .icon-svg {
+        width: 22px !important;
+        height: 22px !important;
+    }
 }

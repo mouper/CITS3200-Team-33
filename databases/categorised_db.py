@@ -93,7 +93,6 @@ def insert_categorised(video_id, category, should_block=False, duration_hours=No
             try:
                 hours = fetch_duration_from_youtube_api(video_id)
             except Exception as e:
-                print(f"Warning: Could not fetch duration from YouTube API for video {video_id}: {e}")
                 hours = 0
         
         # Increment blocked stats with duration
@@ -119,7 +118,6 @@ def fetch_duration_from_youtube_api(video_id):
     """
     api_key = os.getenv('YT_API_KEY')
     if not api_key:
-        print("Warning: YT_API_KEY not found in environment variables")
         return 0
     
     try:
@@ -145,19 +143,14 @@ def fetch_duration_from_youtube_api(video_id):
             
             if seconds:
                 hours = seconds / 3600.0
-                print(f"Fetched duration for video {video_id}: {seconds} seconds ({hours:.4f} hours)")
                 return hours
             else:
-                print(f"Warning: Could not parse duration for video {video_id}: {duration_str}")
                 return 0
         else:
-            print(f"Warning: No video found for ID {video_id}")
             return 0
             
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching duration from YouTube API for video {video_id}: {e}")
         return 0
     except Exception as e:
-        print(f"Unexpected error fetching duration for video {video_id}: {e}")
         return 0
 

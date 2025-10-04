@@ -67,7 +67,6 @@ def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_h
     else:
         # No duration information available - use 0 hours
         hours = 0
-        print(f"Warning: No duration available for video {video_id}, using 0 hours")
     
     # Update category statistics directly
     try:
@@ -84,10 +83,10 @@ def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_h
         if video_category:
             user_settings_db.increment_blocked_stats(video_category, hours)
         else:
-            print(f"Warning: No category found for blocked video {video_id}")
+            pass  # No category found for blocked video
     except Exception as e:
         # Log error but don't fail the blocked video logging
-        print(f"Warning: Could not update category stats for blocked video {video_id}: {e}")
+        pass  # Could not update category stats for blocked video
 
 def get_blocked_videos(limit=None):
     """Get blocked videos from user_filter_settings (no individual video records)."""
@@ -139,7 +138,6 @@ def fetch_duration_from_youtube_api(video_id):
         
         return 0
     except Exception as e:
-        print(f"Warning: Could not fetch duration from YouTube API for {video_id}: {e}")
         return 0
 
 def parse_duration_to_seconds(duration_str):

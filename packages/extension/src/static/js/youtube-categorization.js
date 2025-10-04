@@ -9,10 +9,13 @@
 
 class YouTubeCategorizationManager {
   constructor() {
+    // Performance optimization: disable console logs in production
+    this.DEBUG = false; // Set to true for development debugging
+    
     this.processedUrls = new Set();
     this.scrapeInterval = null;
     this.isScraping = false;
-    this.scrapeDelay = 500;
+    this.scrapeDelay = 2000; // Increased from 1000ms to 2000ms to reduce CPU usage
     this.maxUrlsPerBatch = 10;
 
     // Categorization state
@@ -23,6 +26,15 @@ class YouTubeCategorizationManager {
     
     // DOM observer
     this.domObserverTimeout = null;
+    this.domObserver = null;
+    this.urlCheckInterval = null;
+    this.labelRefreshInterval = null;
+    
+    // Performance optimization caches
+    this._cachedVideoCount = null;
+    this._lastCountTime = 0;
+    this._videoCategoryCache = new Map(); // Cache for video categories
+    this._loggedBlockedVideos = new Set(); // Cache for logged blocked videos to prevent duplicates
 
     this.init();
 
@@ -35,12 +47,31 @@ class YouTubeCategorizationManager {
     this.watchTrackingInterval = null;
   }
 
+  // Performance-optimized logging helper
+  debugLog(...args) {
+    if (this.DEBUG) {
+      console.log(...args);
+    }
+  }
+
+  debugWarn(...args) {
+    if (this.DEBUG) {
+      console.warn(...args);
+    }
+  }
+
+  debugError(...args) {
+    if (this.DEBUG) {
+      console.error(...args);
+    }
+  }
+
   async init() {
     if (!this.isYouTubePage()) {
       return;
     }
 
-    console.log("[YouTube Categorization] Initializing on YouTube page");
+    this.debugLog("[YouTube Categorization] Initializing on YouTube page");
 
     // Inject CSS
     this.injectStyles();
@@ -56,12 +87,12 @@ class YouTubeCategorizationManager {
 
     // Check if extension is enabled before starting
     const isEnabled = await this.isExtensionEnabled();
-    console.log("[YouTube Categorization] Extension enabled:", isEnabled);
+    this.debugLog("[YouTube Categorization] Extension enabled:", isEnabled);
 
     if (isEnabled) {
       this.startExtension();
     } else {
-      console.log(
+      this.debugLog(
         "[YouTube Categorization] Extension is disabled, not starting"
       );
     }
@@ -118,6 +149,46 @@ class YouTubeCategorizationManager {
     return this.getThemePreference() === 'dark';
   }
 
+  // Network request helper with retry logic
+  async makeNetworkRequest(url, options = {}, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        this.debugLog(`[YouTube Categorization] Making request to ${url} (attempt ${attempt}/${maxRetries})`);
+        const response = await fetch(url, options);
+        
+        if (response.ok) {
+          this.debugLog(`[YouTube Categorization] Request successful on attempt ${attempt}`);
+          return response;
+        } else {
+          this.debugWarn(`[YouTube Categorization] Request failed with status ${response.status} on attempt ${attempt}`);
+          if (attempt === maxRetries) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+        }
+      } catch (error) {
+        this.debugWarn(`[YouTube Categorization] Request failed on attempt ${attempt}:`, error.message);
+        
+        if (error.message.includes('ERR_NETWORK_CHANGED') || 
+            error.message.includes('ERR_INTERNET_DISCONNECTED') ||
+            error.message.includes('ERR_CONNECTION_REFUSED')) {
+          
+          if (attempt === maxRetries) {
+            console.error(`[YouTube Categorization] Network request failed after ${maxRetries} attempts:`, error);
+            throw error;
+          }
+          
+          // Wait before retrying (exponential backoff)
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          this.debugLog(`[YouTube Categorization] Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          // Non-network errors don't retry
+          throw error;
+        }
+      }
+    }
+  }
+
   setupThemeChangeListener() {
     // Listen for theme changes
     if (window.matchMedia) {
@@ -126,7 +197,7 @@ class YouTubeCategorizationManager {
       
       const handleThemeChange = () => {
         const theme = this.getThemePreference();
-        console.log(`[YouTube Categorization] Theme changed to: ${theme}`);
+        this.debugLog(`[YouTube Categorization] Theme changed to: ${theme}`);
         
         // Update overlay colors based on theme
         this.updateOverlayColors(theme);
@@ -135,7 +206,7 @@ class YouTubeCategorizationManager {
       darkModeQuery.addEventListener('change', handleThemeChange);
       lightModeQuery.addEventListener('change', handleThemeChange);
       
-      console.log(`[YouTube Categorization] Theme change listener setup complete`);
+      this.debugLog(`[YouTube Categorization] Theme change listener setup complete`);
     }
   }
 
@@ -154,7 +225,7 @@ class YouTubeCategorizationManager {
       }
     });
     
-    console.log(`[YouTube Categorization] Updated ${overlays.length} overlays for ${theme} theme`);
+    this.debugLog(`[YouTube Categorization] Updated ${overlays.length} overlays for ${theme} theme`);
   }
 
   async isExtensionEnabled() {
@@ -171,7 +242,7 @@ class YouTubeCategorizationManager {
   }
 
   startExtension() {
-    console.log("[YouTube Categorization] Starting extension functionality");
+    this.debugLog("[YouTube Categorization] Starting extension functionality");
 
     // Start scraping
     this.startScraping();
@@ -194,7 +265,7 @@ class YouTubeCategorizationManager {
   }
 
   stopExtension() {
-    console.log("[YouTube Categorization] Stopping extension functionality");
+    this.debugLog("[YouTube Categorization] Stopping extension functionality");
 
     // Stop scraping
     this.stopScraping();
@@ -204,10 +275,21 @@ class YouTubeCategorizationManager {
     this.clearAllCategoryLabels();
 
     // Stop intervals (progressCheckInterval no longer used in fixed-duration approach)
-
+    if (this.labelRefreshInterval) {
+      clearInterval(this.labelRefreshInterval);
+      this.labelRefreshInterval = null;
+    }
+    if (this.urlCheckInterval) {
+      clearInterval(this.urlCheckInterval);
+      this.urlCheckInterval = null;
+    }
     if (this.watchTrackingInterval) {
       clearInterval(this.watchTrackingInterval);
       this.watchTrackingInterval = null;
+    }
+    if (this.domObserver) {
+      this.domObserver.disconnect();
+      this.domObserver = null;
     }
 
     // Reset state
@@ -216,6 +298,7 @@ class YouTubeCategorizationManager {
     this.overlayedVideos.clear();
     this.tempOverlayedVideos.clear();
     this.unblockedSections.clear();
+    this._loggedBlockedVideos.clear();
   }
 
   setupExtensionStateListener() {
@@ -223,7 +306,7 @@ class YouTubeCategorizationManager {
     chrome.storage.onChanged.addListener((changes, namespace) => {
       if (namespace === "local" && changes.mellowEnabled) {
         const newState = Boolean(changes.mellowEnabled.newValue);
-        console.log(
+        this.debugLog(
           "[YouTube Categorization] Extension state changed:",
           newState
         );
@@ -238,7 +321,7 @@ class YouTubeCategorizationManager {
   }
 
   restoreAllInteractions() {
-    console.log(`[YouTube Categorization] Restoring all interactions across the page`);
+    this.debugLog(`[YouTube Categorization] Restoring all interactions across the page`);
     
     // Find all video containers that might have disabled interactions
     const allContainers = document.querySelectorAll(
@@ -263,7 +346,7 @@ class YouTubeCategorizationManager {
       restoredCount++;
     });
     
-    console.log(`[YouTube Categorization] Restored interactions for ${restoredCount} elements`);
+    this.debugLog(`[YouTube Categorization] Restored interactions for ${restoredCount} elements`);
     return restoredCount;
   }
 
@@ -279,7 +362,7 @@ class YouTubeCategorizationManager {
         videoContainer.style.pointerEvents = originalPointerEvents;
         videoContainer.style.userSelect = originalUserSelect;
         
-        console.log(`[YouTube Categorization] Restored interactions for container`);
+        this.debugLog(`[YouTube Categorization] Restored interactions for container`);
       }
       overlay.remove();
     });
@@ -291,18 +374,19 @@ class YouTubeCategorizationManager {
     containers.forEach((container) => {
       container.style.pointerEvents = "auto";
       container.style.userSelect = "auto";
-      console.log(`[YouTube Categorization] Reset missed container interactions`);
+      this.debugLog(`[YouTube Categorization] Reset missed container interactions`);
     });
 
     // Clear tracking sets
     this.overlayedVideos.clear();
     this.tempOverlayedVideos.clear();
     this.unblockedSections.clear();
+    this._loggedBlockedVideos.clear();
 
     // Comprehensive restoration as final safety net
     this.restoreAllInteractions();
 
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Cleared ${overlays.length} overlays and reset all interactions`
     );
   }
@@ -332,7 +416,7 @@ class YouTubeCategorizationManager {
       }
 
       currentUrl = newUrl;
-      console.log(
+      this.debugLog(
         "[YouTube Categorization] Navigation detected, restarting and clearing cache"
       );
 
@@ -341,14 +425,14 @@ class YouTubeCategorizationManager {
 
       // Immediately apply any existing category overlays to new page
       setTimeout(() => {
-        console.log("[YouTube Categorization] Applying overlays after navigation");
+        this.debugLog("[YouTube Categorization] Applying overlays after navigation");
         this.refreshCategoriesAndApplyLabels();
       }, 1000); // Wait 1 second for page to load
 
       // Instruct background to clear any queued URLs
       chrome.runtime.sendMessage({ action: "clearQueue" }, () => {
         if (chrome.runtime.lastError) {
-          console.warn(
+          this.debugWarn(
             "[YouTube Categorization] Background clearQueue error:",
             chrome.runtime.lastError
           );
@@ -357,7 +441,7 @@ class YouTubeCategorizationManager {
 
       // Ask backend to clear metadata cache for fresh page
       try {
-        const res = await fetch(
+        const res = await this.makeNetworkRequest(
           "http://127.0.0.1:5050/api/metadata/clear-cache",
           {
             method: "POST",
@@ -365,14 +449,9 @@ class YouTubeCategorizationManager {
             body: JSON.stringify({ source: "page_navigate" }),
           }
         );
-        if (!res.ok) {
-          console.warn(
-            "[YouTube Categorization] Failed to clear backend cache:",
-            res.status
-          );
-        }
+        this.debugLog("[YouTube Categorization] Metadata cache cleared");
       } catch (error) {
-        console.warn(
+        this.debugWarn(
           "[YouTube Categorization] Error clearing backend cache:",
           error
         );
@@ -413,14 +492,14 @@ class YouTubeCategorizationManager {
     }
 
     // MutationObserver fallback for non-YouTube navigation events
-    const observer = new MutationObserver(() => handleUrlChange());
-    observer.observe(document.body || document, {
+    this.domObserver = new MutationObserver(() => handleUrlChange());
+    this.domObserver.observe(document.body || document, {
       subtree: true,
       childList: true,
     });
 
-    // Fallback interval check in case MutationObserver misses changes
-    setInterval(() => handleUrlChange(), 1000);
+    // Fallback interval check in case MutationObserver misses changes (further reduced frequency)
+    this.urlCheckInterval = setInterval(() => handleUrlChange(), 15000);
   }
 
   setupMessageListener() {
@@ -438,8 +517,8 @@ class YouTubeCategorizationManager {
           sendResponse({ success: true });
         } else if (request.action === "getScrapingStatus") {
           sendResponse({
-          isScraping: this.isScraping,
-          processedCount: this.processedUrls.size,
+            isScraping: this.isScraping,
+            processedCount: this.processedUrls.size,
           });
         } else if (request.action === "categorizationComplete") {
           this.handleCategorizationComplete(request.categories);
@@ -455,13 +534,13 @@ class YouTubeCategorizationManager {
     }
 
     this.isScraping = true;
-    console.log("[YouTube Categorization] Starting URL scraping");
+    this.debugLog("[YouTube Categorization] Starting URL scraping");
 
     this.scrapeInterval = setInterval(() => {
       this.scrapeUrls();
     }, this.scrapeDelay);
 
-    setTimeout(() => this.scrapeUrls(), 200);
+    setTimeout(() => this.scrapeUrls(), 1000);
   }
 
   stopScraping() {
@@ -474,13 +553,13 @@ class YouTubeCategorizationManager {
       clearInterval(this.scrapeInterval);
       this.scrapeInterval = null;
     }
-    console.log("[YouTube Categorization] Stopped URL scraping");
+    this.debugLog("[YouTube Categorization] Stopped URL scraping");
   }
 
   restartScraping() {
     this.stopScraping();
     this.processedUrls.clear();
-    setTimeout(() => this.startScraping(), 1000);
+    setTimeout(() => this.startScraping(), 2000);
   }
 
   scrapeUrls() {
@@ -489,7 +568,7 @@ class YouTubeCategorizationManager {
       const newUrls = urls.filter((url) => !this.processedUrls.has(url));
 
       if (newUrls.length > 0) {
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] Found ${newUrls.length} new video URLs`
         );
 
@@ -502,7 +581,7 @@ class YouTubeCategorizationManager {
         batches.forEach((batch, index) => {
           setTimeout(() => {
             this.sendUrlsToBackground(batch);
-          }, index * 200);
+          }, index * 1000); // Increased from 500ms to 1000ms to reduce load
         });
 
         newUrls.forEach((url) => this.processedUrls.add(url));
@@ -570,7 +649,7 @@ class YouTubeCategorizationManager {
 
       return null;
     } catch (error) {
-      console.warn(
+      this.debugWarn(
         "[YouTube Categorization] Error normalizing URL:",
         href,
         error
@@ -611,7 +690,7 @@ class YouTubeCategorizationManager {
             chrome.runtime.lastError
           );
         } else if (response && response.success) {
-          console.log(
+          this.debugLog(
             `[YouTube Categorization] Successfully sent ${urls.length} URLs for processing`
           );
         }
@@ -623,23 +702,32 @@ class YouTubeCategorizationManager {
 
   startScrollDetection() {
     let scrollTimeout;
+    let lastScrollTime = 0;
     
     window.addEventListener('scroll', () => {
       const currentScrollY = window.scrollY;
+      const now = Date.now();
+      
+      // Throttle scroll events to maximum once per 500ms
+      if (now - lastScrollTime < 500) {
+        return;
+      }
+      lastScrollTime = now;
       
       // Clear existing timeout
       if (scrollTimeout) {
         clearTimeout(scrollTimeout);
       }
       
-      // Debounce scroll events
+      // Debounce scroll events (increased debounce time)
       scrollTimeout = setTimeout(() => {
         // Check if user scrolled down significantly
         if (currentScrollY > this.lastScrollY + 500) {
           this.lastScrollY = currentScrollY;
+          this.debugLog("[YouTube Categorization] User scrolled down, checking for new videos");
           this.onNewVideosLoaded();
         }
-      }, 200);
+      }, 1000);
     });
   }
 
@@ -647,12 +735,17 @@ class YouTubeCategorizationManager {
     // Count new videos that appeared
     const currentVideoCount = this.countVisibleVideos();
     if (currentVideoCount > this.pendingVideosCount + 5) { // At least 5 new videos
-      console.log("[YouTube Categorization] New videos detected on scroll");
+      this.debugLog("[YouTube Categorization] New videos detected on scroll");
       this.pendingVideosCount = currentVideoCount;
     }
   }
 
   countVisibleVideos() {
+    // Cache the count to avoid repeated DOM queries
+    if (this._cachedVideoCount && Date.now() - this._lastCountTime < 1000) {
+      return this._cachedVideoCount;
+    }
+    
     const thumbnailSelectors = [
       "img[src*='i.ytimg.com/vi/']",
       "img[src*='yt3.ggpht.com']"
@@ -663,37 +756,33 @@ class YouTubeCategorizationManager {
       count += document.querySelectorAll(selector).length;
     });
     
+    this._cachedVideoCount = count;
+    this._lastCountTime = Date.now();
     return count;
   }
 
 
   applyFiltersAndLabels() {
-    console.log("[YouTube Categorization] Applying filters and labels");
+    this.debugLog("[YouTube Categorization] Applying filters and labels");
     
     try {
       // Apply category labels immediately
       this.addCategoryLabels();
       
       // Apply overlays immediately for better perceived performance
-      this.applyCategoryLabels();
-      
-      // Apply any blocking filters after a short delay
-      setTimeout(() => {
-        console.log("[YouTube Categorization] Applying category labels to DOM");
         this.applyCategoryLabels();
-      }, 50);
       
-      // Apply again after a longer delay to catch any late-loading content
+      // Apply any blocking filters after a short delay (optimized to single pass)
       setTimeout(() => {
-        console.log("[YouTube Categorization] Second pass - applying category labels");
-        this.refreshCategoriesAndApplyLabels();
-      }, 300);
+        this.debugLog("[YouTube Categorization] Applying category labels to DOM");
+        this.applyCategoryLabels();
+      }, 100); // Increased from 50ms to 100ms
       
-      // Third pass for very dynamic content
+      // Single delayed pass for late-loading content (reduced from 3 passes to 1)
       setTimeout(() => {
-        console.log("[YouTube Categorization] Third pass - applying category labels");
+        this.debugLog("[YouTube Categorization] Delayed pass - applying category labels");
         this.refreshCategoriesAndApplyLabels();
-      }, 1000);
+      }, 800); // Reduced from 1000ms to 800ms
     } catch (error) {
       console.error("[YouTube Categorization] Error applying filters and labels:", error);
     }
@@ -701,15 +790,16 @@ class YouTubeCategorizationManager {
 
 
   startPeriodicLabelRefresh() {
-    // Refresh labels every 0.5 seconds to handle YouTube's dynamic DOM changes
-    setInterval(async () => {
+    // Refresh labels every 10 seconds to handle YouTube's dynamic DOM changes (further reduced frequency)
+    this.labelRefreshInterval = setInterval(async () => {
       // Only refresh if extension is enabled
       const isEnabled = await this.isExtensionEnabled();
       if (!isEnabled) return;
 
-      // Always try to fetch and apply categories, even if we don't have any yet
+      // Always try to fetch and apply categories, even on video pages
+      // This is necessary to update temporary overlays on sidebar videos
       this.refreshCategoriesAndApplyLabels();
-    }, 500); // Check every 0.5 seconds
+    }, 10000); // Check every 10 seconds instead of 3 seconds
   }
 
   refreshCategoriesAndApplyLabels() {
@@ -727,7 +817,7 @@ class YouTubeCategorizationManager {
           
           // Log if we got new categories
           if (this.videoCategories.size !== previousSize) {
-            console.log(`[YouTube Categorization] Updated categories: ${previousSize} -> ${this.videoCategories.size}`);
+            this.debugLog(`[YouTube Categorization] Updated categories: ${previousSize} -> ${this.videoCategories.size}`);
           }
           
           // Always apply labels when we have categories
@@ -771,19 +861,19 @@ class YouTubeCategorizationManager {
       });
       
       if (hasNewVideos) {
-        console.log("[YouTube Categorization] DOM mutation detected new videos");
+        this.debugLog("[YouTube Categorization] DOM mutation detected new videos");
         
         // Immediately apply temporary overlays to new videos
         this.applyTemporaryOverlaysToNewElements(newVideoElements);
         
         // If we have categories, also apply final overlays
         if (this.videoCategories.size > 0) {
-          console.log("[YouTube Categorization] Applying final overlays to new videos");
-          // Debounce the application to avoid excessive calls
-          clearTimeout(this.domObserverTimeout);
-          this.domObserverTimeout = setTimeout(() => {
-            this.applyCategoryLabels();
-          }, 50);
+          this.debugLog("[YouTube Categorization] Applying final overlays to new videos");
+          // Debounce the application to avoid excessive calls (increased debounce time)
+        clearTimeout(this.domObserverTimeout);
+        this.domObserverTimeout = setTimeout(() => {
+          this.applyCategoryLabels();
+          }, 1000);
         }
       }
     });
@@ -794,11 +884,11 @@ class YouTubeCategorizationManager {
       subtree: true
     });
 
-    console.log("[YouTube Categorization] DOM observer started");
+    this.debugLog("[YouTube Categorization] DOM observer started");
   }
 
   applyTemporaryOverlaysToNewElements(newVideoElements) {
-    console.log(`[YouTube Categorization] Applying temporary overlays to ${newVideoElements.length} new elements`);
+    this.debugLog(`[YouTube Categorization] Applying temporary overlays to ${newVideoElements.length} new elements`);
     
     const thumbnailSelectors = [
       // Modern YouTube layout with yt-lockup-view-model
@@ -816,6 +906,16 @@ class YouTubeCategorizationManager {
       "ytd-rich-item-renderer ytd-thumbnail",
       "ytd-grid-video-renderer ytd-thumbnail",
       "ytd-playlist-video-renderer ytd-thumbnail",
+      "ytm-video-renderer #thumbnail",
+      "ytm-compact-video-renderer #thumbnail",
+      "ytm-rich-item-renderer #thumbnail",
+      "ytm-grid-video-renderer #thumbnail",
+      "ytmd-playlist-video-renderer #thumbnail",
+      "ytm-video-renderer ytm-thumbnail",
+      "ytm-compact-video-renderer ytm-thumbnail",
+      "ytm-rich-item-renderer ytm-thumbnail",
+      "ytm-grid-video-renderer ytm-thumbnail",
+      "ytm-playlist-video-renderer ytm-thumbnail",
     ];
 
     newVideoElements.forEach((element) => {
@@ -825,7 +925,7 @@ class YouTubeCategorizationManager {
         thumbnails.forEach((thumbnail) => {
           const videoId = this.extractVideoIdFromThumbnail(thumbnail);
           if (videoId && !this.tempOverlayedVideos.has(videoId) && !this.overlayedVideos.has(videoId)) {
-            console.log(`[YouTube Categorization] Adding temporary overlay for video ${videoId}`);
+            this.debugLog(`[YouTube Categorization] Adding temporary overlay for video ${videoId}`);
             this.addTemporaryOverlay(thumbnail, videoId);
             this.tempOverlayedVideos.add(videoId);
           }
@@ -852,9 +952,24 @@ class YouTubeCategorizationManager {
     if (!videoContainer) {
       videoContainer = thumbnail.closest("ytd-playlist-video-renderer");
     }
+    if (!videoContainer) {
+      videoContainer = thumbnail.closest("ytm-video-renderer");
+    }
+    if (!videoContainer) {
+      videoContainer = thumbnail.closest("ytm-rich-item-renderer");
+    }
+    if (!videoContainer) {
+      videoContainer = thumbnail.closest("ytm-compact-video-renderer");
+    }
+    if (!videoContainer) {
+      videoContainer = thumbnail.closest("ytm-grid-video-renderer");
+    }
+    if (!videoContainer) {
+      videoContainer = thumbnail.closest("ytm-playlist-video-renderer");
+    }
 
     if (!videoContainer) {
-      console.log(`[YouTube Categorization] Could not find video container for video ${videoId}`);
+      this.debugLog(`[YouTube Categorization] Could not find video container for video ${videoId}`);
       return;
     }
 
@@ -892,11 +1007,11 @@ class YouTubeCategorizationManager {
     // Append the overlay to the video container
     videoContainer.appendChild(overlay);
     
-    console.log(`[YouTube Categorization] Temporary overlay added for video ${videoId}`);
+    this.debugLog(`[YouTube Categorization] Temporary overlay added for video ${videoId}`);
   }
 
   removeTemporaryOverlay(videoId) {
-    console.log(`[YouTube Categorization] Removing temporary overlay for video ${videoId}`);
+    this.debugLog(`[YouTube Categorization] Removing temporary overlay for video ${videoId}`);
     
     // Find and remove temporary overlay by video ID
     const tempOverlay = document.querySelector(`.mellow-category-overlay.temp-categorizing[data-video-id="${videoId}"]`);
@@ -911,20 +1026,20 @@ class YouTubeCategorizationManager {
         videoContainer.style.pointerEvents = originalPointerEvents;
         videoContainer.style.userSelect = originalUserSelect;
         
-        console.log(`[YouTube Categorization] Restored pointer events: ${originalPointerEvents}, user-select: ${originalUserSelect}`);
+        this.debugLog(`[YouTube Categorization] Restored pointer events: ${originalPointerEvents}, user-select: ${originalUserSelect}`);
       }
       
       tempOverlay.remove();
-      console.log(`[YouTube Categorization] Successfully removed temporary overlay for video ${videoId}`);
+      this.debugLog(`[YouTube Categorization] Successfully removed temporary overlay for video ${videoId}`);
     } else {
-      console.log(`[YouTube Categorization] No temporary overlay found for video ${videoId}`);
+      this.debugLog(`[YouTube Categorization] No temporary overlay found for video ${videoId}`);
     }
   }
 
 
   async addCategoryLabels() {
     try {
-      console.log("[YouTube Categorization] Fetching categorized videos...");
+      this.debugLog("[YouTube Categorization] Fetching categorized videos...");
       // Get categorized videos via service worker
       chrome.runtime.sendMessage(
         {
@@ -932,19 +1047,19 @@ class YouTubeCategorizationManager {
         },
         (response) => {
           if (response && response.success) {
-            console.log(
+            this.debugLog(
               `[YouTube Categorization] Received ${response.data.length} categorized videos`
             );
             this.videoCategories = new Map(
               response.data.map((item) => [item.video_id, item.category])
             );
-            console.log(
+            this.debugLog(
               "[YouTube Categorization] Video categories map:",
               Array.from(this.videoCategories.entries())
             );
             this.applyCategoryLabels();
           } else {
-            console.error(
+            this.debugError(
               "[YouTube Categorization] Error fetching categorized videos:",
               response?.error
             );
@@ -952,7 +1067,7 @@ class YouTubeCategorizationManager {
         }
       );
     } catch (error) {
-      console.error(
+      this.debugError(
         "[YouTube Categorization] Error fetching categorized videos:",
         error
       );
@@ -960,12 +1075,12 @@ class YouTubeCategorizationManager {
   }
 
   applyCategoryLabels() {
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Starting applyCategoryLabels for ${this.videoCategories.size} categorized videos`
     );
     
     if (this.videoCategories.size === 0) {
-      console.log("[YouTube Categorization] No categorized videos to apply labels to");
+      this.debugLog("[YouTube Categorization] No categorized videos to apply labels to");
       return;
     }
 
@@ -989,6 +1104,16 @@ class YouTubeCategorizationManager {
       "ytd-rich-item-renderer ytd-thumbnail",
       "ytd-grid-video-renderer ytd-thumbnail",
       "ytd-playlist-video-renderer ytd-thumbnail",
+      "ytm-video-renderer #thumbnail",
+      "ytm-compact-video-renderer #thumbnail",
+      "ytm-rich-item-renderer #thumbnail",
+      "ytm-grid-video-renderer #thumbnail",
+      "ytmd-playlist-video-renderer #thumbnail",
+      "ytm-video-renderer ytm-thumbnail",
+      "ytm-compact-video-renderer ytm-thumbnail",
+      "ytm-rich-item-renderer ytm-thumbnail",
+      "ytm-grid-video-renderer ytm-thumbnail",
+      "ytm-playlist-video-renderer ytm-thumbnail",
     ];
 
     let totalThumbnails = 0;
@@ -997,64 +1122,69 @@ class YouTubeCategorizationManager {
     thumbnailSelectors.forEach((selector) => {
       const thumbnails = document.querySelectorAll(selector);
       totalThumbnails += thumbnails.length;
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Found ${thumbnails.length} thumbnails with selector: ${selector}`
       );
 
       thumbnails.forEach((thumbnail) => {
         const videoId = this.extractVideoIdFromThumbnail(thumbnail);
         if (videoId) {
-          console.log(`[YouTube Categorization] Found video ID: ${videoId}`);
+          this.debugLog(`[YouTube Categorization] Found video ID: ${videoId}`);
           if (this.videoCategories.has(videoId)) {
             const category = this.videoCategories.get(videoId);
-            console.log(
+            this.debugLog(
               `[YouTube Categorization] Adding BLOCKING OVERLAY "${category}" for video ${videoId}`
             );
             this.addCategoryLabelToThumbnail(thumbnail, category);
             labelsAdded++;
           } else {
-            console.log(
+            this.debugLog(
               `[YouTube Categorization] No category found for video ${videoId}`
             );
           }
         } else {
-          console.log(
+          this.debugLog(
             `[YouTube Categorization] Could not extract video ID from thumbnail`
           );
         }
       });
     });
 
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Applied ${labelsAdded} labels out of ${totalThumbnails} thumbnails`
     );
 
-    console.log("[YouTube Categorization] applyCategoryLabels completed successfully");
+    this.debugLog("[YouTube Categorization] applyCategoryLabels completed successfully");
   }
 
   async applySectionBlocking() {
-    console.log("[YouTube Categorization] Checking for sections to block (Shorts/Playables)");
+    this.debugLog("[YouTube Categorization] Checking for sections to block (Shorts/Playables)");
     
-    // Find all potential section containers - simplified approach
+    // Find all potential section containers - check both rich-shelf and reel-shelf
     const allRichShelves = document.querySelectorAll('ytd-rich-shelf-renderer');
-    console.log(`[YouTube Categorization] Found ${allRichShelves.length} rich shelf renderers`);
+    this.debugLog(`[YouTube Categorization] Found ${allRichShelves.length} rich shelf renderers`);
     
     allRichShelves.forEach((shelf, index) => {
-      console.log(`[YouTube Categorization] Analyzing shelf ${index + 1}/${allRichShelves.length}`);
+      this.debugLog(`[YouTube Categorization] Analyzing rich shelf ${index + 1}/${allRichShelves.length}`);
       this.checkAndBlockSection(shelf);
     });
 
-    // Also check for the specific contents div you mentioned
-    const contentsDivs = document.querySelectorAll('#contents.style-scope.ytd-rich-shelf-renderer');
-    console.log(`[YouTube Categorization] Found ${contentsDivs.length} contents divs`);
+    // Also check for reel-shelf-renderer (Shorts sections on video pages)
+    const allReelShelves = document.querySelectorAll('ytd-reel-shelf-renderer');
+    this.debugLog(`[YouTube Categorization] Found ${allReelShelves.length} reel shelf renderers`);
     
-    contentsDivs.forEach((contentsDiv, index) => {
-      console.log(`[YouTube Categorization] Analyzing contents div ${index + 1}/${contentsDivs.length}`);
-      // Get the parent rich shelf renderer
-      const parentShelf = contentsDiv.closest('ytd-rich-shelf-renderer');
-      if (parentShelf) {
-        this.checkAndBlockSection(parentShelf);
-      }
+    allReelShelves.forEach((shelf, index) => {
+      this.debugLog(`[YouTube Categorization] Analyzing reel shelf ${index + 1}/${allReelShelves.length}`);
+      this.checkAndBlockSection(shelf);
+    });
+
+    // Also check for ytm-rich-shelf-renderer (YouTube Music sections)
+    const allYTMRichShelves = document.querySelectorAll('ytm-rich-shelf-renderer');
+    this.debugLog(`[YouTube Categorization] Found ${allYTMRichShelves.length} YouTube Music rich shelf renderers`);
+    
+    allYTMRichShelves.forEach((shelf, index) => {
+      this.debugLog(`[YouTube Categorization] Analyzing YouTube Music rich shelf ${index + 1}/${allYTMRichShelves.length}`);
+      this.checkAndBlockSection(shelf);
     });
   }
 
@@ -1069,26 +1199,32 @@ class YouTubeCategorizationManager {
     // Create a unique identifier for this section
     const sectionId = this.getSectionId(sectionElement, sectionType);
     
-    console.log(`[YouTube Categorization] Checking section ${sectionId}, unblocked sections:`, Array.from(this.unblockedSections));
+    this.debugLog(`[YouTube Categorization] Checking section ${sectionId}, unblocked sections:`, Array.from(this.unblockedSections));
     
     // Check if user has previously unblocked this section
     if (this.unblockedSections.has(sectionId)) {
-      console.log(`[YouTube Categorization] Section ${sectionType} (${sectionId}) was previously unblocked by user, skipping`);
+      this.debugLog(`[YouTube Categorization] Section ${sectionType} (${sectionId}) was previously unblocked by user, skipping`);
       return;
     }
 
-    console.log(`[YouTube Categorization] Blocking ${sectionType} section (${sectionId})`);
+    this.debugLog(`[YouTube Categorization] Blocking ${sectionType} section (${sectionId})`);
     this.applySectionOverlay(sectionElement, sectionType, sectionId);
   }
 
   identifySectionType(sectionElement) {
-    console.log(`[YouTube Categorization] Identifying section type for element:`, sectionElement);
+    this.debugLog(`[YouTube Categorization] Identifying section type for element:`, sectionElement);
+    
+    // Check if it's a reel-shelf-renderer (always Shorts)
+    if (sectionElement.matches('ytd-reel-shelf-renderer')) {
+      this.debugLog(`[YouTube Categorization] Identified as Shorts section (reel-shelf-renderer)`);
+      return 'Shorts';
+    }
     
     // Check various indicators to identify section type
     const sectionText = sectionElement.textContent.toLowerCase();
     const sectionHTML = sectionElement.innerHTML.toLowerCase();
     
-    console.log(`[YouTube Categorization] Section text preview: "${sectionText.substring(0, 100)}..."`);
+    this.debugLog(`[YouTube Categorization] Section text preview: "${sectionText.substring(0, 100)}..."`);
     
     // Check for Shorts indicators
     const hasShorts = sectionHTML.includes('shorts') || 
@@ -1098,7 +1234,7 @@ class YouTubeCategorizationManager {
         sectionElement.querySelector('[title*="Shorts"]');
         
     if (hasShorts) {
-      console.log(`[YouTube Categorization] Identified as Shorts section`);
+      this.debugLog(`[YouTube Categorization] Identified as Shorts section`);
       return 'Shorts';
     }
     
@@ -1112,15 +1248,15 @@ class YouTubeCategorizationManager {
         sectionElement.querySelector('[aria-label*="Games"]');
         
     if (hasPlayables) {
-      console.log(`[YouTube Categorization] Identified as Playables section`);
+      this.debugLog(`[YouTube Categorization] Identified as Playables section`);
       return 'Playables';
     }
 
-    // Check if it's a rich shelf with short-form content
-    if (sectionElement.matches('ytd-rich-shelf-renderer')) {
+    // Check if it's a rich shelf with short-form content (YouTube or YouTube Music)
+    if (sectionElement.matches('ytd-rich-shelf-renderer') || sectionElement.matches('ytm-rich-shelf-renderer')) {
       const videos = sectionElement.querySelectorAll('[href*="/shorts/"]');
       if (videos.length > 0) {
-        console.log(`[YouTube Categorization] Identified as Shorts section (contains ${videos.length} shorts links)`);
+        this.debugLog(`[YouTube Categorization] Identified as Shorts section (contains ${videos.length} shorts links)`);
         return 'Shorts';
       }
     }
@@ -1129,18 +1265,18 @@ class YouTubeCategorizationManager {
     const titleElements = sectionElement.querySelectorAll('h2, h3, [role="heading"], .title, .header');
     titleElements.forEach(titleEl => {
       const titleText = titleEl.textContent.toLowerCase();
-      console.log(`[YouTube Categorization] Found title element: "${titleText}"`);
+      this.debugLog(`[YouTube Categorization] Found title element: "${titleText}"`);
       if (titleText.includes('shorts')) {
-        console.log(`[YouTube Categorization] Identified as Shorts section from title`);
+        this.debugLog(`[YouTube Categorization] Identified as Shorts section from title`);
         return 'Shorts';
       }
       if (titleText.includes('playables') || titleText.includes('games')) {
-        console.log(`[YouTube Categorization] Identified as Playables section from title`);
+        this.debugLog(`[YouTube Categorization] Identified as Playables section from title`);
         return 'Playables';
       }
     });
 
-    console.log(`[YouTube Categorization] Could not identify section type`);
+    this.debugLog(`[YouTube Categorization] Could not identify section type`);
     return null; // Unknown or non-blockable section
   }
 
@@ -1149,8 +1285,20 @@ class YouTubeCategorizationManager {
     // Use the element's position in the DOM and its content to create a stable ID
     
     // Get the element's position in the document
-    const allSections = document.querySelectorAll('ytd-rich-shelf-renderer');
-    const sectionIndex = Array.from(allSections).indexOf(sectionElement);
+    // Check both rich-shelf and reel-shelf renderers
+    let allSections;
+    let sectionIndex;
+    
+    if (sectionElement.matches('ytd-reel-shelf-renderer')) {
+      allSections = document.querySelectorAll('ytd-reel-shelf-renderer');
+      sectionIndex = Array.from(allSections).indexOf(sectionElement);
+    } else if (sectionElement.matches('ytm-rich-shelf-renderer')) {
+      allSections = document.querySelectorAll('ytm-rich-shelf-renderer');
+      sectionIndex = Array.from(allSections).indexOf(sectionElement);
+    } else {
+      allSections = document.querySelectorAll('ytd-rich-shelf-renderer');
+      sectionIndex = Array.from(allSections).indexOf(sectionElement);
+    }
     
     // Get a stable content identifier (first few characters of text content)
     const textContent = sectionElement.textContent || '';
@@ -1159,7 +1307,7 @@ class YouTubeCategorizationManager {
     // Create ID based on section type, index, and content
     const stableId = `${sectionType.toLowerCase()}-${sectionIndex}-${contentHash.substring(0, 10)}`;
     
-    console.log(`[YouTube Categorization] Generated section ID: ${stableId} for ${sectionType} section at index ${sectionIndex}`);
+    this.debugLog(`[YouTube Categorization] Generated section ID: ${stableId} for ${sectionType} section at index ${sectionIndex}`);
     return stableId;
   }
 
@@ -1167,11 +1315,11 @@ class YouTubeCategorizationManager {
   applySectionOverlay(sectionElement, sectionType, sectionId) {
     // Check if already has an overlay
     if (sectionElement.querySelector('.mellow-section-overlay')) {
-      console.log(`[YouTube Categorization] Section already has overlay, skipping`);
+      this.debugLog(`[YouTube Categorization] Section already has overlay, skipping`);
       return;
     }
 
-    console.log(`[YouTube Categorization] Applying blocking overlay to ${sectionType} section (ID: ${sectionId})`);
+    this.debugLog(`[YouTube Categorization] Applying blocking overlay to ${sectionType} section (ID: ${sectionId})`);
 
     // Ensure the section has relative positioning
     sectionElement.style.position = 'relative';
@@ -1217,7 +1365,7 @@ class YouTubeCategorizationManager {
 
     // Add click handler for "Show Anyway" button BEFORE adding to DOM
     showButton.addEventListener('click', (e) => {
-      console.log(`[YouTube Categorization] Show Anyway button clicked for ${sectionType} section`);
+      this.debugLog(`[YouTube Categorization] Show Anyway button clicked for ${sectionType} section`);
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -1225,7 +1373,7 @@ class YouTubeCategorizationManager {
       try {
         // Track this section as unblocked by user
         this.unblockedSections.add(sectionId);
-        console.log(`[YouTube Categorization] Added section ${sectionId} to unblocked sections. Current unblocked:`, Array.from(this.unblockedSections));
+        this.debugLog(`[YouTube Categorization] Added section ${sectionId} to unblocked sections. Current unblocked:`, Array.from(this.unblockedSections));
         
         // Remove the overlay
         overlay.remove();
@@ -1234,7 +1382,7 @@ class YouTubeCategorizationManager {
         sectionElement.style.pointerEvents = 'auto';
         sectionElement.style.userSelect = 'auto';
         
-        console.log(`[YouTube Categorization] Successfully unblocked ${sectionType} section`);
+        this.debugLog(`[YouTube Categorization] Successfully unblocked ${sectionType} section`);
       } catch (error) {
         console.error(`[YouTube Categorization] Error unblocking section:`, error);
       }
@@ -1244,7 +1392,7 @@ class YouTubeCategorizationManager {
 
     // Add mousedown handler to ensure button works
     showButton.addEventListener('mousedown', (e) => {
-      console.log(`[YouTube Categorization] Show Anyway button mousedown for ${sectionType} section`);
+      this.debugLog(`[YouTube Categorization] Show Anyway button mousedown for ${sectionType} section`);
       e.stopPropagation();
     }, true);
 
@@ -1256,11 +1404,11 @@ class YouTubeCategorizationManager {
     overlay.addEventListener('click', (e) => {
       // Don't prevent clicks on the button
       if (e.target === showButton || showButton.contains(e.target)) {
-        console.log(`[YouTube Categorization] Allowing button click through`);
+        this.debugLog(`[YouTube Categorization] Allowing button click through`);
         return;
       }
       
-      console.log(`[YouTube Categorization] Preventing overlay click`);
+      this.debugLog(`[YouTube Categorization] Preventing overlay click`);
       e.preventDefault();
       e.stopPropagation();
       return false;
@@ -1269,7 +1417,7 @@ class YouTubeCategorizationManager {
     // Append overlay to section
     sectionElement.appendChild(overlay);
 
-    console.log(`[YouTube Categorization] Successfully blocked ${sectionType} section with working button`);
+    this.debugLog(`[YouTube Categorization] Successfully blocked ${sectionType} section with working button`);
   }
 
   extractVideoIdFromThumbnail(thumbnail) {
@@ -1294,7 +1442,7 @@ class YouTubeCategorizationManager {
         const category = data.category;
 
         if (category) {
-          console.log(
+          this.debugLog(
             `[YouTube Categorization] Found category "${category}" for video ${videoId}, checking if should block`
           );
 
@@ -1302,7 +1450,7 @@ class YouTubeCategorizationManager {
           const shouldBlock = await this.shouldBlockVideo(videoId, category);
 
           if (shouldBlock) {
-            console.log(
+            this.debugLog(
               `[YouTube Categorization] Video ${videoId} should be blocked, calling logBlockedVideo`
             );
             this.logBlockedVideo(videoId, category);
@@ -1310,7 +1458,7 @@ class YouTubeCategorizationManager {
         }
       }
     } catch (error) {
-      console.warn(
+      this.debugWarn(
         `[YouTube Categorization] Could not check blocking status for video ${videoId}:`,
         error
       );
@@ -1321,7 +1469,7 @@ class YouTubeCategorizationManager {
     // Extract video ID to track which videos we've already processed
     const videoId = this.extractVideoIdFromThumbnail(thumbnail);
     if (!videoId) {
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Could not extract video ID for overlay`
       );
       return;
@@ -1330,23 +1478,15 @@ class YouTubeCategorizationManager {
     // Use probabilistic filter to decide whether to block this video
     const shouldBlock = await this.shouldBlockVideo(videoId, category);
 
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Filter decision for video ${videoId} (${category}): ${
         shouldBlock ? "BLOCKED" : "ALLOWED"
       }`
     );
 
-    // If video should be blocked, call logBlockedVideo regardless of overlay status
-    if (shouldBlock) {
-      console.log(
-        `[YouTube Categorization] Video ${videoId} should be blocked, calling logBlockedVideo`
-      );
-      this.logBlockedVideo(videoId, category);
-    }
-
     // Check if we've already added a final overlay for this video
     if (this.overlayedVideos.has(videoId)) {
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Video ${videoId} already has final overlay, skipping overlay creation`
       );
       return;
@@ -1354,7 +1494,7 @@ class YouTubeCategorizationManager {
 
     // If video has a temporary overlay, remove it and replace with final overlay
     if (this.tempOverlayedVideos.has(videoId)) {
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Replacing temporary overlay with final overlay for video ${videoId}`
       );
       this.removeTemporaryOverlay(videoId);
@@ -1363,15 +1503,17 @@ class YouTubeCategorizationManager {
 
     // If video should not be blocked, just remove any temporary overlay and don't add final overlay
     if (!shouldBlock) {
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Video ${videoId} is allowed - removing temporary overlay if exists`
       );
       this.removeTemporaryOverlay(videoId);
       this.tempOverlayedVideos.delete(videoId);
+      // Mark as processed to prevent re-processing
+      this.overlayedVideos.add(videoId);
       return;
     }
 
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Adding final overlay for video ${videoId} - shouldBlock: ${shouldBlock}`
     );
 
@@ -1389,39 +1531,40 @@ class YouTubeCategorizationManager {
         "ytd-rich-item-renderer, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer"
       );
       if (videoContainer) {
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] Using legacy container: ${videoContainer.tagName}`
         );
       } else {
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] No suitable container found, skipping`
         );
         return;
       }
     } else {
-      console.log(
-        `[YouTube Categorization] Using yt-lockup-view-model container`
-      );
-    }
-
-    // Simple visibility check - if container is hidden, skip this video
-    const containerStyle = window.getComputedStyle(videoContainer);
-    if (containerStyle.display === "none" || videoContainer.offsetWidth === 0) {
-      console.log(
-        `[YouTube Categorization] Container is hidden, skipping this video`
-      );
-      return;
-    }
-
-    console.log(
-      `[YouTube Categorization] Using container (${videoContainer.offsetWidth}x${videoContainer.offsetHeight})`
+    this.debugLog(
+      `[YouTube Categorization] Using yt-lockup-view-model container`
     );
+  }
 
-    // Remove any existing overlays first
-    const existingOverlays = videoContainer.querySelectorAll(
-      ".mellow-category-overlay"
+  // Simple visibility check - if container is hidden, skip this video
+  // BUT: Check this BEFORE removing existing overlays to avoid removing overlays when window is resized
+  const containerStyle = window.getComputedStyle(videoContainer);
+  if (containerStyle.display === "none" || videoContainer.offsetWidth === 0) {
+    this.debugLog(
+      `[YouTube Categorization] Container is hidden or too small (${videoContainer.offsetWidth}px), skipping to preserve existing overlays`
     );
-    existingOverlays.forEach((overlay) => overlay.remove());
+    return;
+  }
+
+  this.debugLog(
+    `[YouTube Categorization] Using container (${videoContainer.offsetWidth}x${videoContainer.offsetHeight})`
+  );
+
+  // Remove any existing overlays first (AFTER visibility check)
+  const existingOverlays = videoContainer.querySelectorAll(
+    ".mellow-category-overlay"
+  );
+  existingOverlays.forEach((overlay) => overlay.remove());
 
     // Ensure the video container has relative positioning
     videoContainer.style.position = "relative";
@@ -1466,7 +1609,7 @@ class YouTubeCategorizationManager {
        overlay.textContent = category;
      }
 
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Creating overlay for video ${videoId} with class: ${overlay.className}`
     );
 
@@ -1500,7 +1643,7 @@ class YouTubeCategorizationManager {
         (e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log(
+          this.debugLog(
             `[YouTube Categorization] Blocked click on video ${videoId} (${category})`
           );
           return false;
@@ -1528,7 +1671,7 @@ class YouTubeCategorizationManager {
         true
       );
 
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] BLOCKED video ${videoId} (${category}) - interactions disabled`
       );
     } else {
@@ -1537,7 +1680,7 @@ class YouTubeCategorizationManager {
       videoContainer.style.pointerEvents = "auto";
       videoContainer.style.userSelect = "auto";
 
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] ALLOWED video ${videoId} (${category}) - interactions enabled`
       );
     }
@@ -1548,7 +1691,7 @@ class YouTubeCategorizationManager {
     // Check if overlay is visible
     const checkVisibility = () => {
       const isVisible = overlay.offsetWidth > 0 && overlay.offsetHeight > 0;
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Added ${
           shouldBlock ? "BLOCKING" : "LABEL"
         } overlay "${category}" to container (visible: ${isVisible}, width: ${
@@ -1560,22 +1703,22 @@ class YouTubeCategorizationManager {
 
     // Check immediately and also after a short delay to handle rendering
     if (!checkVisibility()) {
-      setTimeout(() => checkVisibility(), 100);
+      setTimeout(() => checkVisibility(), 200);
     }
   }
 
 
   tryImageOverlay(container, category, videoId, shouldBlock = false) {
-    console.log(`[YouTube Categorization] Trying image overlay approach...`);
+    this.debugLog(`[YouTube Categorization] Trying image overlay approach...`);
 
     // Find the actual image element
     const imgElement = container.querySelector("img");
     if (!imgElement) {
-      console.log(`[YouTube Categorization] No image found in container`);
+      this.debugLog(`[YouTube Categorization] No image found in container`);
       return;
     }
 
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Found image:`,
       imgElement,
       `(${imgElement.offsetWidth}x${imgElement.offsetHeight})`
@@ -1588,11 +1731,11 @@ class YouTubeCategorizationManager {
     }
 
     if (!imageContainer) {
-      console.log(`[YouTube Categorization] No visible parent found for image`);
+      this.debugLog(`[YouTube Categorization] No visible parent found for image`);
       return;
     }
 
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Using image container:`,
       imageContainer,
       `(${imageContainer.offsetWidth}x${imageContainer.offsetHeight})`
@@ -1650,14 +1793,14 @@ class YouTubeCategorizationManager {
     // Check if this worked
     setTimeout(() => {
       const isVisible = overlay.offsetWidth > 0 && overlay.offsetHeight > 0;
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Image overlay "${category}" visible: ${isVisible} (${overlay.offsetWidth}x${overlay.offsetHeight})`
       );
 
       if (isVisible) {
         // Success! Mark this video as overlayed and disable interactions
         this.overlayedVideos.add(videoId);
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] Successfully overlayed video ${videoId}`
         );
 
@@ -1689,7 +1832,7 @@ class YouTubeCategorizationManager {
         }
       );
     } catch (error) {
-      console.warn(
+      this.debugWarn(
         "[YouTube Categorization] Error checking initial categorization status:",
         error
       );
@@ -1705,25 +1848,34 @@ class YouTubeCategorizationManager {
   }
 
   async logBlockedVideo(videoId, category) {
+    // Prevent duplicate logging of the same video
+    if (this._loggedBlockedVideos.has(videoId)) {
+      this.debugLog(`[YouTube Categorization] Video ${videoId} already logged as blocked, skipping`);
+      return;
+    }
+
     // Log a blocked video using the new categorization approach
     try {
-      console.log(`[YouTube Categorization] ===== LOGGING BLOCKED VIDEO =====`);
-      console.log(
+      this.debugLog(`[YouTube Categorization] ===== LOGGING BLOCKED VIDEO =====`);
+      this.debugLog(
         `[YouTube Categorization] Logging blocked video: ${videoId} (${category})`
       );
 
-      // Get video metadata to extract duration
+      // Mark as logged to prevent duplicates
+      this._loggedBlockedVideos.add(videoId);
+
+      // Get video metadata to extract duration (only if not already cached)
       const metadata = await this.getVideoMetadata(videoId);
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Got metadata for ${videoId}:`,
         metadata
       );
 
       // Use the new categorization approach with should_block=True
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Sending POST request to categorization API for ${videoId}`
       );
-      const response = await fetch("http://127.0.0.1:5050/api/categorised/", {
+      const response = await this.makeNetworkRequest("http://127.0.0.1:5050/api/categorised/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1737,24 +1889,24 @@ class YouTubeCategorizationManager {
         }),
       });
 
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Categorization API response status: ${response.status} for ${videoId}`
       );
 
       if (response.ok) {
         const responseData = await response.json();
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] Successfully categorized and blocked video: ${videoId}`,
           responseData
         );
       } else {
-        console.warn(
+        this.debugWarn(
           `[YouTube Categorization] Failed to categorize and block video: ${videoId}`,
           response.status
         );
       }
     } catch (error) {
-      console.error(
+      this.debugError(
         `[YouTube Categorization] Error categorizing and blocking video: ${videoId}`,
         error
       );
@@ -1764,15 +1916,19 @@ class YouTubeCategorizationManager {
   async getVideoMetadata(videoId) {
     // Get video metadata from the server
     try {
-      const response = await fetch(
+      const response = await this.makeNetworkRequest(
         `http://127.0.0.1:5050/api/metadata/${videoId}`
       );
       if (response.ok) {
         const data = await response.json();
         return data.metadata;
+      } else if (response.status === 404) {
+        // Video metadata not found - this is normal for new videos
+        this.debugLog(`[YouTube Categorization] Metadata not found for ${videoId} (404) - this is normal for new videos`);
+        return null;
       }
     } catch (error) {
-      console.warn(
+      this.debugWarn(
         `[YouTube Categorization] Could not fetch metadata for ${videoId}:`,
         error
       );
@@ -1782,11 +1938,11 @@ class YouTubeCategorizationManager {
 
   async shouldBlockVideo(videoId, category) {
     // Use the probabilistic filter to decide whether to block a video
-    console.log(
+    this.debugLog(
       `[YouTube Categorization] Making filter request for ${videoId} (${category})`
     );
     try {
-      const response = await fetch("http://127.0.0.1:5050/api/filter/decide", {
+      const response = await this.makeNetworkRequest("http://127.0.0.1:5050/api/filter/decide", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1797,38 +1953,38 @@ class YouTubeCategorizationManager {
         }),
       });
 
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Filter response status: ${response.status} for ${videoId}`
       );
 
       if (response.ok) {
         const data = await response.json();
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] Filter decision for ${videoId} (${category}):`,
           data
         );
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] Should block: ${data.should_filter} for ${videoId}`
         );
         return data.should_filter;
       } else {
-        console.warn(
+        this.debugWarn(
           `[YouTube Categorization] Failed to get filter decision for ${videoId}:`,
           response.status
         );
         // Default to NOT blocking if filter is unavailable - let user decide
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] Defaulting to ALLOW for ${videoId} due to API error`
         );
         return false;
       }
     } catch (error) {
-      console.error(
+      this.debugError(
         `[YouTube Categorization] Error getting filter decision for ${videoId}:`,
         error
       );
       // Default to NOT blocking if filter is unavailable - let user decide
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Defaulting to ALLOW for ${videoId} due to network error`
       );
       return false;
@@ -1852,19 +2008,19 @@ class YouTubeCategorizationManager {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(
+        this.debugLog(
           `[YouTube Categorization] Updated filter state for ${videoId} (${category}):`,
           data
         );
         return data;
       } else {
-        console.warn(
+        this.debugWarn(
           `[YouTube Categorization] Failed to update filter state for ${videoId}:`,
           response.status
         );
       }
     } catch (error) {
-      console.error(
+      this.debugError(
         `[YouTube Categorization] Error updating filter state for ${videoId}:`,
         error
       );
@@ -1876,7 +2032,7 @@ class YouTubeCategorizationManager {
     // Track when user starts watching a video
     this.watchTrackingInterval = setInterval(() => {
       this.checkCurrentVideo();
-    }, 5000); // Check every 5 seconds
+    }, 30000); // Increased from 10 seconds to 30 seconds to reduce CPU usage
   }
 
   async checkCurrentVideo() {
@@ -1895,14 +2051,20 @@ class YouTubeCategorizationManager {
       this.watchStartLogged = false;
       this.lastWatchLogTime = null;
 
-      // Get category for current video
+      // Get category for current video (with caching to reduce API calls)
+      if (!this.currentCategory) {
       this.currentCategory = await this.getVideoCategory(videoId);
+      }
 
-      console.log(
+      this.debugLog(
         `[YouTube Categorization] Started tracking video ${videoId} (${this.currentCategory})`
       );
 
+      // Only log watch start once per video
+      if (!this.watchStartLogged) {
       await this.logWatchStart(videoId);
+        this.watchStartLogged = true;
+      }
     } else if (!videoId && this.currentVideoId) {
       // Left video page
       await this.handleVideoEnd();
@@ -1950,7 +2112,7 @@ class YouTubeCategorizationManager {
       });
 
       if (!response.ok) {
-        console.warn(
+        this.debugWarn(
           `[YouTube Categorization] Failed to log watch start for ${videoId}:`,
           response.status
         );
@@ -1959,7 +2121,7 @@ class YouTubeCategorizationManager {
         this.lastWatchLogTime = startTimeMs;
       }
     } catch (error) {
-      console.warn(
+      this.debugWarn(
         `[YouTube Categorization] Error logging watch start for ${videoId}:`,
         error
       );
@@ -1992,7 +2154,7 @@ class YouTubeCategorizationManager {
       });
 
       if (!response.ok) {
-        console.warn(
+        this.debugWarn(
           `[YouTube Categorization] Failed to log watch progress for ${videoId}:`,
           response.status
         );
@@ -2000,7 +2162,7 @@ class YouTubeCategorizationManager {
         this.lastWatchLogTime = endTimeMs;
       }
     } catch (error) {
-      console.warn(
+      this.debugWarn(
         `[YouTube Categorization] Error logging watch progress for ${videoId}:`,
         error
       );
@@ -2008,6 +2170,11 @@ class YouTubeCategorizationManager {
   }
 
   async getVideoCategory(videoId) {
+    // Check cache first to reduce API calls
+    if (this._videoCategoryCache.has(videoId)) {
+      return this._videoCategoryCache.get(videoId);
+    }
+
     // Get category for a video from the categorized database
     try {
       const response = await fetch(
@@ -2015,10 +2182,13 @@ class YouTubeCategorizationManager {
       );
       if (response.ok) {
         const data = await response.json();
-        return data.category;
+        const category = data.category;
+        // Cache the result
+        this._videoCategoryCache.set(videoId, category);
+        return category;
       }
     } catch (error) {
-      console.warn(
+      this.debugWarn(
         `[YouTube Categorization] Could not fetch category for ${videoId}:`,
         error
       );

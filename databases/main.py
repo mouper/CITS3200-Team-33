@@ -26,4 +26,3 @@ def watch_video(video_id):
 if __name__ == "__main__":
     fetch_and_store_metadata("abc123", '{"title": "Test Video"}')
     watch_video("abc123")
-    print("Pipeline started. Scheduler running in background.")

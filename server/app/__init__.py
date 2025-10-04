@@ -75,17 +75,13 @@ def create_app() -> Flask:
     @app.after_request
     def after_request(response):
         origin = request.headers.get('Origin')
-        print(f"DEBUG: Request origin: {origin}")
-        print(f"DEBUG: Request method: {request.method}")
-        print(f"DEBUG: Request path: {request.path}")
-        
+         
         # Always add CORS headers for API routes
         if request.path.startswith('/api/'):
             response.headers['Access-Control-Allow-Origin'] = origin or '*'
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
             response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
             response.headers['Access-Control-Allow-Credentials'] = 'false'
-            print(f"DEBUG: Added CORS headers for {request.path}")
         
         return response
 
