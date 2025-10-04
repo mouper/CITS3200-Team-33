@@ -145,7 +145,7 @@
     text-align: center !important;
     padding: 5px !important;
     word-wrap: normal !important;
-    border-radius: 10px !important;
+    border-radius: 5px !important;
 }
 
 
@@ -276,7 +276,7 @@ ytd-playlist-video-renderer {
 .mellow-category-overlay.temp-categorizing {
     pointer-events: none !important;
     cursor: not-allowed !important;
-    border-radius: 10px !important;
+    border-radius: 5px !important;
 }
 
 .temp-loading-content {
