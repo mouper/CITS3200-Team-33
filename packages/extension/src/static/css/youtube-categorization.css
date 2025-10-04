@@ -2,107 +2,6 @@
 @import url("typography.css");
 @import url("colours.css");
 
-.mellow-categorization-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(10px);
-    z-index: 999999;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-family: 'Roboto', 'Arial', sans-serif;
-    color: white;
-    transition: opacity 0.3s ease;
-}
-
-.mellow-categorization-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.mellow-categorization-content {
-    text-align: center;
-    max-width: 500px;
-    padding: 40px;
-}
-
-.mellow-categorization-title {
-    font-size: 2.5rem;
-    font-weight: 300;
-    margin-bottom: 20px;
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 3s ease-in-out infinite;
-}
-
-@keyframes gradientShift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-}
-
-.mellow-categorization-subtitle {
-    font-size: 1.2rem;
-    margin-bottom: 40px;
-    opacity: 0.8;
-}
-
-.mellow-progress-container {
-    width: 100%;
-    margin-bottom: 30px;
-}
-
-.mellow-progress-bar {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 15px;
-}
-
-.mellow-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    width: 0%;
-}
-
-.mellow-progress-text {
-    font-size: 1rem;
-    opacity: 0.9;
-}
-
-.mellow-processing-stats {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 30px;
-    font-size: 0.9rem;
-    opacity: 0.8;
-}
-
-.mellow-stat {
-    text-align: center;
-}
-
-.mellow-stat-number {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #4ecdc4;
-}
-
-.mellow-stat-label {
-    margin-top: 5px;
-}
-
 /* Category Blocking Overlays on Thumbnails */
 .mellow-category-overlay {
     position: absolute !important;
@@ -110,40 +9,35 @@
     left: 0 !important;
     width: 101% !important;
     height: 101% !important;
-    color: white !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    z-index: 9999 !important;
+    z-index: 2017 !important;
     text-align: center !important;
     padding: 10px !important;
     box-sizing: border-box !important;
     word-wrap: break-word !important;
-    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    transition: all 0.1s ease !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
 }
 
 /* Blocked video overlay - prevents clicks */
 .mellow-category-overlay.blocked {
-    pointer-events: auto !important;
+    pointer-events: none !important;
     cursor: not-allowed !important;
     background: #0f0f10 !important; /* YouTube dark theme background color */
     border: 2px solid #0f0f10 !important;
     text-align: center !important;
     padding: 5px !important;
     word-wrap: normal !important;
+    border-radius: 10px !important;
 }
 
-/* Unblocked video overlay - allows clicks through */
-.mellow-category-overlay.unblocked {
-    pointer-events: none !important;
-    cursor: pointer !important;
-    background: rgba(0, 0, 0, 0.6) !important;
-    border: 2px solid rgba(255, 255, 255, 0.3) !important;
-}
 
 /* Override existing classes for overlay context */
-.mellow-category-overlay .tile-hero-txt {
+.main-text {
     font-size: 22px !important;
     font-weight: 200 !important;
     position: relative !important;
@@ -158,14 +52,14 @@
     margin-bottom: 12px !important;
 }
 
-.mellow-category-overlay .setting-label {
+.sub-text {
     color: var(--darkAccent) !important;
     font-size: 14px !important;
     margin: 0 !important;
     font-family: 'Figtree' !important;
   }
 
-.mellow-category-overlay .icon-box {
+.icon-box {
     width: 47px !important;
     height: 47px !important;
     background: var(--iconBackground) !important;
@@ -175,7 +69,7 @@
     justify-content: center !important;
 }
 
-.mellow-category-overlay .icon-svg {
+.icon-svg {
     width: 39px !important; height: 39px !important; display: block !important;
 }
 
@@ -208,20 +102,19 @@ ytd-playlist-video-renderer {
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    background: rgba(0, 0, 0, 0.9) !important;
-    color: white !important;
+    background: #0f0f10 !important;
+    color: #fefaf6 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    z-index: 9999 !important;
+    z-index: 2017 !important;
     text-align: center !important;
     box-sizing: border-box !important;
-    border: 2px solid rgba(255, 0, 0, 0.5) !important;
-    backdrop-filter: blur(5px) !important;
+    border-radius: 10px !important;
 }
 
 .mellow-section-overlay.blocked {
-    pointer-events: auto !important;
+    pointer-events: none !important;
     cursor: not-allowed !important;
 }
 
@@ -231,52 +124,39 @@ ytd-playlist-video-renderer {
     text-align: center !important;
 }
 
-.mellow-section-overlay-content h3 {
-    font-size: 1.5rem !important;
-    font-weight: bold !important;
-    margin-bottom: 10px !important;
-    color: #ff6b6b !important;
-}
-
-.mellow-section-overlay-content p {
-    font-size: 1rem !important;
-    margin-bottom: 15px !important;
-    opacity: 0.9 !important;
-    line-height: 1.4 !important;
-}
-
 .mellow-show-section-btn {
-    background: rgba(255, 255, 255, 0.2) !important;
-    border: 2px solid rgba(255, 255, 255, 0.5) !important;
-    color: white !important;
-    padding: 8px 16px !important;
-    border-radius: 4px !important;
+    padding: 10px 14px !important;
+    border-radius: 8px !important;
     cursor: pointer !important;
-    font-size: 0.9rem !important;
-    font-weight: bold !important;
-    transition: all 0.3s ease !important;
+    border: 1px solid var(--darkAccent) !important;
+    background: var(--iconBackground) !important;
+    color: var(--darkAccent) !important;
+    font-size: 14px !important;
+    margin-top: 12px !important;
+    font-family: 'Figtree' !important;
+    transition: all 0.2s ease !important;
     pointer-events: auto !important;
     position: relative !important;
-    z-index: 10000 !important;
-    outline: none !important;
+    z-index: 2018 !important;
     user-select: none !important;
 }
 
 .mellow-show-section-btn:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-    border-color: rgba(255, 255, 255, 0.8) !important;
     transform: translateY(-1px) !important;
+    border-color: #fefaf6 !important;
+    color: #fefaf6 !important;
 }
 
 .mellow-show-section-btn:focus {
-    background: rgba(255, 255, 255, 0.4) !important;
-    border-color: rgba(255, 255, 255, 1) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: #fefaf6 !important;
+    color: #fefaf6 !important;
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
 }
 
 .mellow-show-section-btn:active {
     transform: translateY(0) !important;
-    background: rgba(255, 255, 255, 0.5) !important;
+    background: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Ensure the button content area allows pointer events */
@@ -286,7 +166,53 @@ ytd-playlist-video-renderer {
     text-align: center !important;
     pointer-events: auto !important;
     position: relative !important;
-    z-index: 10001 !important;
+    z-index: 2017 !important;
+}
+
+/* Temporary Categorizing Overlay Styles */
+.mellow-category-overlay.temp-categorizing {
+    background: #0f0f10 !important;
+    border: 2px solid #0f0f10 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}
+
+.temp-loading-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    border-radius: 10px !important;
+}
+
+.loading-spinner {
+    width: 24px !important;
+    height: 24px !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-top: 2px solid var(--darkAccent) !important;
+    border-radius: 50% !important;
+    animation: spin 1s linear infinite !important;
+}
+
+.loading-text {
+    font-size: 14px !important;
+    font-weight: 200 !important;
+    position: relative !important;
+    font-family: 'Figtree' !important;
+    color: #fefaf6 !important;
+    text-align: center !important;
+    text-shadow: 6px 6px 25px #0e0e0e !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Ensure section containers have relative positioning */
