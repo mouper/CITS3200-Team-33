@@ -237,22 +237,73 @@ class YouTubeCategorizationManager {
     });
   }
 
-  clearAllCategoryLabels() {
-    // Remove all category overlays from the page
-    const overlays = document.querySelectorAll(".mellow-category-overlay");
-    overlays.forEach((overlay) => overlay.remove());
+  restoreAllInteractions() {
+    console.log(`[YouTube Categorization] Restoring all interactions across the page`);
+    
+    // Find all video containers that might have disabled interactions
+    const allContainers = document.querySelectorAll(
+      'ytd-video-renderer, ytd-rich-item-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-playlist-video-renderer, .yt-lockup-view-model'
+    );
+    
+    let restoredCount = 0;
+    allContainers.forEach((container) => {
+      const computedStyle = getComputedStyle(container);
+      if (computedStyle.pointerEvents === 'none') {
+        container.style.pointerEvents = 'auto';
+        container.style.userSelect = 'auto';
+        restoredCount++;
+      }
+    });
+    
+    // Also check for any elements with inline disabled styles
+    const disabledElements = document.querySelectorAll('[style*="pointer-events: none"]');
+    disabledElements.forEach((element) => {
+      element.style.pointerEvents = 'auto';
+      element.style.userSelect = 'auto';
+      restoredCount++;
+    });
+    
+    console.log(`[YouTube Categorization] Restored interactions for ${restoredCount} elements`);
+    return restoredCount;
+  }
 
-    // Reset video container styles
+  clearAllCategoryLabels() {
+    const overlays = document.querySelectorAll(".mellow-category-overlay");
+    overlays.forEach((overlay) => {
+      // Restore pointer events before removing overlay
+      const videoContainer = overlay.parentElement;
+      if (videoContainer) {
+        const originalPointerEvents = overlay.getAttribute('data-original-pointer-events') || 'auto';
+        const originalUserSelect = overlay.getAttribute('data-original-user-select') || 'auto';
+        
+        videoContainer.style.pointerEvents = originalPointerEvents;
+        videoContainer.style.userSelect = originalUserSelect;
+        
+        console.log(`[YouTube Categorization] Restored interactions for container`);
+      }
+      overlay.remove();
+    });
+
+    // Reset any remaining video container styles that might have been missed
     const containers = document.querySelectorAll(
       '[style*="pointer-events: none"]'
     );
     containers.forEach((container) => {
-      container.style.pointerEvents = "";
-      container.style.userSelect = "";
+      container.style.pointerEvents = "auto";
+      container.style.userSelect = "auto";
+      console.log(`[YouTube Categorization] Reset missed container interactions`);
     });
 
+    // Clear tracking sets
+    this.overlayedVideos.clear();
+    this.tempOverlayedVideos.clear();
+    this.unblockedSections.clear();
+
+    // Comprehensive restoration as final safety net
+    this.restoreAllInteractions();
+
     console.log(
-      `[YouTube Categorization] Cleared ${overlays.length} category labels`
+      `[YouTube Categorization] Cleared ${overlays.length} overlays and reset all interactions`
     );
   }
 
@@ -823,12 +874,15 @@ class YouTubeCategorizationManager {
     overlay.appendChild(loadingContent);
 
     // Disable interactions on the video container itself
+    const originalPointerEvents = getComputedStyle(videoContainer).pointerEvents;
+    const originalUserSelect = getComputedStyle(videoContainer).userSelect;
+    
     videoContainer.style.pointerEvents = 'none';
     videoContainer.style.userSelect = 'none';
     
     // Store original styles to restore later
-    overlay.setAttribute('data-original-pointer-events', videoContainer.style.pointerEvents || 'auto');
-    overlay.setAttribute('data-original-user-select', videoContainer.style.userSelect || 'auto');
+    overlay.setAttribute('data-original-pointer-events', originalPointerEvents);
+    overlay.setAttribute('data-original-user-select', originalUserSelect);
 
     // Make container relative if it isn't already
     if (getComputedStyle(videoContainer).position === 'static') {
@@ -857,7 +911,7 @@ class YouTubeCategorizationManager {
         videoContainer.style.pointerEvents = originalPointerEvents;
         videoContainer.style.userSelect = originalUserSelect;
         
-        console.log(`[YouTube Categorization] Restored pointer events for video container`);
+        console.log(`[YouTube Categorization] Restored pointer events: ${originalPointerEvents}, user-select: ${originalUserSelect}`);
       }
       
       tempOverlay.remove();
