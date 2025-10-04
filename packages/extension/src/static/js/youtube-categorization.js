@@ -51,6 +51,9 @@ class YouTubeCategorizationManager {
     // Setup message listener
     this.setupMessageListener();
 
+    // Setup theme change listener
+    this.setupThemeChangeListener();
+
     // Check if extension is enabled before starting
     const isEnabled = await this.isExtensionEnabled();
     console.log("[YouTube Categorization] Extension enabled:", isEnabled);
@@ -72,6 +75,86 @@ class YouTubeCategorizationManager {
       window.location.hostname.includes("youtube.com") ||
       window.location.hostname.includes("youtu.be")
     );
+  }
+
+  // Theme detection methods
+  getThemePreference() {
+    // Method 1: Check CSS media query
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'light';
+    }
+    
+    // Method 2: Check system theme via CSS custom properties
+    const rootStyles = getComputedStyle(document.documentElement);
+    const colorScheme = rootStyles.getPropertyValue('color-scheme');
+    if (colorScheme.includes('dark')) return 'dark';
+    if (colorScheme.includes('light')) return 'light';
+    
+    // Method 3: Check YouTube's theme (if available)
+    const body = document.body;
+    if (body.classList.contains('dark')) return 'dark';
+    if (body.classList.contains('light')) return 'light';
+    
+    // Method 4: Check for dark mode indicators
+    const htmlElement = document.documentElement;
+    if (htmlElement.getAttribute('dark') === 'true') return 'dark';
+    if (htmlElement.getAttribute('light') === 'true') return 'light';
+    
+    // Fallback: Check background color
+    const bgColor = getComputedStyle(document.body).backgroundColor;
+    const rgb = bgColor.match(/\d+/g);
+    if (rgb) {
+      const brightness = (parseInt(rgb[0]) + parseInt(rgb[1]) + parseInt(rgb[2])) / 3;
+      return brightness < 128 ? 'dark' : 'light';
+    }
+    
+    return 'unknown';
+  }
+
+  isDarkMode() {
+    return this.getThemePreference() === 'dark';
+  }
+
+  setupThemeChangeListener() {
+    // Listen for theme changes
+    if (window.matchMedia) {
+      const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const lightModeQuery = window.matchMedia('(prefers-color-scheme: light)');
+      
+      const handleThemeChange = () => {
+        const theme = this.getThemePreference();
+        console.log(`[YouTube Categorization] Theme changed to: ${theme}`);
+        
+        // Update overlay colors based on theme
+        this.updateOverlayColors(theme);
+      };
+      
+      darkModeQuery.addEventListener('change', handleThemeChange);
+      lightModeQuery.addEventListener('change', handleThemeChange);
+      
+      console.log(`[YouTube Categorization] Theme change listener setup complete`);
+    }
+  }
+
+  updateOverlayColors(theme) {
+    // Update existing overlays with new theme colors
+    const overlays = document.querySelectorAll('.mellow-category-overlay');
+    overlays.forEach(overlay => {
+      if (theme === 'dark') {
+        overlay.style.backgroundColor = '#0f0f10';
+        overlay.style.color = '#ffffff';
+        overlay.style.borderColor = '#0f0f10';
+      } else if (theme === 'light') {
+        overlay.style.backgroundColor = '#ffffff';
+        overlay.style.color = '#000000';
+        overlay.style.borderColor = '#e0e0e0';
+      }
+    });
+    
+    console.log(`[YouTube Categorization] Updated ${overlays.length} overlays for ${theme} theme`);
   }
 
   async isExtensionEnabled() {

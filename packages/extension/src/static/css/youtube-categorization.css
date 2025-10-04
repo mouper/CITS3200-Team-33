@@ -1,6 +1,121 @@
 /* YouTube Categorization Overlay Styles */
 @import url("typography.css");
 @import url("colours.css");
+/* Theme-aware overlay styles */
+@media (prefers-color-scheme: light) {
+  .mellow-category-overlay {
+    background: #ffffff !important;
+    color: #0f0f10 !important;
+    border: 2px solid #e0e0e0 !important;
+  }
+  
+  .mellow-category-overlay.blocked {
+    background: #ffffff !important;
+    border: 2px solid #ffffff !important;
+  }
+  
+  .mellow-category-overlay.temp-categorizing {
+    background: #ffffff !important;
+    border: 2px solid #ffffff !important;
+  }
+
+  .mellow-section-overlay {
+    background: #ffffff !important;
+    color: #0f0f10 !important;
+  }
+
+  .main-text {
+    font-weight: 220 !important;
+    color: #0f0f10 !important;
+    text-shadow: 2px 2px 8px #f2f2f291 !important;
+}
+
+.loading-text {
+    font-weight: 220 !important;
+    color: #0f0f10 !important;
+    text-shadow: 2px 2px 8px #f2f2f291 !important;
+}
+
+.mellow-show-section-btn:hover {
+    transform: translateY(-1px) !important;
+    border-color: #2d2d31 !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    color: #2d2d31 !important;
+}
+
+.mellow-show-section-btn:focus {
+    background: rgba(255, 255, 255, 0.75) !important;
+    border-color: #2d2d31 !important;
+    color: #2d2d31 !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
+}
+
+.icon-box {
+    background: rgba(232, 103, 90, 0.1) !important;
+}
+
+.loading-spinner {
+    border: 2px solid rgba(156, 156, 156, 0.3) !important;
+}
+
+}
+
+@media (prefers-color-scheme: dark) {
+  .mellow-category-overlay {
+    background: #0f0f10 !important;
+    color: #fefaf6 !important;
+    border: 2px solid #0f0f10 !important;
+  }
+  
+  .mellow-category-overlay.blocked {
+    background: #0f0f10 !important;
+    border: 2px solid #0f0f10 !important;
+  }
+  
+  .mellow-category-overlay.temp-categorizing {
+    background: #0f0f10 !important;
+    border: 2px solid #0f0f10 !important;
+  }
+
+  .mellow-section-overlay {
+    background: #0f0f10 !important;
+    color: #fefaf6 !important;
+  }
+
+  .main-text {
+    font-weight: 200 !important;
+    color: #fefaf6 !important;
+    text-shadow: 6px 6px 25px #0e0e0e !important;
+}
+
+.loading-text {
+    font-weight: 200 !important;
+    color: #fefaf6 !important;
+    text-shadow: 6px 6px 25px #0e0e0e !important;
+}
+
+  .mellow-show-section-btn:hover {
+    transform: translateY(-1px) !important;
+    border-color: #fefaf6 !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    color: #fefaf6 !important;
+}
+
+.mellow-show-section-btn:focus {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: #fefaf6 !important;
+    color: #fefaf6 !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
+}
+
+.icon-box {
+    background: var(--iconBackground) !important;
+}
+
+.loading-spinner {
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+}
+}
 
 /* Category Blocking Overlays on Thumbnails */
 .mellow-category-overlay {
@@ -27,8 +142,6 @@
 .mellow-category-overlay.blocked {
     pointer-events: none !important;
     cursor: not-allowed !important;
-    background: #0f0f10 !important; /* YouTube dark theme background color */
-    border: 2px solid #0f0f10 !important;
     text-align: center !important;
     padding: 5px !important;
     word-wrap: normal !important;
@@ -39,12 +152,9 @@
 /* Override existing classes for overlay context */
 .main-text {
     font-size: 22px !important;
-    font-weight: 200 !important;
     position: relative !important;
     font-family: 'Instrument Sans' !important;
-    color: #fefaf6 !important;
     text-align: center !important;
-    text-shadow: 6px 6px 25px #0e0e0e !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -62,7 +172,6 @@
 .icon-box {
     width: 47px !important;
     height: 47px !important;
-    background: var(--iconBackground) !important;
     border-radius: 8px !important;
     display: flex !important;
     align-items: center !important;
@@ -102,8 +211,6 @@ ytd-playlist-video-renderer {
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    background: #0f0f10 !important;
-    color: #fefaf6 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -143,14 +250,10 @@ ytd-playlist-video-renderer {
 
 .mellow-show-section-btn:hover {
     transform: translateY(-1px) !important;
-    border-color: #fefaf6 !important;
-    color: #fefaf6 !important;
 }
 
 .mellow-show-section-btn:focus {
     background: rgba(255, 255, 255, 0.1) !important;
-    border-color: #fefaf6 !important;
-    color: #fefaf6 !important;
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
 }
 
@@ -171,10 +274,9 @@ ytd-playlist-video-renderer {
 
 /* Temporary Categorizing Overlay Styles */
 .mellow-category-overlay.temp-categorizing {
-    background: #0f0f10 !important;
-    border: 2px solid #0f0f10 !important;
     pointer-events: none !important;
     cursor: not-allowed !important;
+    border-radius: 10px !important;
 }
 
 .temp-loading-content {
@@ -183,13 +285,11 @@ ytd-playlist-video-renderer {
     align-items: center !important;
     justify-content: center !important;
     gap: 10px !important;
-    border-radius: 10px !important;
 }
 
 .loading-spinner {
     width: 24px !important;
     height: 24px !important;
-    border: 2px solid rgba(255, 255, 255, 0.3) !important;
     border-top: 2px solid var(--darkAccent) !important;
     border-radius: 50% !important;
     animation: spin 1s linear infinite !important;
@@ -197,12 +297,9 @@ ytd-playlist-video-renderer {
 
 .loading-text {
     font-size: 14px !important;
-    font-weight: 200 !important;
     position: relative !important;
     font-family: 'Figtree' !important;
-    color: #fefaf6 !important;
     text-align: center !important;
-    text-shadow: 6px 6px 25px #0e0e0e !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
