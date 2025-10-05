@@ -61,5 +61,13 @@ def version() -> Any:
         "version": version_str,
         "env": env,
     })
+@bp.get("/api/stats/category-block-history")
+def category_block_history():
+    """
+    Return all categories with their block probability and last update time.
+    This endpoint is for frontend graphing.
+    """
+    records = database.get_all_block_levels()
+    return jsonify({"history": records})
 
 
