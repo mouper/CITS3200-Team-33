@@ -854,3 +854,103 @@ fetch("http://127.0.0.1:5050/api/stats/top-categories-by-hours")
   .catch(error => {
     console.error('Failed to load top categories:', error);
   });
+  // --- Category Block Graph Feature ---
+async function fetchCategoryBlockHistory() {
+  try {
+    const res = await fetch("http://127.0.0.1:5050/api/stats/category-block-history");
+    const { history } = await res.json();
+    return history;
+  } catch (err) {
+    console.warn("Failed to fetch category block history:", err);
+    return [];
+  }
+}
+
+async function renderCategoryGraph() {
+  const select = document.getElementById("category-select");
+  const canvas = document.getElementById("lineChart");
+  if (!select || !canvas) return;
+
+  const history = await fetchCategoryBlockHistory();
+
+  // Unique list of categories for dropdown
+  const categories = [...new Set(history.map(h => h.category))];
+  select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join("");
+
+  function drawGraphForCategory(category) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 6; i++) {
+      const y = (canvas.height / 6) * i;
+      ctx.beginPath();
+      ctx.moveTo(60, y);
+      ctx.lineTo(canvas.width - 20, y);
+      ctx.stroke();
+    }
+
+    // Get this category's data, sorted by time (if you have time series)
+    const data = history
+      .filter(h => h.category === category)
+      .sort((a, b) => new Date(a.last_updated_time) - new Date(b.last_updated_time));
+
+    // Prepare points for the graph
+    const points = data.map((h, i) => [
+      60 + i * 60, // x
+      250 - Math.round(h.current_level * 200) // y
+    ]);
+
+    // Draw line
+    if (points.length) {
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      grad.addColorStop(0, "rgba(232,103,90,0.8)");
+      grad.addColorStop(1, "rgba(255,255,255,0.9)");
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      points.forEach(([x, y], i) => {
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Fill area under curve
+      const fillGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      fillGrad.addColorStop(0, "rgba(232,103,90,0.12)");
+      fillGrad.addColorStop(1, "rgba(232,103,90,0.02)");
+      ctx.fillStyle = fillGrad;
+      if (points.length) {
+        ctx.lineTo(points[points.length - 1][0], canvas.height - 20);
+        ctx.lineTo(points[0][0], canvas.height - 20);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Draw points
+      ctx.fillStyle = "#e8675a";
+      points.forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    }
+
+    // add axis labels, timestamps, etc.
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px Instrument Sans";
+    ctx.fillText(`Block Probability`, 10, 20);
+    ctx.fillText(`Time →`, canvas.width - 75, canvas.height - 10);
+  }
+
+  select.addEventListener("change", () => {
+    drawGraphForCategory(select.value);
+  });
+
+  // Draw for first category by default
+  if (categories.length) drawGraphForCategory(categories[0]);
+}
+
+document.addEventListener("DOMContentLoaded", renderCategoryGraph);
