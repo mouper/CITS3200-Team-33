@@ -55,7 +55,6 @@ class SimpleProbabilisticFilter:
             else:
                 return 1.0  # Default to Moderate
         except Exception as e:
-            print(f"Error getting category strength: {e}")
             return 1.0
 
     def should_filter(self, category, now=None):

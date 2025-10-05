@@ -119,6 +119,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       handleGetCategorizedVideos(sendResponse);
       return true;
 
+    case "forceCategorization":
+      handleForceCategorization(sendResponse);
+      return true;
+
     default:
       sendResponse({ success: false, error: "Unknown action" });
   }
@@ -323,6 +327,28 @@ async function handleGetCategorizedVideos(sendResponse) {
     }
   } catch (error) {
     console.error("[Service Worker] Error getting categorized videos:", error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+async function handleForceCategorization(sendResponse) {
+  try {
+    // Start the background categorizer if not already running
+    const startResponse = await fetch(`${CONFIG.SERVER_URL}/api/classifier/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    
+    if (startResponse.ok) {
+      console.log("[Service Worker] Forced categorization start successful");
+      sendResponse({ success: true });
+    } else {
+      console.warn("[Service Worker] Failed to start categorization:", startResponse.status);
+      sendResponse({ success: false, error: `Failed to start categorization: ${startResponse.status}` });
+    }
+  } catch (error) {
+    console.error("[Service Worker] Error forcing categorization:", error);
     sendResponse({ success: false, error: error.message });
   }
 }

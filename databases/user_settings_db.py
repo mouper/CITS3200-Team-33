@@ -31,7 +31,6 @@ def _seed_default_categories(db_path=USER_SETTINGS_DB_PATH):
             data = json.load(f)
             categories = data.get("allowedLabels", [])
     except Exception as e:
-        print(f"Warning: Could not load categories.v2.json: {e}")
         conn.close()
         return
     
@@ -57,7 +56,6 @@ def _seed_default_categories(db_path=USER_SETTINGS_DB_PATH):
     
     conn.commit()
     conn.close()
-    print(f"Seeded {len(categories)} categories with {len(active_categories)} active by default")
 
 
 def init_db(db_path=USER_SETTINGS_DB_PATH):

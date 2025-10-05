@@ -1,106 +1,120 @@
 /* YouTube Categorization Overlay Styles */
 @import url("typography.css");
 @import url("colours.css");
+/* Theme-aware overlay styles */
+@media (prefers-color-scheme: light) {
+  .mellow-category-overlay {
+    background: #ffffff !important;
+    color: #0f0f10 !important;
+    border: 2px solid #e0e0e0 !important;
+  }
+  
+  .mellow-category-overlay.blocked {
+    background: #ffffff !important;
+    border: 2px solid #ffffff !important;
+  }
+  
+  .mellow-category-overlay.temp-categorizing {
+    background: #ffffff !important;
+    border: 2px solid #ffffff !important;
+  }
 
-.mellow-categorization-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(10px);
-    z-index: 999999;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-family: 'Roboto', 'Arial', sans-serif;
-    color: white;
-    transition: opacity 0.3s ease;
+  .mellow-section-overlay {
+    background: #ffffff !important;
+    color: #0f0f10 !important;
+  }
+
+  .main-text {
+    font-weight: 220 !important;
+    color: #0f0f10 !important;
+    text-shadow: 2px 2px 8px #f2f2f291 !important;
 }
 
-.mellow-categorization-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
+.loading-text {
+    font-weight: 220 !important;
+    color: #0f0f10 !important;
+    text-shadow: 2px 2px 8px #f2f2f291 !important;
 }
 
-.mellow-categorization-content {
-    text-align: center;
-    max-width: 500px;
-    padding: 40px;
+.mellow-show-section-btn:hover {
+    transform: translateY(-1px) !important;
+    border-color: #2d2d31 !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    color: #2d2d31 !important;
 }
 
-.mellow-categorization-title {
-    font-size: 2.5rem;
-    font-weight: 300;
-    margin-bottom: 20px;
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 3s ease-in-out infinite;
+.mellow-show-section-btn:focus {
+    background: rgba(255, 255, 255, 0.75) !important;
+    border-color: #2d2d31 !important;
+    color: #2d2d31 !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
 }
 
-@keyframes gradientShift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+.icon-box {
+    background: rgba(232, 103, 90, 0.1) !important;
 }
 
-.mellow-categorization-subtitle {
-    font-size: 1.2rem;
-    margin-bottom: 40px;
-    opacity: 0.8;
+.loading-spinner {
+    border: 2px solid rgba(156, 156, 156, 0.3) !important;
 }
 
-.mellow-progress-container {
-    width: 100%;
-    margin-bottom: 30px;
 }
 
-.mellow-progress-bar {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 15px;
+@media (prefers-color-scheme: dark) {
+  .mellow-category-overlay {
+    background: #0f0f10 !important;
+    color: #fefaf6 !important;
+    border: 2px solid #0f0f10 !important;
+  }
+  
+  .mellow-category-overlay.blocked {
+    background: #0f0f10 !important;
+    border: 2px solid #0f0f10 !important;
+  }
+  
+  .mellow-category-overlay.temp-categorizing {
+    background: #0f0f10 !important;
+    border: 2px solid #0f0f10 !important;
+  }
+
+  .mellow-section-overlay {
+    background: #0f0f10 !important;
+    color: #fefaf6 !important;
+  }
+
+  .main-text {
+    font-weight: 200 !important;
+    color: #fefaf6 !important;
+    text-shadow: 6px 6px 25px #0e0e0e !important;
 }
 
-.mellow-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    width: 0%;
+.loading-text {
+    font-weight: 200 !important;
+    color: #fefaf6 !important;
+    text-shadow: 6px 6px 25px #0e0e0e !important;
 }
 
-.mellow-progress-text {
-    font-size: 1rem;
-    opacity: 0.9;
+  .mellow-show-section-btn:hover {
+    transform: translateY(-1px) !important;
+    border-color: #fefaf6 !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    color: #fefaf6 !important;
 }
 
-.mellow-processing-stats {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 30px;
-    font-size: 0.9rem;
-    opacity: 0.8;
+.mellow-show-section-btn:focus {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: #fefaf6 !important;
+    color: #fefaf6 !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
 }
 
-.mellow-stat {
-    text-align: center;
+.icon-box {
+    background: var(--iconBackground) !important;
 }
 
-.mellow-stat-number {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #4ecdc4;
+.loading-spinner {
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
 }
-
-.mellow-stat-label {
-    margin-top: 5px;
 }
 
 /* Category Blocking Overlays on Thumbnails */
@@ -110,47 +124,41 @@
     left: 0 !important;
     width: 101% !important;
     height: 101% !important;
-    color: white !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    z-index: 9999 !important;
+    z-index: 2017 !important;
     text-align: center !important;
     padding: 10px !important;
     box-sizing: border-box !important;
     word-wrap: break-word !important;
-    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    transition: all 0.1s ease !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+    
+    /* Enable container queries */
+    container-type: size !important;
+    container-name: video-overlay !important;
 }
 
 /* Blocked video overlay - prevents clicks */
 .mellow-category-overlay.blocked {
-    pointer-events: auto !important;
+    pointer-events: none !important;
     cursor: not-allowed !important;
-    background: #0f0f10 !important; /* YouTube dark theme background color */
-    border: 2px solid #0f0f10 !important;
     text-align: center !important;
     padding: 5px !important;
     word-wrap: normal !important;
+    border-radius: 5px !important;
 }
 
-/* Unblocked video overlay - allows clicks through */
-.mellow-category-overlay.unblocked {
-    pointer-events: none !important;
-    cursor: pointer !important;
-    background: rgba(0, 0, 0, 0.6) !important;
-    border: 2px solid rgba(255, 255, 255, 0.3) !important;
-}
 
 /* Override existing classes for overlay context */
-.mellow-category-overlay .tile-hero-txt {
+.main-text {
     font-size: 22px !important;
-    font-weight: 200 !important;
     position: relative !important;
     font-family: 'Instrument Sans' !important;
-    color: #fefaf6 !important;
     text-align: center !important;
-    text-shadow: 6px 6px 25px #0e0e0e !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -158,24 +166,23 @@
     margin-bottom: 12px !important;
 }
 
-.mellow-category-overlay .setting-label {
+.sub-text {
     color: var(--darkAccent) !important;
     font-size: 14px !important;
     margin: 0 !important;
     font-family: 'Figtree' !important;
   }
 
-.mellow-category-overlay .icon-box {
+.icon-box {
     width: 47px !important;
     height: 47px !important;
-    background: var(--iconBackground) !important;
     border-radius: 8px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
 
-.mellow-category-overlay .icon-svg {
+.icon-svg {
     width: 39px !important; height: 39px !important; display: block !important;
 }
 
@@ -198,5 +205,324 @@ ytd-playlist-video-renderer {
     to {
         opacity: 0;
         visibility: hidden;
+    }
+}
+
+/* Section Blocking Overlays for Shorts/Playables */
+.mellow-section-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 2017 !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+    /* Enable container queries */
+    container-type: size !important;
+    container-name: section-overlay !important;
+}
+
+.mellow-section-overlay.blocked {
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}
+
+.mellow-section-overlay-content {
+    padding: 20px !important;
+    max-width: 400px !important;
+    text-align: center !important;
+}
+
+.mellow-show-section-btn {
+    padding: 10px 14px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    border: 1px solid var(--darkAccent) !important;
+    background: var(--iconBackground) !important;
+    color: var(--darkAccent) !important;
+    font-size: 14px !important;
+    margin-top: 12px !important;
+    font-family: 'Figtree' !important;
+    transition: all 0.2s ease !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 2018 !important;
+    user-select: none !important;
+}
+
+.mellow-show-section-btn:hover {
+    transform: translateY(-1px) !important;
+}
+
+.mellow-show-section-btn:focus {
+    background: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
+}
+
+.mellow-show-section-btn:active {
+    transform: translateY(0) !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Ensure the button content area allows pointer events */
+.mellow-section-overlay-content {
+    padding: 20px !important;
+    max-width: 400px !important;
+    text-align: center !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 2017 !important;
+}
+
+/* Temporary Categorizing Overlay Styles */
+.mellow-category-overlay.temp-categorizing {
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+    border-radius: 5px !important;
+}
+
+.temp-loading-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+}
+
+.loading-spinner {
+    width: 24px !important;
+    height: 24px !important;
+    border-top: 2px solid var(--darkAccent) !important;
+    border-radius: 50% !important;
+    animation: spin 1s linear infinite !important;
+}
+
+.loading-text {
+    font-size: 14px !important;
+    position: relative !important;
+    font-family: 'Figtree' !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Ensure section containers have relative positioning */
+ytd-rich-shelf-renderer,
+ytd-reel-shelf-renderer,
+ytm-rich-shelf-renderer {
+    position: relative !important;
+}
+
+/* ========================================
+   Container Query Breakpoints for Overlays
+   ======================================== */
+
+/* Small: 0px - 200px wide */
+@container video-overlay (max-width: 200px) {
+    .main-text {
+        font-size: 12px !important;
+        gap: 4px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    .sub-text {
+        font-size: 9px !important;
+    }
+    
+    .icon-box {
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 4px !important;
+    }
+    
+    .icon-svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+    
+    .mellow-category-overlay.blocked {
+        padding: 4px !important;
+    }
+    .loading-text {
+        font-size: 10px !important;
+        gap: 4px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .loading-spinner {
+        width: 16px !important;
+        height: 16px !important;
+        border-width: 2px !important;
+    }
+}
+
+/* Medium: 200px - 300px wide */
+@container video-overlay (min-width: 200px) and (max-width: 300px) {
+    .main-text {
+        font-size: 16px !important;
+        gap: 6px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .sub-text {
+        font-size: 11px !important;
+    }
+    
+    .icon-box {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 6px !important;
+    }
+    
+    .icon-svg {
+        width: 22px !important;
+        height: 22px !important;
+    }
+    
+    .mellow-category-overlay.blocked {
+        padding: 5px !important;
+    }
+    
+    .loading-text {
+        font-size: 12px !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .loading-spinner {
+        width: 20px !important;
+        height: 20px !important;
+        border-width: 3px !important;
+    }
+}
+
+/* Large: 300px - 400px wide */
+@container video-overlay (min-width: 300px) and (max-width: 400px) {
+    .main-text {
+        font-size: 16px !important;
+        gap: 5px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .sub-text {
+        font-size: 12px !important;
+    }
+    
+    .icon-box {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 7px !important;
+    }
+    
+    .icon-svg {
+        width: 26px !important;
+        height: 26px !important;
+    }
+    
+    .loading-text {
+        font-size: 13px !important;
+        gap: 7px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .loading-spinner {
+        width: 24px !important;
+        height: 24px !important;
+        border-width: 3px !important;
+    }
+}
+
+/* ========================================
+   Section Overlay Specific Container Queries
+   ======================================== */
+
+/* Small section containers: 0px - 200px wide */
+@container section-overlay (max-width: 200px) {
+    .mellow-section-overlay-content .main-text {
+        font-size: 12px !important;
+        gap: 4px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    .mellow-section-overlay-content .mellow-show-section-btn {
+        padding: 6px 10px !important;
+        font-size: 9px !important;
+        margin-top: 8px !important;
+    }
+    
+    .mellow-section-overlay-content .icon-box {
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 4px !important;
+    }
+    
+    .mellow-section-overlay-content .icon-svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+}
+
+/* Medium section containers: 200px - 300px wide */
+@container section-overlay (min-width: 200px) and (max-width: 300px) {
+    .mellow-section-overlay-content .main-text {
+        font-size: 14px !important;
+        gap: 5px !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .mellow-section-overlay-content .mellow-show-section-btn {
+        padding: 7px 11px !important;
+        font-size: 10px !important;
+        margin-top: 9px !important;
+    }
+
+    .mellow-section-overlay-content .icon-box {
+        width: 24px !important;
+        height: 24px !important;
+        border-radius: 5px !important;
+    }
+    
+    .mellow-section-overlay-content .icon-svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+}
+
+/* Large section containers: 300px - 500px wide */
+@container section-overlay (min-width: 300px) and (max-width: 500px) {
+    .mellow-section-overlay-content .main-text {
+        font-size: 16px !important;
+        gap: 6px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .mellow-section-overlay-content .mellow-show-section-btn {
+        padding: 8px 12px !important;
+        font-size: 11px !important;
+        margin-top: 10px !important;
+    }
+
+    .mellow-section-overlay-content .icon-box {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 6px !important;
+    }
+    
+    .mellow-section-overlay-content .icon-svg {
+        width: 22px !important;
+        height: 22px !important;
     }
 }

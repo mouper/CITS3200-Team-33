@@ -62,7 +62,6 @@ def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
             pending_count = len(pending_rows)
             _status["pending_count"] = pending_count
             if pending_count:
-                print(f"Background: pending {pending_count} fresh rows; triggering categoriser")
                 # Build triaged items now so we can delete them immediately before classification
                 items = get_fresh_metadata_triaged()
                 def classify_async(payload_items):
@@ -80,10 +79,6 @@ def _poll_and_classify(model_id: str, interval_seconds: float) -> None:
                 threading.Thread(target=classify_async, args=(items,), daemon=True).start()
         except Exception as exc:  # pragma: no cover
             _status["last_error"] = str(exc)
-            try:
-                print(f"Background error: {exc}")
-            except Exception:
-                pass
         finally:
             _stop_event.wait(interval_seconds)
     _status["loop_running"] = False

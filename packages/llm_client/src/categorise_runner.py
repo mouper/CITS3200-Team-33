@@ -66,7 +66,7 @@ def determine_if_should_block(category: str) -> bool:
             return data.get('should_filter', False)
         else:
             # If filter API is unavailable, default to not blocking
-            print(f"Warning: Filter API returned {response.status_code}, defaulting to not blocking")
+            # print(f"Warning: Filter API returned {response.status_code}, defaulting to not blocking")
             return False
             
     except Exception as e:
@@ -107,13 +107,12 @@ def run_once(model_id: str, pretriaged_items: List[Dict[str, Any]] | None = None
         video_ids_to_delete = [it.get("videoId") for it in unique_items if it.get("videoId")]
         if video_ids_to_delete:
             db.delete_metadata_by_ids(video_ids_to_delete)
-            print(f"Triage: removed {len(video_ids_to_delete)} rows from cache")
     except Exception:
         # Best-effort deletion; continue even if cleanup fails
         pass
 
     # Now process everything with concurrency up to 5
-    print(f"Categoriser: processing {len(unique_items)} item(s) with concurrency=50")
+    # print(f"Categoriser: processing {len(unique_items)} item(s) with concurrency=50")
 
     def classify_one(item: Dict[str, Any]) -> Tuple[str, bool]:
         video_id = item["videoId"]
@@ -137,7 +136,6 @@ def run_once(model_id: str, pretriaged_items: List[Dict[str, Any]] | None = None
 
     written = 0
     if not unique_items:
-        print("Categoriser: no items to process")
         return 0
 
     with ThreadPoolExecutor(max_workers=min(50, len(unique_items))) as executor:
