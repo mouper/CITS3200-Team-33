@@ -28,7 +28,7 @@ def get_filter_instance():
     """Get or create the global filter instance."""
     global _filter_instance
     if _filter_instance is None:
-        _filter_instance = SimpleProbabilisticFilter(
+        _filter_instance = ProbabilisticDecayFilter(
             half_life_hours=1.0,  # 1 hour half-life
             initial_p=0.0
         )
@@ -147,7 +147,7 @@ def reset_filter() -> Any:
     """Reset the filter to initial state."""
     try:
         global _filter_instance
-        _filter_instance = SimpleProbabilisticFilter(
+        _filter_instance = ProbabilisticDecayFilter(
             half_life_hours=1.0,
             initial_p=0.0
         )
