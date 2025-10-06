@@ -3,7 +3,6 @@ import random
 from datetime import datetime
 from databases.user_settings_db import (
     get_all_strength_levels,
-    fetch_recently_updated_categories,
 )
 from databases.graph_stats import (
     set_block_level,
@@ -88,40 +87,3 @@ class ProbabilisticDecayFilter:
         if p_now >= 1.0:
             return True  # Limiter: fully block while probability is 1.0 or higher
         return random.random() < p_now
-
-    @classmethod
-    def batch_update_recent(cls, since_minutes=60):
-        """
-        Run update/filter logic for all categories recently updated in user_settings_db.
-        Writes each category's block level to the graph database.
-        """
-        now = datetime.utcnow()
-        recent_categories = fetch_recently_updated_categories(since_minutes)
-        results = []
-        for entry in recent_categories:
-            category = entry['category']
-            initial_p = entry['probability']
-            last_update = entry['last_update']
-            half_life_hours = entry.get('half_life_hours', 1.0)
-
-            filter_instance = cls(
-                half_life_hours=half_life_hours,
-                initial_p=initial_p,
-                last_update=last_update,
-            )
-            watched = entry.get('watched', False)
-            watchtime_mins = entry.get('watchtime_mins', 0)
-
-            updated_p = filter_instance.update(
-                now=now,
-                watched=watched,
-                watchtime_mins=watchtime_mins,
-                category=category
-            )
-            should_filter = filter_instance.should_filter(category, now=now)
-            results.append({
-                'category': category,
-                'probability': updated_p,
-                'should_filter': should_filter
-            })
-        return results
