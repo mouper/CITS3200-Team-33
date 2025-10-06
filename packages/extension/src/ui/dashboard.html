@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <link rel="stylesheet" href="../static/css/style.css" />
+    <script src="../static/js/chart.min.js"></script>
     <title>Dashboard</title>
   </head>
   <body class="dashboard-root">
@@ -53,17 +54,13 @@
       <section class="dashboard-split" style="margin-top: 32px">
         <article class="card graph-card">
           <div class="graph-header">
-            <div class="graph-title">Last X Hours</div>
+            <div class="graph-title">Level X Time</div>
             <select
               id="category-select"
               class="category-select"
               aria-label="Select category"
             >
-              <option value="All">All</option>
-              <option value="Category 1">Category 1</option>
-              <option value="Category 2">Category 2</option>
-              <option value="Category 3">Category 3</option>
-              <option value="Category 4">Category 4</option>
+              <!-- Options populated dynamically from active categories -->
             </select>
           </div>
           <canvas
@@ -128,6 +125,7 @@
         </div>
       </div>
     </main>
+    <script src="../static/js/shared-graph.js"></script>
     <script type="module" src="../static/js/dashboard.js"></script>
   </body>
 </html>
