@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mellow</title>
     <link rel="stylesheet" href="../static/css/style.css" />
+    <script src="../static/js/chart.min.js"></script>
+    <script src="../static/js/shared-graph.js"></script>
   </head>
   <body class="popup-root">
     <div class="popup-container">
@@ -35,7 +37,7 @@
 
       <div class="popup-graph card graph-card">
         <div class="graph-header">
-          <div class="graph-title">Last X Hours</div>
+          <div class="graph-title">Level X Time</div>
           <button id="category-pill" class="category-pill" aria-label="Selected category" disabled>All</button>
         </div>
         <canvas id="popupChart" width="560" height="320" aria-label="Activity chart" role="img"></canvas>
