@@ -53,13 +53,17 @@
       <section class="dashboard-split" style="margin-top: 32px">
         <article class="card graph-card">
           <div class="graph-header">
-            <div class="graph-title">Category Block Probability Over Time</div>
+            <div class="graph-title">Last X Hours</div>
             <select
               id="category-select"
               class="category-select"
               aria-label="Select category"
             >
-              <!-- Options will be filled dynamically by JS -->
+              <option value="All">All</option>
+              <option value="Category 1">Category 1</option>
+              <option value="Category 2">Category 2</option>
+              <option value="Category 3">Category 3</option>
+              <option value="Category 4">Category 4</option>
             </select>
           </div>
           <canvas
@@ -95,9 +99,19 @@
       </section>
 
       <div class="section-header">Control Panel</div>
-      <div class="section-subheader" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div
+        class="section-subheader"
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        "
+      >
         <span>Content Categories</span>
-        <button id="edit-categories-btn" class="btn-secondary" type="button">Edit Categories</button>
+        <button id="edit-categories-btn" class="btn-secondary" type="button">
+          Edit Categories
+        </button>
       </div>
 
       <section class="cards_categories" id="cards-categories">
@@ -105,12 +119,22 @@
       </section>
 
       <!-- Edit Categories Modal -->
-      <div id="edit-categories-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="edit-categories-title">
+      <div
+        id="edit-categories-modal"
+        class="modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-categories-title"
+      >
         <div class="modal-backdrop"></div>
         <div class="modal-content">
           <div class="modal-header">
-            <p id="edit-categories-title" class="modal-title">Edit Categories</p>
-            <button class="modal-close" type="button" aria-label="Close">×</button>
+            <p id="edit-categories-title" class="modal-title">
+              Edit Categories
+            </p>
+            <button class="modal-close" type="button" aria-label="Close">
+              ×
+            </button>
           </div>
           <div class="modal-body">
             <div id="edit-categories-list" class="edit-categories-list">
@@ -118,7 +142,9 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn-secondary modal-cancel" type="button">Cancel</button>
+            <button class="btn-secondary modal-cancel" type="button">
+              Cancel
+            </button>
             <button class="btn-primary modal-save" type="button">Save</button>
           </div>
         </div>
