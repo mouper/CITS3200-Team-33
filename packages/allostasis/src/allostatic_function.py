@@ -4,12 +4,12 @@ from datetime import datetime
 from databases.user_settings_db import (
     get_all_strength_levels,
 )
-from databases.graph_stats import (
+from databases.category_block_stats_db import (
     set_block_level,
-    get_block_level,
+    get_all_block_levels,
 )
 
-class ProbabilisticDecayFilter:
+class AllostaticFunction:
     STRENGTH_LEVEL_MAP = {
         "Weak": 0.4,
         "Moderate": 0.8,

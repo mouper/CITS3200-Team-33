@@ -1,6 +1,9 @@
 """
 watched_db.py — Logs watch events with start/end times.
 TTL (Time-To-Live): 30 days
+
+Each viewing session is stored as a distinct row so repeat watches of the same
+video are tracked independently.
 """
 
 from .db_utils import connect_db, execute_query, fetch_all, current_timestamp
@@ -10,11 +13,16 @@ def init_db():
     conn = connect_db(WATCHED_DB_PATH)
     execute_query(conn, """
     CREATE TABLE IF NOT EXISTS watched (
-        video_id   TEXT PRIMARY KEY,
-        start_time INTEGER,  -- when viewing began
-        end_time INTEGER     -- when viewing ended/log saved
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        video_id TEXT NOT NULL,
+        start_time INTEGER,
+        end_time INTEGER
     )
     """)
+    execute_query(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_watched_video_id ON watched(video_id)",
+    )
     conn.close()
 
 def log_watch(video_id, start_time=None, end_time=None):
@@ -38,27 +46,31 @@ def log_watch(video_id, start_time=None, end_time=None):
     if end_ts is None:
         end_ts = now
 
-    execute_query(
-        conn,
-        """
-        INSERT INTO watched (video_id, start_time, end_time)
-        VALUES (?, ?, ?)
-        ON CONFLICT(video_id) DO UPDATE SET
-            start_time = CASE
-                WHEN excluded.start_time IS NOT NULL AND (
-                    watched.start_time IS NULL OR excluded.start_time < watched.start_time
-                ) THEN excluded.start_time
-                ELSE watched.start_time
-            END,
-            end_time = CASE
-                WHEN excluded.end_time IS NOT NULL AND (
-                    watched.end_time IS NULL OR excluded.end_time > watched.end_time
-                ) THEN excluded.end_time
-                ELSE watched.end_time
-            END
-        """,
-        (video_id, start_ts, end_ts),
-    )
+    cursor = conn.cursor()
+    with conn:
+        cursor.execute(
+            """
+            UPDATE watched
+            SET
+                start_time = COALESCE(start_time, ?),
+                end_time = CASE
+                    WHEN end_time IS NULL OR ? > end_time THEN ?
+                    ELSE end_time
+                END
+            WHERE video_id = ? AND start_time = ?
+            """,
+            (start_ts, end_ts, end_ts, video_id, start_ts),
+        )
+
+        if cursor.rowcount == 0:
+            cursor.execute(
+                """
+                INSERT INTO watched (video_id, start_time, end_time)
+                VALUES (?, ?, ?)
+                """,
+                (video_id, start_ts, end_ts),
+            )
+
     conn.close()
 
 def get_durations():
