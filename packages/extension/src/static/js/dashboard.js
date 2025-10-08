@@ -649,8 +649,8 @@ Promise.all([
               // Update the Content Removed and Hours Saved This Week cards
               const cards = document.querySelectorAll(".card");
               cards.forEach((card) => {
-                const heroText = card.querySelector(".tile-hero-txt");
-                const caption = card.querySelector(".tile-caption");
+                const heroText = card.querySelector(".tile-caption");
+                const caption = card.querySelector(".tile-hero-txt");
 
                 if (
                   heroText &&
@@ -690,8 +690,8 @@ Promise.all([
       // Update dashboard cards with current week data
       const cards = document.querySelectorAll(".card");
       cards.forEach((card) => {
-        const heroText = card.querySelector(".tile-hero-txt");
-        const caption = card.querySelector(".tile-caption");
+        const heroText = card.querySelector(".tile-caption");
+        const caption = card.querySelector(".tile-hero-txt");
 
         // Hours of Content Removed card is updated in the async calculation above
 
@@ -761,8 +761,8 @@ Promise.all([
 
               const cards = document.querySelectorAll(".card");
               cards.forEach((card) => {
-                const heroText = card.querySelector(".tile-hero-txt");
-                const caption = card.querySelector(".tile-caption");
+                const heroText = card.querySelector(".tile-caption");
+                const caption = card.querySelector(".tile-hero-txt");
 
                 if (
                   heroText &&
@@ -863,8 +863,8 @@ Promise.all([
 
               const cards = document.querySelectorAll(".card");
               cards.forEach((card) => {
-                const heroText = card.querySelector(".tile-hero-txt");
-                const caption = card.querySelector(".tile-caption");
+                const heroText = card.querySelector(".tile-caption");
+                const caption = card.querySelector(".tile-hero-txt");
 
                 if (
                   heroText &&
