@@ -37,17 +37,17 @@ class TestMetadataTriage:
         """Test loading categories from JSON file."""
         labels, version = load_categories()
         assert isinstance(labels, list)
-        assert len(labels) == 21  # Based on categories.v1.json
-        assert version == "categories.v1"
-        assert "Educational & Academic" in labels
-        assert "Other / Unclear" in labels
+        assert len(labels) == 25  # Based on categories.v1.json
+        assert version == "categories.v2"
+        assert "Educational and Academic" in labels
+        assert "Music and Arts" in labels
 
     def test_constants_loaded(self):
         """Test that constants are properly loaded."""
         assert isinstance(ALLOWED_LABELS, list)
         assert len(ALLOWED_LABELS) > 0
         assert isinstance(CATEGORIES_VERSION, str)
-        assert CATEGORIES_VERSION == "categories.v1"
+        assert CATEGORIES_VERSION == "categories.v2"
 
     def test_redact_urls(self):
         """Test URL redaction."""
