@@ -95,6 +95,21 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02),
     0 8px 40px rgba(0, 0, 0, 0.35);
 }
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tile .icon-box {
+  width: 57px !important;
+  height: 57px !important;
+  border-radius: 10px !important;
+}
+
+.tile img.icon-svg { 
+  width: 35px !important; height: 35px !important;}
+
 .card .tile-hero-txt {
   margin: 0 0 12px;
 }
@@ -132,14 +147,17 @@ body {
 .dashboard-split {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 64px;
+  gap: 4vw;
   padding-bottom: 30px;
 }
+.graph-card {
+  height: 320px;
+  overflow: hidden;
+}
+
 .graph-card canvas {
   width: 100%;
   display: block;
-}
-.dashboard-root .graph-card canvas {
   height: 280px;
 }
 .category-select {
@@ -165,6 +183,17 @@ body {
   flex-direction: column;
   min-height: 280px;
 }
+
+.graph-title {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .graph-title {
+    white-space: normal;
+    line-height: 1.2;
+  }
+}
 .category-list {
   list-style: none;
   color: #a6adbb;
@@ -181,7 +210,7 @@ body {
   justify-content: space-between;
 }
 .category-list li span:last-child {
-  padding-right: 25px;
+  padding-right: 5px;
 }
 
 .cards_categories {
@@ -218,10 +247,10 @@ body {
   gap: 14px;
 }
 .icon-box {
-  width: 45px !important;
-  height: 45px !important;
+  width: 45px ;
+  height: 45px ;
   background: var(--iconBackground) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -229,7 +258,7 @@ body {
 .icon-placeholder {
   font-size: 20px;
 }
-img.icon-svg { width: 37px !important; height: 37px !important; display: block !important; }
+img.icon-svg { width: 37px; height: 37px; display: block !important; }
 .header-text {
   flex: 1;
   align-items: center;  
@@ -487,6 +516,13 @@ img.icon-svg { width: 37px !important; height: 37px !important; display: block !
   .dashboard-split {
     grid-template-columns: 1fr;
   }
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .cards_categories {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Popup graph styles */
@@ -503,6 +539,12 @@ img.icon-svg { width: 37px !important; height: 37px !important; display: block !
   padding: 22px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02),
     0 8px 40px rgba(0, 0, 0, 0.35);
+  height: 320px;
+  overflow: hidden;
+}
+
+.popup-graph canvas {
+  height: 280px;
 }
 .graph-header {
   display: flex;

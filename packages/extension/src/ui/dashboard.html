@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <link rel="stylesheet" href="../static/css/style.css" />
+    <script src="../static/js/chart.min.js"></script>
     <title>Dashboard</title>
   </head>
   <body class="dashboard-root">
@@ -20,9 +21,7 @@
       <section class="cards">
         <article class="card">
           <div class="tile">
-            <div class="icon-box">
-              <img class="icon-svg" src="../static/assets/clock.svg" alt="" />
-            </div>
+            <div class="icon-box"><img class="icon-svg" src="../static/assets/clock.svg" alt="" /></div>
             <div>
               <div class="tile-hero-txt">Placeholder metric</div>
               <div class="tile-caption">Hours of Content Removed</div>
@@ -31,9 +30,7 @@
         </article>
         <article class="card">
           <div class="tile">
-            <div class="icon-box">
-              <img class="icon-svg" src="../static/assets/percent.svg" alt="" />
-            </div>
+            <div class="icon-box"><img class="icon-svg" src="../static/assets/percent.svg" alt="" /></div>
             <div>
               <div class="tile-hero-txt">Placeholder metric</div>
               <div class="tile-caption">Content Removed</div>
@@ -42,9 +39,7 @@
         </article>
         <article class="card">
           <div class="tile">
-            <div class="icon-box">
-              <img class="icon-svg" src="../static/assets/camera.svg" alt="" />
-            </div>
+            <div class="icon-box"><img class="icon-svg" src="../static/assets/camera.svg" alt="" /></div>
             <div>
               <div class="tile-hero-txt">Placeholder metric</div>
               <div class="tile-caption">Content With Highest Blocked Hours</div>
@@ -55,39 +50,27 @@
         <!-- <section class="cards"> -->
         <article class="card">
           <div class="tile">
-            <div class="icon-box">
-              <img class="icon-svg" src="../static/assets/layout.svg" alt="" />
-            </div>
+            <div class="icon-box"><img class="icon-svg" src="../static/assets/layout.svg" alt="" /></div>
             <div>
-              <div class="tile-hero-txt">
-                <span id="activeUsersCount">0</span>
-              </div>
+              <div class="tile-hero-txt"><span id="activeUsersCount">0</span></div>
               <div class="tile-caption">Categories Blocked</div>
             </div>
           </div>
         </article>
         <article class="card">
           <div class="tile">
-            <div class="icon-box">
-              <img class="icon-svg" src="../static/assets/bars.svg" alt="" />
-            </div>
+            <div class="icon-box"><img class="icon-svg" src="../static/assets/bars.svg" alt="" /></div>
             <div>
-              <div class="tile-hero-txt">
-                <span id="maxBlockedCategory">Loading...</span>
-              </div>
+              <div class="tile-hero-txt"><span id="maxBlockedCategory">Loading...</span></div>
               <div class="tile-caption">Content with Most Blocked Videos</div>
             </div>
           </div>
         </article>
         <article class="card">
           <div class="tile">
-            <div class="icon-box">
-              <img class="icon-svg" src="../static/assets/camera.svg" alt="" />
-            </div>
+            <div class="icon-box"><img class="icon-svg" src="../static/assets/camera.svg" alt="" /></div>
             <div>
-              <div class="tile-hero-txt">
-                <span id="totalBlockedVideos">Loading...</span>
-              </div>
+              <div class="tile-hero-txt"><span id="totalBlockedVideos">Loading...</span></div>
               <div class="tile-caption">Videos Blocked in Total</div>
             </div>
           </div>
@@ -97,17 +80,13 @@
       <section class="dashboard-split" style="margin-top: 32px">
         <article class="card graph-card">
           <div class="graph-header">
-            <div class="graph-title">Last X Hours</div>
+            <div class="graph-title">Level X Time</div>
             <select
               id="category-select"
               class="category-select"
               aria-label="Select category"
             >
-              <option value="All">All</option>
-              <option value="Category 1">Category 1</option>
-              <option value="Category 2">Category 2</option>
-              <option value="Category 3">Category 3</option>
-              <option value="Category 4">Category 4</option>
+              <!-- Options populated dynamically from active categories -->
             </select>
           </div>
           <canvas
@@ -194,6 +173,7 @@
         </div>
       </div>
     </main>
+    <script src="../static/js/shared-graph.js"></script>
     <script type="module" src="../static/js/dashboard.js"></script>
   </body>
 </html>

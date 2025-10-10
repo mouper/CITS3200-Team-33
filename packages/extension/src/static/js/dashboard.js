@@ -420,6 +420,13 @@ renderSettingsCards();
 
     // Re-render cards based on new actives
     await renderSettingsCards();
+    
+    // Refresh category dropdown with updated active categories
+    const populateDropdown = window.populateCategoryDropdown;
+    if (populateDropdown) {
+      await populateDropdown();
+    }
+    
     close();
   });
 })();
@@ -503,10 +510,41 @@ renderSettingsCards();
     const select = document.getElementById("category-select");
     if (!canvas || !select) return;
 
-    // Load last selected category
-    chrome.storage?.local?.get(["selectedCategory"], ({ selectedCategory }) => {
-      if (selectedCategory) select.value = selectedCategory;
-    });
+    // Populate dropdown with active categories
+    async function populateCategoryDropdown() {
+      try {
+        const data = await api("/api/settings");
+        const activeCategories = (data?.items || []).filter(item => item.is_active);
+        
+        // Clear existing options
+        select.innerHTML = '';
+        
+        // Add active categories
+        activeCategories.forEach(category => {
+          const option = document.createElement('option');
+          option.value = category.category;
+          option.textContent = category.category;
+          select.appendChild(option);
+        });
+        
+        // Load last selected category
+        chrome.storage?.local?.get(["selectedCategory"], ({ selectedCategory }) => {
+          if (selectedCategory && select.querySelector(`option[value="${selectedCategory}"]`)) {
+            select.value = selectedCategory;
+          }
+          // Trigger initial graph draw after dropdown is populated
+          draw();
+        });
+      } catch (error) {
+        console.warn('Failed to populate category dropdown:', error);
+      }
+    }
+
+    // Initial population
+    populateCategoryDropdown();
+    
+    // Make function globally accessible for modal refresh
+    window.populateCategoryDropdown = populateCategoryDropdown;
 
     // Persist on change
     select.addEventListener("change", () => {
@@ -514,64 +552,36 @@ renderSettingsCards();
       draw();
     });
 
-    function draw() {
-      const ctx = canvas.getContext("2d");
-      const w = canvas.width,
-        h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
+    // Use shared graph module
+    let sharedGraph = null;
 
-      // Grid
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
-      ctx.lineWidth = 1;
-      for (let i = 1; i < 6; i++) {
-        const y = (h / 6) * i;
-        ctx.beginPath();
-        ctx.moveTo(60, y);
-        ctx.lineTo(w - 20, y);
-        ctx.stroke();
+    async function initializeGraph() {
+      if (typeof SharedGraph === 'undefined') {
+        console.log("SharedGraph not ready, retrying in 100ms...");
+        setTimeout(initializeGraph, 100);
+        return;
       }
 
-      // Placeholder points
-      const points = [
-        [60, 210],
-        [120, 120],
-        [180, 160],
-        [240, 130],
-        [300, 60],
-        [360, 140],
-        [420, 130],
-        [480, 150],
-        [540, 100],
-        [600, 50],
-        [660, 130],
-        [720, 200],
-        [780, 240],
-      ];
-
-      const grad = ctx.createLinearGradient(0, 0, w, 0);
-      grad.addColorStop(0, "rgba(232,103,90,0.8)");
-      grad.addColorStop(1, "rgba(255,255,255,0.9)");
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = grad;
-      ctx.beginPath();
-      for (let i = 0; i < points.length; i++) {
-        const [x, y] = points[i];
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-
-      const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
-      fillGrad.addColorStop(0, "rgba(232,103,90,0.12)");
-      fillGrad.addColorStop(1, "rgba(232,103,90,0.02)");
-      ctx.fillStyle = fillGrad;
-      ctx.lineTo(points[points.length - 1][0], h - 20);
-      ctx.lineTo(points[0][0], h - 20);
-      ctx.closePath();
-      ctx.fill();
+      console.log("🔧 Initializing dashboard with SharedGraph...");
+      sharedGraph = new SharedGraph('lineChart', null, 24);
+      await sharedGraph.initialize();
+      
+      console.log("✅ Dashboard graph initialized with shared module");
     }
 
-    draw();
+    async function draw() {
+      if (sharedGraph) {
+        await sharedGraph.updateChart(select.value);
+      }
+    }
+
+    // Wait for DOM to be fully loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeGraph);
+    } else {
+      initializeGraph();
+    }
+
   } catch (_) {
     /* no-op */
   }
@@ -647,15 +657,12 @@ Promise.all([
               }
 
               // Update the Content Removed and Hours Saved This Week cards
-              const cards = document.querySelectorAll(".card");
-              cards.forEach((card) => {
-                const heroText = card.querySelector(".tile-caption");
-                const caption = card.querySelector(".tile-hero-txt");
-
-                if (
-                  heroText &&
-                  heroText.textContent.includes("Content Removed")
-                ) {
+              const cards = document.querySelectorAll('.card');
+              cards.forEach(card => {
+                const heroText = card.querySelector('.tile-caption');
+                const caption = card.querySelector('.tile-hero-txt');
+                
+                if (heroText && heroText.textContent.includes('Content Removed')) {
                   if (caption) {
                     caption.textContent = `${contentRemovalPercentage.toFixed(
                       1
@@ -688,11 +695,11 @@ Promise.all([
         });
 
       // Update dashboard cards with current week data
-      const cards = document.querySelectorAll(".card");
-      cards.forEach((card) => {
-        const heroText = card.querySelector(".tile-caption");
-        const caption = card.querySelector(".tile-hero-txt");
-
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        const heroText = card.querySelector('.tile-caption');
+        const caption = card.querySelector('.tile-hero-txt');
+        
         // Hours of Content Removed card is updated in the async calculation above
 
         // Content Removed card is updated in the async calculation above
@@ -758,16 +765,13 @@ Promise.all([
               if (totalVideos > 0) {
                 contentRemovalPercentage = (totalBlocked / totalVideos) * 100;
               }
-
-              const cards = document.querySelectorAll(".card");
-              cards.forEach((card) => {
-                const heroText = card.querySelector(".tile-caption");
-                const caption = card.querySelector(".tile-hero-txt");
-
-                if (
-                  heroText &&
-                  heroText.textContent.includes("Hours of Content Removed")
-                ) {
+              
+              const cards = document.querySelectorAll('.card');
+              cards.forEach(card => {
+                const heroText = card.querySelector('.tile-caption');
+                const caption = card.querySelector('.tile-hero-txt');
+                
+                if (heroText && heroText.textContent.includes('Hours of Content Removed')) {
                   if (caption) {
                     const hoursFormatted =
                       totalBlockedTime >= 1
@@ -860,16 +864,13 @@ Promise.all([
               if (totalVideos > 0) {
                 contentRemovalPercentage = (totalBlocked / totalVideos) * 100;
               }
-
-              const cards = document.querySelectorAll(".card");
-              cards.forEach((card) => {
-                const heroText = card.querySelector(".tile-caption");
-                const caption = card.querySelector(".tile-hero-txt");
-
-                if (
-                  heroText &&
-                  heroText.textContent.includes("Hours of Content Removed")
-                ) {
+              
+              const cards = document.querySelectorAll('.card');
+              cards.forEach(card => {
+                const heroText = card.querySelector('.tile-caption');
+                const caption = card.querySelector('.tile-hero-txt');
+                
+                if (heroText && heroText.textContent.includes('Hours of Content Removed')) {
                   if (caption) {
                     const hoursFormatted =
                       totalBlockedTime >= 1
