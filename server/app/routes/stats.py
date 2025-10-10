@@ -6,14 +6,9 @@ import os
 from datetime import datetime
 from typing import Any, Dict
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
-import os
-import sys
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
+# Ensure databases package is on path via app/__init__.py sys.path adjustment
 from databases import database
 
 bp = Blueprint("stats", __name__)
@@ -50,6 +45,23 @@ def max_blocked_hours_category():
     """Return category with highest total blocked hours."""
     category = database.get_max_blocked_hours_category()
     return jsonify({"category": category})
+
+@bp.get("/api/stats/category-history")
+def category_history():
+    """Return historical data for a specific category for graph visualization."""
+    category = request.args.get('category')
+    if not category:
+        return jsonify({"error": "Category parameter is required"}), 400
+    
+    try:
+        history = database.get_category_history(category)
+        return jsonify({
+            "success": True,
+            "category": category,
+            "data": history
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @bp.get("/version")

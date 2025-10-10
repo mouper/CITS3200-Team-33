@@ -147,14 +147,17 @@ body {
 .dashboard-split {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 64px;
+  gap: 4vw;
   padding-bottom: 30px;
 }
+.graph-card {
+  height: 320px;
+  overflow: hidden;
+}
+
 .graph-card canvas {
   width: 100%;
   display: block;
-}
-.dashboard-root .graph-card canvas {
   height: 280px;
 }
 .category-select {
@@ -179,6 +182,17 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 280px;
+}
+
+.graph-title {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .graph-title {
+    white-space: normal;
+    line-height: 1.2;
+  }
 }
 .category-list {
   list-style: none;
@@ -525,6 +539,12 @@ img.icon-svg { width: 37px; height: 37px; display: block !important; }
   padding: 22px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02),
     0 8px 40px rgba(0, 0, 0, 0.35);
+  height: 320px;
+  overflow: hidden;
+}
+
+.popup-graph canvas {
+  height: 280px;
 }
 .graph-header {
   display: flex;
