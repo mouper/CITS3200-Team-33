@@ -144,6 +144,35 @@ def get_all_block_levels(db_path=GRAPH_STATS_DB_PATH):
     conn.close()
     return [dict(row) for row in results]
 
+def get_category_history(category, db_path=GRAPH_STATS_DB_PATH):
+    """Get all level data for a specific category from category_block_stats table."""
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT current_level, last_updated_time 
+        FROM category_block_stats 
+        WHERE category = ?
+        ORDER BY last_updated_time
+    ''', (category,))
+    results = cursor.fetchall()
+    conn.close()
+    
+    # Return all data points for this category
+    return [{'level': row[0], 'updated_at': row[1]} for row in results]
+
+def get_all_categories_history(db_path=GRAPH_STATS_DB_PATH):
+    """Get current level data for all categories from category_block_stats table."""
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT category, current_level, last_updated_time 
+        FROM category_block_stats 
+        ORDER BY category
+    ''')
+    results = cursor.fetchall()
+    conn.close()
+    return [{'category': row[0], 'level': row[1], 'updated_at': row[2]} for row in results]
+
 
 if __name__ == "__main__":
     init_db()

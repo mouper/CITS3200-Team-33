@@ -95,10 +95,10 @@ def get_all_block_levels():
     return category_block_stats_db.get_all_block_levels()
 
 def get_category_history(category):
-    return graph_stats.get_category_history(category)
+    return category_block_stats_db.get_category_history(category)
 
 def get_all_categories_history():
-    return graph_stats.get_all_categories_history()
+    return category_block_stats_db.get_all_categories_history()
 
 # Blocked videos functions
 def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_hours=None, metadata_json=None, blocked_at=None):
