@@ -85,6 +85,9 @@ class YouTubeCategorizationManager {
     // Setup theme change listener
     this.setupThemeChangeListener();
 
+    // Start periodic memory cleanup (runs every 24 hours)
+    this.startMemoryCleanup();
+
     // Check if extension is enabled before starting
     const isEnabled = await this.isExtensionEnabled();
     this.debugLog("[YouTube Categorization] Extension enabled:", isEnabled);
@@ -502,6 +505,81 @@ class YouTubeCategorizationManager {
     this.urlCheckInterval = setInterval(() => handleUrlChange(), 15000);
   }
 
+  startMemoryCleanup() {
+    // Periodic memory cleanup to prevent unbounded growth
+    // Runs every 12 hours to limit memory usage during long browsing sessions
+    const CLEANUP_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+    const MAX_CACHE_SIZE = 500; // Keep last 500 entries
+
+    const performCleanup = () => {
+      this.debugLog('[Memory Cleanup] Starting periodic memory cleanup...');
+      
+      // Clean processedUrls
+      if (this.processedUrls.size > MAX_CACHE_SIZE) {
+        const urls = Array.from(this.processedUrls);
+        this.processedUrls = new Set(urls.slice(-MAX_CACHE_SIZE));
+        this.debugLog(`[Memory Cleanup] Trimmed processedUrls from ${urls.length} to ${this.processedUrls.size}`);
+      }
+      
+      // Clean videoCategories
+      if (this.videoCategories.size > MAX_CACHE_SIZE) {
+        const entries = Array.from(this.videoCategories.entries());
+        this.videoCategories = new Map(entries.slice(-MAX_CACHE_SIZE));
+        this.debugLog(`[Memory Cleanup] Trimmed videoCategories from ${entries.length} to ${this.videoCategories.size}`);
+      }
+      
+      // Clean overlayedVideos
+      if (this.overlayedVideos.size > MAX_CACHE_SIZE) {
+        const videos = Array.from(this.overlayedVideos);
+        this.overlayedVideos = new Set(videos.slice(-MAX_CACHE_SIZE));
+        this.debugLog(`[Memory Cleanup] Trimmed overlayedVideos from ${videos.length} to ${this.overlayedVideos.size}`);
+      }
+      
+      // Clean tempOverlayedVideos
+      if (this.tempOverlayedVideos.size > MAX_CACHE_SIZE) {
+        const tempVideos = Array.from(this.tempOverlayedVideos);
+        this.tempOverlayedVideos = new Set(tempVideos.slice(-MAX_CACHE_SIZE));
+        this.debugLog(`[Memory Cleanup] Trimmed tempOverlayedVideos from ${tempVideos.length} to ${this.tempOverlayedVideos.size}`);
+      }
+      
+      // Clean _videoCategoryCache
+      if (this._videoCategoryCache.size > MAX_CACHE_SIZE) {
+        const cacheEntries = Array.from(this._videoCategoryCache.entries());
+        this._videoCategoryCache = new Map(cacheEntries.slice(-MAX_CACHE_SIZE));
+        this.debugLog(`[Memory Cleanup] Trimmed _videoCategoryCache from ${cacheEntries.length} to ${this._videoCategoryCache.size}`);
+      }
+      
+      // Clean _loggedBlockedVideos
+      if (this._loggedBlockedVideos.size > MAX_CACHE_SIZE) {
+        const loggedVideos = Array.from(this._loggedBlockedVideos);
+        this._loggedBlockedVideos = new Set(loggedVideos.slice(-MAX_CACHE_SIZE));
+        this.debugLog(`[Memory Cleanup] Trimmed _loggedBlockedVideos from ${loggedVideos.length} to ${this._loggedBlockedVideos.size}`);
+      }
+      
+      // Clean unblockedSections
+      if (this.unblockedSections.size > MAX_CACHE_SIZE) {
+        const sections = Array.from(this.unblockedSections);
+        this.unblockedSections = new Set(sections.slice(-MAX_CACHE_SIZE));
+        this.debugLog(`[Memory Cleanup] Trimmed unblockedSections from ${sections.length} to ${this.unblockedSections.size}`);
+      }
+      
+      this.debugLog('[Memory Cleanup] Cleanup complete:', {
+        processedUrls: this.processedUrls.size,
+        videoCategories: this.videoCategories.size,
+        overlayedVideos: this.overlayedVideos.size,
+        tempOverlayedVideos: this.tempOverlayedVideos.size,
+        videoCategoryCache: this._videoCategoryCache.size,
+        loggedBlockedVideos: this._loggedBlockedVideos.size,
+        unblockedSections: this.unblockedSections.size
+      });
+    };
+
+    // Run cleanup every 24 hours
+    setInterval(performCleanup, CLEANUP_INTERVAL);
+    
+    this.debugLog('[Memory Cleanup] Scheduled to run every 24 hours');
+  }
+
   setupMessageListener() {
     chrome.runtime.onMessage.addListener(
       async (request, sender, sendResponse) => {
@@ -790,7 +868,7 @@ class YouTubeCategorizationManager {
 
 
   startPeriodicLabelRefresh() {
-    // Refresh labels every 10 seconds to handle YouTube's dynamic DOM changes (further reduced frequency)
+    // Refresh labels every 3 seconds to handle YouTube's dynamic DOM changes (further reduced frequency)
     this.labelRefreshInterval = setInterval(async () => {
       // Only refresh if extension is enabled
       const isEnabled = await this.isExtensionEnabled();
@@ -799,7 +877,7 @@ class YouTubeCategorizationManager {
       // Always try to fetch and apply categories, even on video pages
       // This is necessary to update temporary overlays on sidebar videos
       this.refreshCategoriesAndApplyLabels();
-    }, 5000); // Check every 5 seconds instead of 3 seconds
+    }, 300); // Check every 3 seconds
   }
 
   refreshCategoriesAndApplyLabels() {
@@ -887,7 +965,14 @@ class YouTubeCategorizationManager {
     this.debugLog("[YouTube Categorization] DOM observer started");
   }
 
-  applyTemporaryOverlaysToNewElements(newVideoElements) {
+  async applyTemporaryOverlaysToNewElements(newVideoElements) {
+    // Check if extension is enabled before applying temporary overlays
+    const isEnabled = await this.isExtensionEnabled();
+    if (!isEnabled) {
+      this.debugLog("[YouTube Categorization] Extension disabled, skipping temporary overlays");
+      return;
+    }
+    
     this.debugLog(`[YouTube Categorization] Applying temporary overlays to ${newVideoElements.length} new elements`);
     
     const thumbnailSelectors = [
@@ -1475,6 +1560,15 @@ class YouTubeCategorizationManager {
       return;
     }
 
+    // PERFORMANCE FIX: Check if we've already processed this video BEFORE making API call
+    // This prevents hundreds of unnecessary API requests for videos that are already filtered
+    if (this.overlayedVideos.has(videoId)) {
+      this.debugLog(
+        `[YouTube Categorization] Video ${videoId} already has final overlay, skipping API call and overlay creation`
+      );
+      return;
+    }
+
     // Use probabilistic filter to decide whether to block this video
     const shouldBlock = await this.shouldBlockVideo(videoId, category);
 
@@ -1483,14 +1577,6 @@ class YouTubeCategorizationManager {
         shouldBlock ? "BLOCKED" : "ALLOWED"
       }`
     );
-
-    // Check if we've already added a final overlay for this video
-    if (this.overlayedVideos.has(videoId)) {
-      this.debugLog(
-        `[YouTube Categorization] Video ${videoId} already has final overlay, skipping overlay creation`
-      );
-      return;
-    }
 
     // If video has a temporary overlay, remove it and replace with final overlay
     if (this.tempOverlayedVideos.has(videoId)) {
@@ -2102,12 +2188,14 @@ class YouTubeCategorizationManager {
 
   async logWatchStart(videoId, startTimeMs = Date.now()) {
     try {
+      const startSeconds = Math.floor(startTimeMs / 1000);
       const response = await fetch("http://127.0.0.1:5050/api/watched/log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           video_id: videoId,
-          start_time: Math.floor(startTimeMs / 1000),
+          start_time: startSeconds,
+          end_time: startSeconds,  // FIXED: Send end_time same as start_time initially
         }),
       });
 
@@ -2135,11 +2223,22 @@ class YouTubeCategorizationManager {
 
     const endSeconds = Math.floor(endTimeMs / 1000);
 
+    // Prevent logging backwards in time
     if (this.lastWatchLogTime !== null) {
       const lastSeconds = Math.floor(this.lastWatchLogTime / 1000);
       if (endSeconds <= lastSeconds) {
         return;
       }
+    }
+
+    // Verify startTimeMs matches the stored watchStartTime for this session
+    // This prevents accidental creation of duplicate rows
+    if (this.watchStartTime && Math.abs(startTimeMs - this.watchStartTime) > 1000) {
+      this.debugWarn(
+        `[YouTube Categorization] Start time mismatch for ${videoId}: ` +
+        `expected ${this.watchStartTime}, got ${startTimeMs}. Using stored value.`
+      );
+      startTimeMs = this.watchStartTime;
     }
 
     try {

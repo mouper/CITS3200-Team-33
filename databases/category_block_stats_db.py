@@ -12,6 +12,27 @@ def _clamp_probability(value: float) -> float:
     return max(0.0, min(float(value), 1.0))
 
 
+def get_half_life_for_strength(filter_strength: str) -> float:
+    """
+    Get decay half-life based on filter strength.
+    Stronger filters have longer half-lives (decay slower).
+    
+    Args:
+        filter_strength: The filter strength setting
+    
+    Returns:
+        Half-life in hours
+    """
+    half_life_map = {
+        "Weak": 10.0 / 60.0,           # 10 minutes
+        "Moderate": 30.0 / 60.0,       # 30 minutes
+        "Strong": 1.0,                  # 1 hour
+        "Extra Strong": 2.0,           # 2 hours
+        "Blocked": 999999.0            # Essentially never decays
+    }
+    return half_life_map.get(filter_strength, DEFAULT_HALF_LIFE_HOURS)
+
+
 def _to_datetime(value):
     if value is None:
         return None
@@ -43,7 +64,11 @@ def _apply_decay(level: float, last_updated, now: datetime, half_life_hours: flo
     return _clamp_probability(decayed)
 
 
-def compute_decayed_level(category, now=None, half_life_hours=DEFAULT_HALF_LIFE_HOURS, db_path=GRAPH_STATS_DB_PATH):
+def compute_decayed_level(category, now=None, half_life_hours=None, db_path=GRAPH_STATS_DB_PATH):
+    """
+    Compute decayed level for a category.
+    If half_life_hours is not provided, uses the category's filter strength to determine it.
+    """
     now = now or datetime.utcnow()
     record = get_block_level(category, db_path=db_path)
     if not record:
@@ -53,6 +78,15 @@ def compute_decayed_level(category, now=None, half_life_hours=DEFAULT_HALF_LIFE_
             "decayed_level": 0.0,
             "last_updated_time": None,
         }
+
+    # If half_life not provided, get it from category's filter strength
+    if half_life_hours is None:
+        from databases.user_settings_db import get_settings
+        settings = get_settings(category)
+        if settings:
+            half_life_hours = get_half_life_for_strength(settings.get("filter_strength", "Moderate"))
+        else:
+            half_life_hours = DEFAULT_HALF_LIFE_HOURS
 
     last_updated = _to_datetime(record.get("last_updated_time"))
     previous_level = float(record.get("current_level") or 0.0)
@@ -66,7 +100,11 @@ def compute_decayed_level(category, now=None, half_life_hours=DEFAULT_HALF_LIFE_
     }
 
 
-def get_decayed_block_level(category, now=None, half_life_hours=DEFAULT_HALF_LIFE_HOURS, db_path=GRAPH_STATS_DB_PATH):
+def get_decayed_block_level(category, now=None, half_life_hours=None, db_path=GRAPH_STATS_DB_PATH):
+    """
+    Get decayed block level for a category.
+    If half_life_hours is not provided, uses the category's filter strength to determine it.
+    """
     info = compute_decayed_level(category, now=now, half_life_hours=half_life_hours, db_path=db_path)
     if info.get("previous_level") is None:
         return None
@@ -83,10 +121,26 @@ def update_current_level(
     watchtime_mins=0.0,
     strength_multiplier=0.0,
     now=None,
-    half_life_hours=DEFAULT_HALF_LIFE_HOURS,
+    half_life_hours=None,
+    update_all_categories=False,
     db_path=GRAPH_STATS_DB_PATH,
 ):
+    """
+    Update the blocking level for a specific category based on watch time.
+    
+    Args:
+        category: The category to update
+        watchtime_mins: Minutes watched
+        strength_multiplier: Strength multiplier from user settings
+        now: Timestamp (defaults to current time)
+        half_life_hours: Half-life for decay (if None, uses category's filter strength)
+        update_all_categories: If True, also update all other categories with decay.
+                              If False (default), only update this category.
+        db_path: Database path
+    """
     now = now or datetime.utcnow()
+    
+    # Use category's strength-based half-life for decay calculation
     base_info = compute_decayed_level(category, now=now, half_life_hours=half_life_hours, db_path=db_path)
     base_level = base_info.get("decayed_level", 0.0) or 0.0
 
@@ -104,6 +158,7 @@ def update_current_level(
         target_level,
         now=now,
         half_life_hours=half_life_hours,
+        update_all_categories=update_all_categories,
         db_path=db_path,
     )
 
@@ -122,45 +177,74 @@ def _persist_level(
     level: float,
     now: datetime | None = None,
     *,
-    half_life_hours: float = DEFAULT_HALF_LIFE_HOURS,
+    half_life_hours: float = None,
+    update_all_categories: bool = False,
     db_path=GRAPH_STATS_DB_PATH,
 ):
+    """
+    Persist a category's blocking level.
+    
+    Args:
+        category: The category to update
+        level: The new level for this category
+        now: Timestamp to use (defaults to current time)
+        half_life_hours: Half-life for decay calculation (if None, uses each category's filter strength)
+        update_all_categories: If True, also update all other categories with decay.
+                              If False, only update the specified category.
+        db_path: Database path
+    """
     now = now or datetime.utcnow()
     clamped_level = _clamp_probability(level)
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT id, category, current_level, last_updated_time
-        FROM category_block_stats
-        ORDER BY last_updated_time DESC, id DESC
-        """
-    )
-    latest_records = {}
-    for row in cursor.fetchall():
-        cat = row["category"]
-        if cat not in latest_records:
-            latest_records[cat] = row
-
     now_iso = now.isoformat()
     rows_to_insert = []
 
-    for cat, latest in latest_records.items():
-        if cat == category:
-            continue
-        if not latest:
-            continue
-        previous_level = float(latest["current_level"] or 0.0)
-        last_updated = _to_datetime(latest["last_updated_time"])
-        decayed_value = _apply_decay(
-            previous_level,
-            last_updated,
-            now,
-            half_life_hours,
+    if update_all_categories:
+        from databases.user_settings_db import get_settings
+        
+        # Get latest records for all categories to apply decay
+        cursor.execute(
+            """
+            SELECT id, category, current_level, last_updated_time
+            FROM category_block_stats
+            ORDER BY last_updated_time DESC, id DESC
+            """
         )
-        rows_to_insert.append((cat, _clamp_probability(decayed_value), now_iso))
+        latest_records = {}
+        for row in cursor.fetchall():
+            cat = row["category"]
+            if cat not in latest_records:
+                latest_records[cat] = row
 
+        # Apply decay to all other categories using their specific half-lives
+        for cat, latest in latest_records.items():
+            if cat == category:
+                continue
+            if not latest:
+                continue
+            
+            # Get this category's half-life based on its strength
+            cat_half_life = half_life_hours
+            if cat_half_life is None:
+                settings = get_settings(cat)
+                if settings:
+                    cat_half_life = get_half_life_for_strength(settings.get("filter_strength", "Moderate"))
+                else:
+                    cat_half_life = DEFAULT_HALF_LIFE_HOURS
+            
+            previous_level = float(latest["current_level"] or 0.0)
+            last_updated = _to_datetime(latest["last_updated_time"])
+            decayed_value = _apply_decay(
+                previous_level,
+                last_updated,
+                now,
+                cat_half_life,
+            )
+            rows_to_insert.append((cat, _clamp_probability(decayed_value), now_iso))
+
+    # Always insert the updated category
     rows_to_insert.append((category, clamped_level, now_iso))
 
     cursor.executemany(
@@ -297,6 +381,182 @@ def get_all_categories_history(db_path=GRAPH_STATS_DB_PATH):
         }
         for row in results
     ]
+
+
+def update_all_active_categories_with_decay(now=None, half_life_hours=None, db_path=GRAPH_STATS_DB_PATH):
+    """
+    Update all active categories with decay applied.
+    This should be called periodically by a background scheduler.
+    Categories that haven't been watched yet will get level=0.
+    Each category uses its own strength-based half-life for decay.
+    """
+    from databases.user_settings_db import get_all_settings
+    
+    now = now or datetime.utcnow()
+    now_iso = now.isoformat()
+    
+    # Get all active categories from user settings
+    all_settings = get_all_settings()
+    active_categories_with_settings = [(s['category'], s['filter_strength']) for s in all_settings if s['is_active']]
+    
+    if not active_categories_with_settings:
+        return
+    
+    active_categories = [cat for cat, _ in active_categories_with_settings]
+    
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    
+    # Get latest records for all categories
+    cursor.execute(
+        """
+        SELECT category, current_level, last_updated_time
+        FROM category_block_stats
+        WHERE category IN ({})
+        ORDER BY last_updated_time DESC, id DESC
+        """.format(','.join('?' * len(active_categories))),
+        active_categories
+    )
+    
+    latest_records = {}
+    for row in cursor.fetchall():
+        cat = row["category"]
+        if cat not in latest_records:
+            latest_records[cat] = row
+    
+    rows_to_insert = []
+    
+    # For each active category, calculate decayed level using its strength-based half-life
+    for category, filter_strength in active_categories_with_settings:
+        # Special case: If strength is "Blocked", always set to 1.0 (no decay)
+        if filter_strength == "Blocked":
+            rows_to_insert.append((category, 1.0, now_iso))
+            continue
+        
+        # Get category-specific half-life
+        cat_half_life = half_life_hours if half_life_hours is not None else get_half_life_for_strength(filter_strength)
+        
+        if category in latest_records:
+            # Category exists, apply decay with its specific half-life
+            latest = latest_records[category]
+            previous_level = float(latest["current_level"] or 0.0)
+            last_updated = _to_datetime(latest["last_updated_time"])
+            decayed_value = _apply_decay(
+                previous_level,
+                last_updated,
+                now,
+                cat_half_life,
+            )
+            rows_to_insert.append((category, _clamp_probability(decayed_value), now_iso))
+        else:
+            # Category hasn't been watched yet, initialize to 0
+            rows_to_insert.append((category, 0.0, now_iso))
+    
+    if rows_to_insert:
+        cursor.executemany(
+            """
+            INSERT INTO category_block_stats (category, current_level, last_updated_time)
+            VALUES (?, ?, ?)
+            """,
+            rows_to_insert,
+        )
+        conn.commit()
+    
+    conn.close()
+    return len(rows_to_insert)
+
+
+def update_specific_categories_with_decay(categories, now=None, half_life_hours=None, db_path=GRAPH_STATS_DB_PATH):
+    """
+    Update specific categories with decay applied.
+    This should be called when category settings are changed.
+    Only updates the specified categories, not all active categories.
+    Each category uses its own strength-based half-life for decay.
+    
+    Special behavior:
+    - If strength is "Blocked", sets level to 1.0 immediately
+    - Otherwise, applies normal decay
+    
+    Args:
+        categories: List of category names to update
+        now: Timestamp to use (defaults to current time)
+        half_life_hours: Half-life for decay calculation (if None, uses each category's filter strength)
+        db_path: Database path
+    
+    Returns:
+        Number of categories updated
+    """
+    from databases.user_settings_db import get_settings
+    
+    if not categories:
+        return 0
+    
+    now = now or datetime.utcnow()
+    now_iso = now.isoformat()
+    
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    
+    rows_to_insert = []
+    
+    # For each specified category, check if it's active and update it with its strength-based half-life
+    for category in categories:
+        # Check if category is active and get its settings
+        settings = get_settings(category)
+        if not settings or not settings.get('is_active'):
+            continue
+        
+        filter_strength = settings.get("filter_strength", "Moderate")
+        
+        # Special case: If strength is "Blocked", set level to 1.0 immediately
+        if filter_strength == "Blocked":
+            rows_to_insert.append((category, 1.0, now_iso))
+            continue
+        
+        # Get category-specific half-life based on its filter strength
+        cat_half_life = half_life_hours if half_life_hours is not None else get_half_life_for_strength(filter_strength)
+        
+        # Get latest record for this category
+        cursor.execute(
+            """
+            SELECT category, current_level, last_updated_time
+            FROM category_block_stats
+            WHERE category = ?
+            ORDER BY last_updated_time DESC, id DESC
+            LIMIT 1
+            """,
+            (category,)
+        )
+        
+        latest = cursor.fetchone()
+        
+        if latest:
+            # Category exists, apply decay with its specific half-life
+            previous_level = float(latest["current_level"] or 0.0)
+            last_updated = _to_datetime(latest["last_updated_time"])
+            decayed_value = _apply_decay(
+                previous_level,
+                last_updated,
+                now,
+                cat_half_life,
+            )
+            rows_to_insert.append((category, _clamp_probability(decayed_value), now_iso))
+        else:
+            # Category hasn't been watched yet, initialize to 0
+            rows_to_insert.append((category, 0.0, now_iso))
+    
+    if rows_to_insert:
+        cursor.executemany(
+            """
+            INSERT INTO category_block_stats (category, current_level, last_updated_time)
+            VALUES (?, ?, ?)
+            """,
+            rows_to_insert,
+        )
+        conn.commit()
+    
+    conn.close()
+    return len(rows_to_insert)
 
 
 if __name__ == "__main__":

@@ -45,50 +45,79 @@ def log_watch(video_id, start_time=None, end_time=None):
         end_ts = now
     if end_ts is None:
         end_ts = now
+    
+    # Ensure start_time is set if we have end_time but no start_time
+    if start_ts is None and end_ts is not None:
+        start_ts = end_ts
 
     cursor = conn.cursor()
 
+    # FIXED: Look for the most recent watch session for this video within a 5-second time window
+    # This handles cases where start_time might be slightly different due to timing issues
+    # We look for sessions that started within 5 seconds (before or after) of the given start_time
+    time_window = 5  # seconds
+    
     existing = cursor.execute(
         """
-        SELECT end_time
+        SELECT id, start_time, end_time
         FROM watched
-        WHERE video_id = ? AND start_time = ?
+        WHERE video_id = ?
+          AND ABS(start_time - ?) <= ?
         ORDER BY id DESC
         LIMIT 1
         """,
-        (video_id, start_ts),
+        (video_id, start_ts, time_window),
     ).fetchone()
 
-    previous_end = int(existing["end_time"]) if existing and existing["end_time"] is not None else None
-    new_end = int(end_ts if end_ts is not None else start_ts)
+    # If no match in time window, try to find the absolute most recent entry for this video
+    # that hasn't ended too long ago (within last 10 minutes)
+    if not existing:
+        existing = cursor.execute(
+            """
+            SELECT id, start_time, end_time
+            FROM watched
+            WHERE video_id = ?
+              AND end_time >= ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (video_id, now - 600),  # 10 minutes ago
+        ).fetchone()
 
-    if previous_end is None:
-        delta_seconds = 0
-    else:
+    if existing:
+        # Update existing session
+        existing_id = existing["id"]
+        existing_start = int(existing["start_time"])
+        previous_end = int(existing["end_time"]) if existing["end_time"] is not None else existing_start
+        new_end = int(end_ts if end_ts is not None else start_ts)
+        
+        # Use the original start time from the existing session
+        start_ts = existing_start
+        
+        # Calculate incremental watch time
         delta_seconds = max(0, new_end - previous_end)
 
-    with conn:
-        cursor.execute(
-            """
-            UPDATE watched
-            SET
-                start_time = COALESCE(start_time, ?),
-                end_time = CASE
-                    WHEN end_time IS NULL OR ? > end_time THEN ?
-                    ELSE end_time
-                END
-            WHERE video_id = ? AND start_time = ?
-            """,
-            (start_ts, end_ts, end_ts, video_id, start_ts),
-        )
-
-        if cursor.rowcount == 0:
+        with conn:
+            cursor.execute(
+                """
+                UPDATE watched
+                SET end_time = ?
+                WHERE id = ?
+                """,
+                (new_end, existing_id),
+            )
+    else:
+        # Create new session
+        delta_seconds = 0
+        new_end = int(end_ts if end_ts is not None else start_ts)
+        
+        with conn:
             cursor.execute(
                 """
                 INSERT INTO watched (video_id, start_time, end_time)
                 VALUES (?, ?, ?)
                 """,
-                (video_id, start_ts, end_ts),
+                (video_id, start_ts, new_end),
             )
 
     conn.close()

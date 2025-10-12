@@ -128,6 +128,10 @@ def get_category_history(category):
 def get_all_categories_history():
     return category_block_stats_db.get_all_categories_history()
 
+def update_all_active_categories_with_decay(now=None):
+    """Update all active categories with decay (called by background scheduler)."""
+    return category_block_stats_db.update_all_active_categories_with_decay(now=now)
+
 # Blocked videos functions
 def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_hours=None, metadata_json=None, blocked_at=None):
     return blocked_videos_db.log_blocked_video(video_id, duration, duration_seconds, duration_hours, metadata_json, blocked_at)
