@@ -68,10 +68,8 @@ class SharedGraph {
         maintainAspectRatio: false,
         layout: {
           padding: {
-            top: 15,
-            right: 15,
-            bottom: 25,
-            left: 15
+            top: 20,
+            bottom: 50
           }
         },
         plugins: {
@@ -85,11 +83,18 @@ class SharedGraph {
             title: {
               display: true,
               text: 'Time',
-              color: 'rgba(255, 255, 255, 0.8)'
+              color: '#F5E8D8',
+              font: {
+                family: 'Figtree',
+                size: 13
+              }
             },
             ticks: {
               color: 'rgba(255, 255, 255, 0.6)',
-              maxTicksLimit: 6
+              maxTicksLimit: 6,
+              font: {
+                family: 'Figtree'
+              }
             },
             grid: {
               color: 'rgba(255, 255, 255, 0.1)',
@@ -101,14 +106,21 @@ class SharedGraph {
             title: {
               display: true,
               text: 'Level',
-              color: 'rgba(255, 255, 255, 0.8)'
+              color: '#F5E8D8',
+              font: {
+                family: 'Figtree',
+                size: 13
+              }
             },
             ticks: {
               color: 'rgba(255, 255, 255, 0.6)',
               callback: function(value) {
                 return value.toFixed(2);
               },
-              maxTicksLimit: 5
+              maxTicksLimit: 5,
+              font: {
+                family: 'Figtree'
+              }
             },
             grid: {
               color: 'rgba(255, 255, 255, 0.1)'
