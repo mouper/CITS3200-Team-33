@@ -3,7 +3,6 @@
 from . import metadata
 from . import classifier
 from . import settings
-from . import blocked_videos
 from . import filter
 from . import categorised
 from . import stats
@@ -13,7 +12,6 @@ __all__ = [
     "metadata",
     "classifier",
     "settings",
-    "blocked_videos",
     "filter",
     "categorised",
     "stats",

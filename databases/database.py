@@ -8,7 +8,6 @@ from . import categorised_db
 from . import watched_db
 from . import user_settings_db
 from . import category_block_stats_db
-from . import blocked_videos_db
 
 
 # Mirror of probabilistic filter strengths; kept local to avoid circular deps.
@@ -26,14 +25,12 @@ def init_all():
     watched_db.init_db()
     user_settings_db.init_db()
     category_block_stats_db.init_db()
-    blocked_videos_db.init_db()
 
 def cleanup_all():
     metadata_cache_db.cleanup()
     categorised_db.cleanup()
     watched_db.cleanup()
     user_settings_db.cleanup()
-    blocked_videos_db.cleanup()
 
 def insert_metadata(video_id, metadata_json, video_length=None):
     return metadata_cache_db.insert_metadata(video_id, metadata_json, video_length)
@@ -131,31 +128,6 @@ def get_all_categories_history():
 def update_all_active_categories_with_decay(now=None):
     """Update all active categories with decay (called by background scheduler)."""
     return category_block_stats_db.update_all_active_categories_with_decay(now=now)
-
-# Blocked videos functions
-def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_hours=None, metadata_json=None, blocked_at=None):
-    return blocked_videos_db.log_blocked_video(video_id, duration, duration_seconds, duration_hours, metadata_json, blocked_at)
-
-def get_blocked_videos(limit=None):
-    return blocked_videos_db.get_blocked_videos(limit)
-
-def get_blocked_videos_stats():
-    return blocked_videos_db.get_blocked_videos_stats()
-
-def get_blocked_videos_by_date_range(start_date=None, end_date=None):
-    return blocked_videos_db.get_blocked_videos_by_date_range(start_date, end_date)
-
-def get_blocked_videos_today():
-    return blocked_videos_db.get_blocked_videos_today()
-
-def get_blocked_videos_this_week():
-    return blocked_videos_db.get_blocked_videos_this_week()
-
-def get_blocked_videos_stats_by_period():
-    return blocked_videos_db.get_blocked_videos_stats_by_period()
-
-def delete_blocked_video(video_id):
-    return blocked_videos_db.delete_blocked_video(video_id)
 
 # Category statistics functions
 def increment_total_video(category):

@@ -82,4 +82,3 @@ def category_block_history():
     records = database.get_all_block_levels()
     return jsonify({"history": records})
 
-

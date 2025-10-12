@@ -22,7 +22,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from databases import database
-from databases.blocked_videos_db import parse_duration_to_seconds
+from databases.db_utils import parse_duration_to_seconds
 
 bp = Blueprint('metadata', __name__, url_prefix='/api/metadata')
 
