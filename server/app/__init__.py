@@ -9,6 +9,7 @@ except Exception:
     def clean_title(s):  # type: ignore
         return (s or "").strip()
 
+# Module-level app so tests can `from server.app import app`
 app = Flask(__name__)
 
 # --- Error handlers (ensure JSON error bodies) ---
@@ -22,7 +23,7 @@ def handle_bad_request(err):
 def handle_unprocessable(err):
     return jsonify(error="Unprocessable Entity"), 422
 
-# --- Endpoints ---
+# --- Endpoints expected by tests ---
 
 @app.get("/health")
 def health():
@@ -59,3 +60,16 @@ def filter_endpoint():
         cleaned_title=cleaned,
         probability=probability,
     )
+
+def create_app():
+    """
+    Application factory (placeholder).
+    Keep lightweight so imports in test env don't explode.
+    Extend here later to:
+      - load_config()
+      - enable CORS
+      - register blueprints (metadata, classifier, settings, filter, categorised, watched, stats)
+      - init databases / schedulers
+    For now, return the module-level `app` used by tests.
+    """
+    return app

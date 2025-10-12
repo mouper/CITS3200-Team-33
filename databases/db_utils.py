@@ -40,3 +40,53 @@ def fetch_all(conn, query, params=()):
 def current_timestamp():
     """Get current time as Unix timestamp."""
     return int(time.time())
+
+def parse_duration_to_seconds(duration_str):
+    """Convert YouTube duration format (PT3M34S) to seconds."""
+    if not duration_str or not duration_str.startswith('PT'):
+        return None
+    
+    try:
+        # Remove PT prefix
+        duration = duration_str[2:]
+        total_seconds = 0
+        
+        # Parse hours
+        if 'H' in duration:
+            hours_part = duration.split('H')[0]
+            total_seconds += int(hours_part) * 3600
+            duration = duration.split('H')[1]
+        
+        # Parse minutes
+        if 'M' in duration:
+            minutes_part = duration.split('M')[0]
+            total_seconds += int(minutes_part) * 60
+            duration = duration.split('M')[1]
+        
+        # Parse seconds
+        if 'S' in duration:
+            seconds_part = duration.split('S')[0]
+            total_seconds += int(seconds_part)
+        
+        return total_seconds
+    except (ValueError, IndexError):
+        return None
+
+def format_duration(seconds):
+    """Format seconds into human-readable duration."""
+    if not seconds:
+        return "0s"
+    
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+    
+    parts = []
+    if hours > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0:
+        parts.append(f"{minutes}m")
+    if secs > 0 or not parts:
+        parts.append(f"{secs}s")
+    
+    return " ".join(parts)

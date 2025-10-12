@@ -21,7 +21,18 @@ def log_watch() -> Any:
     if not video_id:
         return jsonify({"error": "video_id is required"}), 400
 
-    database.log_watch(video_id, start_time=start_time, end_time=end_time)
+    result = database.log_watch(video_id, start_time=start_time, end_time=end_time)
+
+    category: str | None = None
+    category_info = database.get_category_for_video(video_id)
+    if category_info:
+        category = category_info.get("category")
+
+    if category:
+        watch_seconds = result.get("added_seconds", 0) if isinstance(result, dict) else 0
+        watch_minutes = watch_seconds / 60.0
+        if watch_minutes > 0:
+            database.update_category_block_level(category, watchtime_mins=watch_minutes)
 
     return jsonify({
         "success": True,
