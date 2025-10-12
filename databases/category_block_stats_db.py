@@ -130,36 +130,27 @@ def _persist_level(
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    categories_cursor = cursor.execute(
-        "SELECT DISTINCT category FROM category_block_stats"
+    cursor.execute(
+        """
+        SELECT id, category, current_level, last_updated_time
+        FROM category_block_stats
+        ORDER BY last_updated_time DESC, id DESC
+        """
     )
-    existing_categories = [row[0] for row in categories_cursor.fetchall()]
+    latest_records = {}
+    for row in cursor.fetchall():
+        cat = row["category"]
+        if cat not in latest_records:
+            latest_records[cat] = row
 
-    iso_now = now.isoformat()
+    now_iso = now.isoformat()
+    rows_to_insert = []
 
-    # Ensure the watched category is processed even if new
-    if category not in existing_categories:
-        existing_categories.append(category)
-
-    for cat in existing_categories:
-        cursor.execute(
-            """
-            SELECT id, current_level, last_updated_time
-            FROM category_block_stats
-            WHERE category = ?
-            ORDER BY last_updated_time DESC, id DESC
-            LIMIT 1
-            """,
-            (cat,),
-        )
-        latest = cursor.fetchone()
-
+    for cat, latest in latest_records.items():
         if cat == category:
             continue
-
         if not latest:
             continue
-
         previous_level = float(latest["current_level"] or 0.0)
         last_updated = _to_datetime(latest["last_updated_time"])
         decayed_value = _apply_decay(
@@ -168,22 +159,16 @@ def _persist_level(
             now,
             half_life_hours,
         )
+        rows_to_insert.append((cat, _clamp_probability(decayed_value), now_iso))
 
-        cursor.execute(
-            """
-            UPDATE category_block_stats
-            SET current_level = ?, last_updated_time = ?
-            WHERE id = ?
-            """,
-            (_clamp_probability(decayed_value), iso_now, latest["id"]),
-        )
+    rows_to_insert.append((category, clamped_level, now_iso))
 
-    cursor.execute(
+    cursor.executemany(
         """
         INSERT INTO category_block_stats (category, current_level, last_updated_time)
         VALUES (?, ?, ?)
         """,
-        (category, clamped_level, iso_now),
+        rows_to_insert,
     )
 
     conn.commit()

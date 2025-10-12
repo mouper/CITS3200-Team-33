@@ -59,9 +59,13 @@ def log_watch(video_id, start_time=None, end_time=None):
         (video_id, start_ts),
     ).fetchone()
 
-    previous_end = existing["end_time"] if existing and existing["end_time"] is not None else start_ts
-    new_end = end_ts if end_ts is not None else start_ts
-    delta_seconds = max(0, int(new_end) - int(previous_end))
+    previous_end = int(existing["end_time"]) if existing and existing["end_time"] is not None else None
+    new_end = int(end_ts if end_ts is not None else start_ts)
+
+    if previous_end is None:
+        delta_seconds = 0
+    else:
+        delta_seconds = max(0, new_end - previous_end)
 
     with conn:
         cursor.execute(
@@ -89,7 +93,7 @@ def log_watch(video_id, start_time=None, end_time=None):
 
     conn.close()
 
-    final_end_time = max(new_end, previous_end if previous_end is not None else start_ts)
+    final_end_time = new_end
 
     return {
         "video_id": video_id,
