@@ -154,3 +154,20 @@ def fetch_duration_from_youtube_api(video_id):
     except Exception as e:
         return 0
 
+
+def get_category_for_video(video_id, db_path=CATEGORIES_DB_PATH):
+    """Return the stored category for a given video_id, or None if missing."""
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT video_id, category FROM categorised WHERE video_id = ?",
+        (video_id,),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {
+            "video_id": row["video_id"],
+            "category": row["category"],
+        }
+    return None

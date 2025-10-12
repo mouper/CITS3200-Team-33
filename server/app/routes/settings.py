@@ -66,5 +66,13 @@ def upsert_settings(category: str) -> Any:
     if filter_strength not in {"Weak", "Moderate", "Strong", "Extra Strong", "Blocked"}:
         return jsonify({"error": "invalid filter_strength"}), 400
     database.set_user_settings(category, filter_strength, is_active)
+    
+    # Update category block stats when settings change
+    try:
+        from server.app import background
+        background.update_specific_categories([category])
+    except Exception:
+        pass  # Don't fail the settings update if category update fails
+    
     row = database.get_user_settings(category)
     return jsonify(row), 201

@@ -2,19 +2,30 @@
 database.py — Central hub to initialise and interact with all DBs.
 """
 
+from databases import category_block_stats_db
 from . import metadata_cache_db
 from . import categorised_db
 from . import watched_db
 from . import user_settings_db
-from . import graph_stats
+from . import category_block_stats_db
 from . import blocked_videos_db
+
+
+# Mirror of probabilistic filter strengths; kept local to avoid circular deps.
+STRENGTH_LEVEL_MAP = {
+    "Weak": 0.4,
+    "Moderate": 0.8,
+    "Strong": 1.2,
+    "Extra Strong": 1.6,
+    "Blocked": None,
+}
 
 def init_all():
     metadata_cache_db.init_db()
     categorised_db.init_db()
     watched_db.init_db()
     user_settings_db.init_db()
-    graph_stats.init_db()
+    category_block_stats_db.init_db()
     blocked_videos_db.init_db()
 
 def cleanup_all():
@@ -33,8 +44,26 @@ def insert_categorised(video_id, category, should_block=False, duration_hours=No
 def get_all_categorised():
     return categorised_db.get_all_categorised()
 
+def get_category_for_video(video_id):
+    return categorised_db.get_category_for_video(video_id)
+
 def log_watch(video_id, start_time=None, end_time=None):
     return watched_db.log_watch(video_id, start_time, end_time)
+
+def update_category_block_level(category, watchtime_mins=0.0, now=None):
+    settings = user_settings_db.get_settings(category)
+    if not settings or not settings.get("is_active"):
+        return None
+
+    strength_key = settings.get("filter_strength")
+    multiplier = STRENGTH_LEVEL_MAP.get(strength_key, 0.8)
+
+    return category_block_stats_db.update_current_level(
+        category=category,
+        watchtime_mins=watchtime_mins,
+        strength_multiplier=multiplier,
+        now=now,
+    )
 
 def get_metadata_by_id(video_id):
     return metadata_cache_db.get_metadata_by_id(video_id)
@@ -85,19 +114,23 @@ def get_total_blocked_sum():
     return user_settings_db.total_blocked_sum()
 
 def set_block_level(category, current_level):
-    return graph_stats.set_block_level(category, current_level)
+    return category_block_stats_db.set_block_level(category, current_level)
 
 def get_block_level(category):
-    return graph_stats.get_block_level(category)
+    return category_block_stats_db.get_block_level(category)
 
 def get_all_block_levels():
-    return graph_stats.get_all_block_levels()
+    return category_block_stats_db.get_all_block_levels()
 
 def get_category_history(category):
-    return graph_stats.get_category_history(category)
+    return category_block_stats_db.get_category_history(category)
 
 def get_all_categories_history():
-    return graph_stats.get_all_categories_history()
+    return category_block_stats_db.get_all_categories_history()
+
+def update_all_active_categories_with_decay(now=None):
+    """Update all active categories with decay (called by background scheduler)."""
+    return category_block_stats_db.update_all_active_categories_with_decay(now=now)
 
 # Blocked videos functions
 def log_blocked_video(video_id, duration=None, duration_seconds=None, duration_hours=None, metadata_json=None, blocked_at=None):

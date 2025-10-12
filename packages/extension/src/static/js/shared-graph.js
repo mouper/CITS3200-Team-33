@@ -33,6 +33,17 @@ class SharedGraph {
       this.chartInstance.destroy();
     }
 
+    // Create gradient for the line
+    const ctx = this.canvas.getContext('2d');
+    const lineGradient = ctx.createLinearGradient(0, 0, this.canvas.width, 0);
+    lineGradient.addColorStop(0, '#E8675A');    // Start color (left)
+    lineGradient.addColorStop(1, '#F5E8D8');    // End color (right)
+
+    // Create gradient for the fill area (horizontal gradient from left to right)
+    const fillGradient = ctx.createLinearGradient(0, 0, this.canvas.width, 0);
+    fillGradient.addColorStop(0, 'rgba(232, 103, 90, 0.05)');    // Left - coral with transparency
+    fillGradient.addColorStop(1, 'rgba(245, 232, 216, 0.05)');   // Right - cream with transparency
+
     this.chartInstance = new Chart(this.canvas, {
       type: 'line',
       data: {
@@ -40,15 +51,16 @@ class SharedGraph {
         datasets: [{
           label: 'Level',
           data: [],
-          borderColor: 'rgba(232, 103, 90, 0.8)',
-          backgroundColor: 'rgba(232, 103, 90, 0.1)',
+          borderColor: lineGradient,
+          backgroundColor: fillGradient,
           borderWidth: 3,
           fill: true,
           tension: 0.4,
-          pointBackgroundColor: 'rgba(232, 103, 90, 1)',
-          pointBorderColor: 'rgba(232, 103, 90, 1)',
-          pointRadius: 4,
-          pointHoverRadius: 6
+          pointRadius: 0,              // Hide dots for smooth line
+          pointHoverRadius: 0,         // Keep dots hidden on hover
+          pointHitRadius: 15,          // Large invisible hit detection area (15px radius)
+          pointBackgroundColor: 'rgba(232, 103, 90, 0)',
+          pointBorderColor: 'rgba(232, 103, 90, 0)'
         }]
       },
       options: {
@@ -113,11 +125,6 @@ class SharedGraph {
             grid: {
               color: 'rgba(255, 255, 255, 0.1)'
             }
-          }
-        },
-        elements: {
-          point: {
-            hoverBackgroundColor: 'rgba(232, 103, 90, 1)'
           }
         }
       }
@@ -227,7 +234,10 @@ class SharedGraph {
           dateStr = `${datePart} ${timeWithoutMicroseconds}`;
         }
         
-        const date = new Date(dateStr);
+        // TIMEZONE FIX: Database stores UTC timestamps, so explicitly parse as UTC
+        // Add 'Z' suffix to indicate UTC, or use 'T' separator for ISO format
+        let utcDateStr = dateStr.replace(' ', 'T') + 'Z';
+        const date = new Date(utcDateStr);
         
         // Check if date is valid
         if (isNaN(date.getTime())) {
@@ -251,12 +261,14 @@ class SharedGraph {
           }
         } else {
           // Show time only for both dashboard (24h) and popup (4h)
+          // TIMEZONE FIX: date.getHours() and date.getMinutes() automatically convert
+          // from UTC to local timezone when the date was parsed with 'Z' suffix
           if (this.hoursFilter && this.hoursFilter <= 4) {
-            // Popup: show only time
+            // Popup: show only time (in local timezone)
             const timeLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
             labels.push(timeLabel);
           } else {
-            // Dashboard: show only time
+            // Dashboard: show only time (in local timezone)
             const timeLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
             labels.push(timeLabel);
           }
@@ -301,13 +313,16 @@ class SharedGraph {
   }
 
   cleanDateString(dateStr) {
-    // Remove microseconds from datetime string for proper Date parsing
+    // Remove microseconds from datetime string and convert to UTC format for proper Date parsing
+    let cleanStr = dateStr;
     if (dateStr.includes('.') && dateStr.split(' ').length === 2) {
       const [datePart, timePart] = dateStr.split(' ');
       const timeWithoutMicroseconds = timePart.split('.')[0];
-      return `${datePart} ${timeWithoutMicroseconds}`;
+      cleanStr = `${datePart} ${timeWithoutMicroseconds}`;
     }
-    return dateStr;
+    // TIMEZONE FIX: Convert to UTC ISO format (YYYY-MM-DDTHH:MM:SSZ)
+    // This ensures JavaScript treats it as UTC time
+    return cleanStr.replace(' ', 'T') + 'Z';
   }
 
   parseTime(timeStr) {
@@ -322,14 +337,16 @@ class SharedGraph {
         dateStr = `${datePart} ${timeWithoutMicroseconds}`;
       }
       
-      const date = new Date(dateStr);
+      // TIMEZONE FIX: Parse as UTC timestamp
+      let utcDateStr = dateStr.replace(' ', 'T') + 'Z';
+      const date = new Date(utcDateStr);
       if (isNaN(date.getTime())) {
         // Fallback: parse manually from "YYYY-MM-DD HH:MM:SS.microseconds" format
         const [datePart, timePart] = timeStr.split(' ');
         if (timePart) {
           // Remove microseconds if present (e.g., "18:16:09.584677" -> "18:16:09")
           const timeWithoutMicroseconds = timePart.split('.')[0];
-          const fallbackDateStr = `${datePart} ${timeWithoutMicroseconds}`;
+          const fallbackDateStr = `${datePart}T${timeWithoutMicroseconds}Z`;
           const fallbackDate = new Date(fallbackDateStr);
           return fallbackDate.getTime(); // Return full timestamp
         }
