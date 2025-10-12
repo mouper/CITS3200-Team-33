@@ -46,15 +46,10 @@ def create_app() -> Flask:
     # Start the cleanup/background scheduler
     main.start_scheduler(3600)
 
-    # Security middleware and blueprint registration will be added later
-    # from .security import require_local_token
-    # require_local_token(app)
-
     from .routes import stats
     from .routes import classifier
     from .routes import settings
     from .routes import metadata
-    from .routes import blocked_videos
     from .routes import filter
     from .routes import categorised
     from .routes import watched
@@ -62,7 +57,6 @@ def create_app() -> Flask:
     app.register_blueprint(metadata.bp)
     app.register_blueprint(classifier.bp)
     app.register_blueprint(settings.bp)
-    app.register_blueprint(blocked_videos.bp)
     app.register_blueprint(filter.bp)
     app.register_blueprint(categorised.bp)
     app.register_blueprint(watched.bp)
