@@ -57,7 +57,7 @@ def insert_categorised(video_id, category, should_block=False, duration_hours=No
             hours = duration_seconds / 3600.0
         # Priority 3: Parse provided duration string
         elif duration:
-            from .blocked_videos_db import parse_duration_to_seconds
+            from .db_utils import parse_duration_to_seconds
             seconds = parse_duration_to_seconds(duration)
             hours = seconds / 3600.0 if seconds else 0
         # Priority 4: Parse from provided metadata_json
@@ -82,7 +82,7 @@ def insert_categorised(video_id, category, should_block=False, duration_hours=No
                     duration_value = metadata['contentDetails']['duration']
                 
                 if duration_value:
-                    from .blocked_videos_db import parse_duration_to_seconds
+                    from .db_utils import parse_duration_to_seconds
                     seconds = parse_duration_to_seconds(duration_value)
                     hours = seconds / 3600.0 if seconds else 0
                     
@@ -138,7 +138,7 @@ def fetch_duration_from_youtube_api(video_id):
             duration_str = data['items'][0]['contentDetails']['duration']
             
             # Parse ISO 8601 duration (e.g., "PT10M30S")
-            from .blocked_videos_db import parse_duration_to_seconds
+            from .db_utils import parse_duration_to_seconds
             seconds = parse_duration_to_seconds(duration_str)
             
             if seconds:
