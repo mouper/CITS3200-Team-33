@@ -97,60 +97,57 @@ function renderStatus(enabled) {
   });
 })();
 
-// Graph + category display (placeholder chart)
+// Graph + category display (using shared graph module)
 (async function initGraph() {
   try {
     const pill = document.getElementById('category-pill');
-    const canvas = document.getElementById('popupChart');
-    if (!canvas || !pill) return;
+    if (!pill) return;
 
-    // Read category selected in dashboard (if any). Fallback to 'All'
+    // Read category selected in dashboard (if any). Fallback to 'Comedy' for demo
     const { selectedCategory } = await new Promise(resolve => chrome.storage?.local?.get(['selectedCategory'], resolve));
-    pill.textContent = selectedCategory || 'All';
+    const defaultCategory = selectedCategory || 'Comedy';
+    console.log("🔍 Popup category selection:", { selectedCategory, defaultCategory });
+    pill.textContent = defaultCategory;
 
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
+    // Initialize shared graph
+    let sharedGraph = null;
 
-    // Clear
-    ctx.clearRect(0, 0, w, h);
+    async function initializeGraph() {
+      if (typeof SharedGraph === 'undefined') {
+        console.log("SharedGraph not ready, retrying in 100ms...");
+        setTimeout(initializeGraph, 100);
+        return;
+      }
 
-    // Axes grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.lineWidth = 1;
-    for (let i = 1; i < 5; i++) {
-      const y = (h / 5) * i;
-      ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(w - 10, y); ctx.stroke();
+      sharedGraph = new SharedGraph('popupChart', 'category-pill', 4);
+      await sharedGraph.initialize();
+      await sharedGraph.updateChart(defaultCategory);
+      
+      console.log("✅ Popup graph initialized with shared module");
     }
 
-    // Placeholder data (smooth-ish)
-    const points = [
-      [40, 120],[80,60],[120,90],[160,50],[200,120],[240,30],[280,110],[320,90],[360,100],[400,80],[440,30],[480,100],[520,150]
-    ];
-
-    // Gradient stroke similar to accent
-    const grad = ctx.createLinearGradient(0, 0, w, 0);
-    grad.addColorStop(0, 'rgba(232,103,90,0.8)');
-    grad.addColorStop(1, 'rgba(255,255,255,0.9)');
-
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = grad;
-    ctx.beginPath();
-    for (let i = 0; i < points.length; i++) {
-      const [x, y] = points[i];
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    // Wait for DOM to be fully loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeGraph);
+    } else {
+      initializeGraph();
     }
-    ctx.stroke();
 
-    // Soft fill under curve
-    const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
-    fillGrad.addColorStop(0, 'rgba(232,103,90,0.12)');
-    fillGrad.addColorStop(1, 'rgba(232,103,90,0.02)');
-    ctx.fillStyle = fillGrad;
-    ctx.lineTo(points[points.length - 1][0], h - 10);
-    ctx.lineTo(points[0][0], h - 10);
-    ctx.closePath();
-    ctx.fill();
-  } catch (_) { /* no-op for placeholder */ }
+    // Listen for changes in selected category from dashboard
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'local' && changes.selectedCategory) {
+        console.log("🔄 Category changed in dashboard, updating popup:", changes.selectedCategory.newValue);
+        const newCategory = changes.selectedCategory.newValue || 'Comedy';
+        pill.textContent = newCategory;
+        if (sharedGraph) {
+          sharedGraph.updateChart(newCategory);
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("Error initializing popup graph:", error);
+  }
 })();
 
 
