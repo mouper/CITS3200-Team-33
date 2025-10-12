@@ -10,6 +10,16 @@ from . import user_settings_db
 from . import category_block_stats_db
 from . import blocked_videos_db
 
+
+# Mirror of probabilistic filter strengths; kept local to avoid circular deps.
+STRENGTH_LEVEL_MAP = {
+    "Weak": 0.4,
+    "Moderate": 0.8,
+    "Strong": 1.2,
+    "Extra Strong": 1.6,
+    "Blocked": None,
+}
+
 def init_all():
     metadata_cache_db.init_db()
     categorised_db.init_db()
@@ -34,8 +44,26 @@ def insert_categorised(video_id, category, should_block=False, duration_hours=No
 def get_all_categorised():
     return categorised_db.get_all_categorised()
 
+def get_category_for_video(video_id):
+    return categorised_db.get_category_for_video(video_id)
+
 def log_watch(video_id, start_time=None, end_time=None):
     return watched_db.log_watch(video_id, start_time, end_time)
+
+def update_category_block_level(category, watchtime_mins=0.0, now=None):
+    settings = user_settings_db.get_settings(category)
+    if not settings or not settings.get("is_active"):
+        return None
+
+    strength_key = settings.get("filter_strength")
+    multiplier = STRENGTH_LEVEL_MAP.get(strength_key, 0.8)
+
+    return category_block_stats_db.update_current_level(
+        category=category,
+        watchtime_mins=watchtime_mins,
+        strength_multiplier=multiplier,
+        now=now,
+    )
 
 def get_metadata_by_id(video_id):
     return metadata_cache_db.get_metadata_by_id(video_id)

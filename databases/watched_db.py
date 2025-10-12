@@ -47,6 +47,22 @@ def log_watch(video_id, start_time=None, end_time=None):
         end_ts = now
 
     cursor = conn.cursor()
+
+    existing = cursor.execute(
+        """
+        SELECT end_time
+        FROM watched
+        WHERE video_id = ? AND start_time = ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (video_id, start_ts),
+    ).fetchone()
+
+    previous_end = existing["end_time"] if existing and existing["end_time"] is not None else start_ts
+    new_end = end_ts if end_ts is not None else start_ts
+    delta_seconds = max(0, int(new_end) - int(previous_end))
+
     with conn:
         cursor.execute(
             """
@@ -72,6 +88,15 @@ def log_watch(video_id, start_time=None, end_time=None):
             )
 
     conn.close()
+
+    final_end_time = max(new_end, previous_end if previous_end is not None else start_ts)
+
+    return {
+        "video_id": video_id,
+        "start_time": start_ts,
+        "end_time": final_end_time,
+        "added_seconds": delta_seconds,
+    }
 
 def get_durations():
     """Return list of (video_id, duration_seconds) for all watch events."""

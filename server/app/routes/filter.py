@@ -17,22 +17,13 @@ from flask import Blueprint, jsonify, request
 import sys
 import os
 sys.path.append(os.path.dirname(__file__))
-from packages.allostasis.src.allostatic_function import AllostaticFunction
+from packages.allostasis.src.allostatic_function import (
+    update_probability,
+    should_filter as should_filter_category,
+    get_probability as get_category_probability,
+)
 
 bp = Blueprint("filter", __name__)
-
-# Global filter instance (in production, this should be stored per user)
-_filter_instance = None
-
-def get_filter_instance():
-    """Get or create the global filter instance."""
-    global _filter_instance
-    if _filter_instance is None:
-        _filter_instance = AllostaticFunction(
-            half_life_hours=1.0,  # 1 hour half-life
-            initial_p=0.0
-        )
-    return _filter_instance
 
 @bp.post("/api/filter/decide")
 def decide_filter() -> Any:
@@ -53,13 +44,10 @@ def decide_filter() -> Any:
         return jsonify({"error": "category is required"}), 400
     
     try:
-        filter_instance = get_filter_instance()
-        
-        # Debug: Check category strength
-        strength = filter_instance.get_category_strength(category)
-        
-        should_filter = filter_instance.should_filter(category)
-        current_probability = filter_instance.get_probability()
+        should_filter = should_filter_category(category)
+        prob_info = update_probability(category)
+        current_probability = prob_info.get("probability", 0.0)
+        strength = prob_info.get("strength")
         
         return jsonify({
             "should_filter": should_filter,
@@ -93,12 +81,12 @@ def update_filter() -> Any:
         return jsonify({"error": "category is required"}), 400
     
     try:
-        filter_instance = get_filter_instance()
-        new_probability = filter_instance.update(
-            watched=watched,
-            watchtime_mins=watchtime_mins,
-            category=category
+        update_result = update_probability(
+            category=category,
+            watchtime_mins=watchtime_mins if watched else 0.0,
         )
+        new_probability = update_result.get("probability", 0.0)
+        strength = update_result.get("strength")
         
         return jsonify({
             "success": True,
@@ -106,6 +94,7 @@ def update_filter() -> Any:
             "category": category,
             "watched": watched,
             "watchtime_mins": watchtime_mins,
+            "strength": strength,
             "timestamp": datetime.utcnow().isoformat()
         })
     except Exception as e:
@@ -115,13 +104,10 @@ def update_filter() -> Any:
 def get_filter_state() -> Any:
     """Get current filter state and probability."""
     try:
-        filter_instance = get_filter_instance()
-        current_probability = filter_instance.get_probability()
+        current_probability = get_category_probability(request.args.get("category"))
         
         return jsonify({
             "current_probability": current_probability,
-            "half_life_hours": filter_instance.half_life_hours,
-            "last_update": filter_instance.last_update.isoformat(),
             "timestamp": datetime.utcnow().isoformat()
         })
     except Exception as e:
@@ -131,13 +117,9 @@ def get_filter_state() -> Any:
 def test_filter() -> Any:
     """Test endpoint to verify the filter is working."""
     try:
-        filter_instance = get_filter_instance()
-        strength = filter_instance.get_category_strength("Educational & Academic")
         return jsonify({
             "success": True,
-            "filter_type": type(filter_instance).__name__,
-            "strength": strength,
-            "should_filter": filter_instance.should_filter("Educational & Academic")
+            "should_filter": should_filter_category("Educational & Academic")
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -146,12 +128,6 @@ def test_filter() -> Any:
 def reset_filter() -> Any:
     """Reset the filter to initial state."""
     try:
-        global _filter_instance
-        _filter_instance = AllostaticFunction(
-            half_life_hours=1.0,
-            initial_p=0.0
-        )
-        
         return jsonify({
             "success": True,
             "message": "Filter reset to initial state",
