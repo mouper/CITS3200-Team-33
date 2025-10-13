@@ -108,32 +108,6 @@ function setSliderFill(sliderEl) {
   sliderEl.style.setProperty("--fill", pct + "%");
 }
 
-// Helper to notify content scripts that category settings have changed
-// Debounced to prevent excessive calls when user adjusts multiple settings
-let notifyTimeout = null;
-function notifySettingsChanged() {
-  // Clear any pending notification
-  if (notifyTimeout) {
-    clearTimeout(notifyTimeout);
-  }
-  
-  // Debounce: only notify after user stops making changes for 500ms
-  notifyTimeout = setTimeout(() => {
-    chrome.tabs.query({ url: '*://*.youtube.com/*' }, (tabs) => {
-      tabs.forEach((tab) => {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'settingsChanged'
-        }, () => {
-          // Ignore errors for tabs that don't have the content script
-          if (chrome.runtime.lastError) {
-            // Silent ignore
-          }
-        });
-      });
-    });
-  }, 500); // Wait 500ms after last change before notifying
-}
-
 // Helpers to wire behaviors for a settings card by category key
 function wireCardBehaviorsByCategory(category) {
   const esc = CSS.escape(category);
@@ -155,8 +129,6 @@ function wireCardBehaviorsByCategory(category) {
         method: "POST",
         body: { filter_strength: currentStrength, is_active: toggle.checked },
       });
-      // Notify content scripts to clear caches and re-evaluate videos
-      notifySettingsChanged();
     });
   }
 
@@ -229,37 +201,31 @@ function wireCardBehaviorsByCategory(category) {
       method: "POST",
       body: { filter_strength: strength, is_active: isActive },
     });
-    // Notify content scripts to clear caches and re-evaluate videos
-    notifySettingsChanged();
   });
-  yesRadio.addEventListener("change", async () => {
+  yesRadio.addEventListener("change", () => {
     if (yesRadio.checked) {
       slider.value = "4";
       label.textContent = "Blocked";
       applyState(4, true);
       // Persist Blocked when blocking all
-      await api(`/api/settings/${encodeURIComponent(category)}`, {
+      api(`/api/settings/${encodeURIComponent(category)}`, {
         method: "POST",
         body: { filter_strength: "Blocked", is_active: true },
       });
-      // Notify content scripts to clear caches and re-evaluate videos
-      notifySettingsChanged();
     }
   });
-  noRadio.addEventListener("change", async () => {
+  noRadio.addEventListener("change", () => {
     if (noRadio.checked) {
       if (parseInt(slider.value, 10) === 4) slider.value = "3";
       applyState(parseInt(slider.value, 10), false);
       // Persist current strength when unblocking all
-      await api(`/api/settings/${encodeURIComponent(category)}`, {
+      api(`/api/settings/${encodeURIComponent(category)}`, {
         method: "POST",
         body: {
           filter_strength: getStrengthLabelByCategory(category),
           is_active: true,
         },
       });
-      // Notify content scripts to clear caches and re-evaluate videos
-      notifySettingsChanged();
     }
   });
 }
