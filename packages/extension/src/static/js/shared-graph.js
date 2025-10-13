@@ -103,6 +103,8 @@ class SharedGraph {
           },
           y: {
             display: true,
+            min: 0,
+            max: 1,
             title: {
               display: true,
               text: 'Level',
@@ -114,10 +116,12 @@ class SharedGraph {
             },
             ticks: {
               color: 'rgba(255, 255, 255, 0.6)',
+              stepSize: 0.25,  // Force ticks at 0.00, 0.25, 0.50, 0.75, 1.00
               callback: function(value) {
+                // This formats each tick label to show 2 decimal places
+                // e.g., converts 0.5 to "0.50" for consistent display
                 return value.toFixed(2);
               },
-              maxTicksLimit: 5,
               font: {
                 family: 'Figtree'
               }
