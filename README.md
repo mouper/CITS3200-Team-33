@@ -94,7 +94,7 @@ When the server starts for the first time, it automatically initializes all data
 
 Make sure you have a Python virtual environment activated and all dependencies installed:
 
-```sh
+```
 pip install -r server/requirements.txt
 ```
 
@@ -102,7 +102,7 @@ pip install -r server/requirements.txt
 
 From the project root, run:
 
-```sh
+```
 pytest -v
 ```
 
@@ -112,13 +112,13 @@ This will automatically discover and run all unit, integration, and end-to-end t
 
 To run a single test file, use:
 
-```sh
+```
 pytest tests/test_categorised_db.py
 ```
 
 Or for a package test:
 
-```sh
+```
 pytest packages/llm_client/tests/test_metadata_triage.py
 ```
 
