@@ -12,7 +12,7 @@ import sys
 import os
 from unittest.mock import patch, MagicMock
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'packages', 'llm_client', 'src'))
 
 # Mock the databases module since it's not in the test environment
 sys.modules['databases'] = MagicMock()

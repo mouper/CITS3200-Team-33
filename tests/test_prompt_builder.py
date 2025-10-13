@@ -6,7 +6,7 @@ Tests prompt assembly, system messages, allowed labels, and user payload formatt
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'packages', 'llm_client', 'src'))
 
 from prompt_builder import (
     build_system_message,
