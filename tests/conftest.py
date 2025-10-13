@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from databases import categorised_db, user_settings_db, metadata_cache_db, watched_db, graph_stats
+from databases import categorised_db, user_settings_db, metadata_cache_db, watched_db, category_block_stats_db
 
 # -----------------------------
 # In-memory DB fixture factory
@@ -95,7 +95,7 @@ def watched_db_fixture(temp_db_file, monkeypatch):
 # -----------------------------
 @pytest.fixture
 def graph_stats_fixture(temp_db_file, monkeypatch):
-    monkeypatch.setattr(graph_stats, "USER_SETTINGS_DB_PATH", temp_db_file, raising=False)
+    monkeypatch.setattr(category_block_stats_db, "USER_SETTINGS_DB_PATH", temp_db_file, raising=False)
     conn = sqlite3.connect(temp_db_file)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS user_filter_settings (
@@ -107,4 +107,4 @@ def graph_stats_fixture(temp_db_file, monkeypatch):
     """)
     conn.commit()
     conn.close()
-    return graph_stats
+    return category_block_stats_db
