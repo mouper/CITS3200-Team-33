@@ -2,6 +2,7 @@ import sqlite3
 import json
 import time
 from databases.db_utils import connect_db, execute_query, fetch_all
+import pytest
 
 METADATA_CACHE_DB_PATH = "metadata_cache.db"  # your default path
 
@@ -55,4 +56,28 @@ def cleanup(expire_seconds: int = 86400, db_path=METADATA_CACHE_DB_PATH):
     cutoff = int(time.time()) - expire_seconds
     conn = connect_db(db_path)
     execute_query(conn, "DELETE FROM metadata_cache WHERE time_cached < ?", (cutoff,))
+
+def test_insert_and_get_metadata(metadata_cache_db_fixture):
+    db = metadata_cache_db_fixture
+    db.init_db()
+    metadata_json = json.dumps({"title": "Video 1"})
+    db.insert_metadata("vid1", metadata_json, video_length=120)
+    meta = db.get_metadata_by_id("vid1")
+    assert meta is not None and "Video 1" in str(meta)
+
+def test_get_fresh_metadata(metadata_cache_db_fixture):
+    db = metadata_cache_db_fixture
+    db.init_db()
+    db.insert_metadata("vid2", json.dumps({"title": "Fresh"}), video_length=10)
+    fresh = db.get_fresh_metadata()
+    assert "vid2" in str(fresh)
+
+def test_cleanup(metadata_cache_db_fixture):
+    db = metadata_cache_db_fixture
+    db.init_db()
+    metadata_json = json.dumps({"title": "Old"})
+    db.insert_metadata("old_vid", metadata_json, video_length=5)
+    db.cleanup()
+    meta = db.get_metadata_by_id("old_vid")
+    assert meta is None or "old_vid" not in str(meta)
 

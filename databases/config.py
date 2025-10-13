@@ -11,7 +11,7 @@ METADATA_DB_PATH    = os.path.join(PROJECT_ROOT, "databases/metadata_cache.db")
 CATEGORIES_DB_PATH  = os.path.join(PROJECT_ROOT, "databases/categorised.db")
 WATCHED_DB_PATH     = os.path.join(PROJECT_ROOT, "databases/watched.db")
 USER_SETTINGS_DB_PATH = os.path.join(PROJECT_ROOT, "databases/user_settings.db")
-GRAPH_STATS_DB_PATH = os.path.join(PROJECT_ROOT, "databases/category_block_stats.db")
+CATEGORY_BLOCK_STATS_DB_PATH = os.path.join(PROJECT_ROOT, "databases/category_block_stats.db")
 
 # Retention periods (in seconds)
 METADATA_TTL   = 6 * 60 * 60         # 6 hours

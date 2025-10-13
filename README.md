@@ -299,3 +299,53 @@ When the server starts for the first time, it automatically initializes all data
 3. Visit `https://www.youtube.com`
 4. Wait for the initial categoriser loading screen to end
 5. Enjoy your customised YouTube video feed!
+
+---
+
+# Testing Instructions
+
+## 1. Install Test Dependencies
+
+Make sure you have a Python virtual environment activated and all dependencies installed:
+
+```sh
+pip install -r server/requirements.txt
+```
+
+## 2. Run All Tests
+
+From the project root, run:
+
+```sh
+pytest -v
+```
+
+This will automatically discover and run all unit, integration, and end-to-end tests in the `tests/` folder and package subfolders.
+
+## 3. Run Specific Test Files
+
+To run a single test file, use:
+
+```sh
+pytest tests/test_categorised_db.py
+```
+
+Or for a package test:
+
+```sh
+pytest packages/llm_client/tests/test_metadata_triage.py
+```
+
+## 4. Troubleshooting
+
+- If you see `ModuleNotFoundError: No module named 'databases'`, ensure your project root is on `PYTHONPATH` or run tests from the root directory.
+- If you get database lock errors, make sure tests are not running in parallel unless designed for it.
+- For flaky tests, rerun with `pytest --maxfail=1 -v` to see detailed output.
+
+## 5. Test Structure
+
+- All tests are in the `tests/` folder and package-specific `tests/` subfolders.
+- Fixtures and test helpers are defined in `tests/conftest.py`.
+- Each test file targets a specific module or feature.
+
+---
