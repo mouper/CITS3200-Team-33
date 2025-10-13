@@ -2,7 +2,7 @@ from datetime import datetime
 import math
 
 from .db_utils import connect_db
-from .config import GRAPH_STATS_DB_PATH
+from .config import CATEGORY_BLOCK_STATS_DB_PATH
 
 
 DEFAULT_HALF_LIFE_HOURS = 1.0
@@ -64,7 +64,7 @@ def _apply_decay(level: float, last_updated, now: datetime, half_life_hours: flo
     return _clamp_probability(decayed)
 
 
-def compute_decayed_level(category, now=None, half_life_hours=None, db_path=GRAPH_STATS_DB_PATH):
+def compute_decayed_level(category, now=None, half_life_hours=None, db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     """
     Compute decayed level for a category.
     If half_life_hours is not provided, uses the category's filter strength to determine it.
@@ -100,7 +100,7 @@ def compute_decayed_level(category, now=None, half_life_hours=None, db_path=GRAP
     }
 
 
-def get_decayed_block_level(category, now=None, half_life_hours=None, db_path=GRAPH_STATS_DB_PATH):
+def get_decayed_block_level(category, now=None, half_life_hours=None, db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     """
     Get decayed block level for a category.
     If half_life_hours is not provided, uses the category's filter strength to determine it.
@@ -123,7 +123,7 @@ def update_current_level(
     now=None,
     half_life_hours=None,
     update_all_categories=False,
-    db_path=GRAPH_STATS_DB_PATH,
+    db_path=CATEGORY_BLOCK_STATS_DB_PATH,
 ):
     """
     Update the blocking level for a specific category based on watch time.
@@ -179,7 +179,7 @@ def _persist_level(
     *,
     half_life_hours: float = None,
     update_all_categories: bool = False,
-    db_path=GRAPH_STATS_DB_PATH,
+    db_path=CATEGORY_BLOCK_STATS_DB_PATH,
 ):
     """
     Persist a category's blocking level.
@@ -294,7 +294,7 @@ def _persist_level(
     }
 
 
-def init_db(db_path=GRAPH_STATS_DB_PATH):
+def init_db(db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     conn = connect_db(db_path)
     conn.execute(
         """
@@ -313,7 +313,7 @@ def init_db(db_path=GRAPH_STATS_DB_PATH):
     conn.close()
 
 
-def set_block_level(category, current_level, db_path=GRAPH_STATS_DB_PATH):
+def set_block_level(category, current_level, db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     _persist_level(
         category,
         current_level,
@@ -323,7 +323,7 @@ def set_block_level(category, current_level, db_path=GRAPH_STATS_DB_PATH):
     )
 
 
-def get_block_level(category, db_path=GRAPH_STATS_DB_PATH):
+def get_block_level(category, db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute(
@@ -347,7 +347,7 @@ def get_block_level(category, db_path=GRAPH_STATS_DB_PATH):
     return None
 
 
-def get_all_block_levels(db_path=GRAPH_STATS_DB_PATH):
+def get_all_block_levels(db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute(
@@ -370,7 +370,7 @@ def get_all_block_levels(db_path=GRAPH_STATS_DB_PATH):
         )
     return normalised
 
-def get_category_history(category, db_path=GRAPH_STATS_DB_PATH):
+def get_category_history(category, db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     """Get all level data for a specific category from category_block_stats table."""
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -392,7 +392,7 @@ def get_category_history(category, db_path=GRAPH_STATS_DB_PATH):
         for row in results
     ]
 
-def get_all_categories_history(db_path=GRAPH_STATS_DB_PATH):
+def get_all_categories_history(db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     """Get current level data for all categories from category_block_stats table."""
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -413,7 +413,7 @@ def get_all_categories_history(db_path=GRAPH_STATS_DB_PATH):
     ]
 
 
-def update_all_active_categories_with_decay(now=None, half_life_hours=None, db_path=GRAPH_STATS_DB_PATH):
+def update_all_active_categories_with_decay(now=None, half_life_hours=None, db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     """
     Update all active categories with decay applied.
     This should be called periodically by a background scheduler.
@@ -496,7 +496,7 @@ def update_all_active_categories_with_decay(now=None, half_life_hours=None, db_p
     return len(rows_to_insert)
 
 
-def update_specific_categories_with_decay(categories, now=None, half_life_hours=None, db_path=GRAPH_STATS_DB_PATH):
+def update_specific_categories_with_decay(categories, now=None, half_life_hours=None, db_path=CATEGORY_BLOCK_STATS_DB_PATH):
     """
     Update specific categories with decay applied.
     This should be called when category settings are changed.

@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime
 from databases.db_utils import execute_query, connect_db
+import pytest
 
 USER_SETTINGS_DB_PATH = "user_settings.db"
 
@@ -85,3 +86,36 @@ def get_top_categories_by_hours(limit=5, db_path=USER_SETTINGS_DB_PATH):
     results = cursor.fetchall()
     conn.close()
     return results
+
+# -----------------------------
+# Tests
+# -----------------------------
+def test_init_db_creates_table(user_settings_db_fixture):
+    db = user_settings_db_fixture
+    db.init_db()
+    # Should not raise
+
+def test_increment_total_video(user_settings_db_fixture):
+    db = user_settings_db_fixture
+    db.init_db()
+    db.increment_total_video("Movies")
+    conn = db.connect_db()
+    row = conn.execute("SELECT total_video FROM user_filter_settings WHERE category = ?", ("Movies",)).fetchone()
+    assert row[0] == 1
+    conn.close()
+
+def test_increment_blocked_stats(user_settings_db_fixture):
+    db = user_settings_db_fixture
+    db.init_db()
+    db.increment_blocked_stats("Music", 2)
+    conn = db.connect_db()
+    row = conn.execute("SELECT total_blocked_time FROM user_filter_settings WHERE category = ?", ("Music",)).fetchone()
+    assert row[0] == 2
+    conn.close()
+
+def test_get_top_categories_by_hours(user_settings_db_fixture):
+    db = user_settings_db_fixture
+    db.init_db()
+    db.increment_blocked_stats("Sports", 5)
+    top = db.get_top_categories_by_hours(1)
+    assert "Sports" in str(top)
