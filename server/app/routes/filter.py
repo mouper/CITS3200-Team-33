@@ -14,14 +14,11 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 # Import the probabilistic filter
-import sys
-import os
-sys.path.append(os.path.dirname(__file__))
-from packages.allostasis.src.allostatic_function import (
-    update_probability,
-    should_filter as should_filter_category,
-    get_probability as get_category_probability,
-)
+import packages.allostasis.src as allostasis
+
+update_probability = allostasis.update_probability
+should_filter_category = allostasis.should_filter
+get_category_probability = allostasis.get_probability
 
 bp = Blueprint("filter", __name__)
 

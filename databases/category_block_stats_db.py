@@ -159,7 +159,8 @@ def _persist_level(
             now,
             half_life_hours,
         )
-        rows_to_insert.append((cat, _clamp_probability(decayed_value), now_iso))
+        safe_value = _clamp_probability(min(previous_level, decayed_value))
+        rows_to_insert.append((cat, safe_value, now_iso))
 
     rows_to_insert.append((category, clamped_level, now_iso))
 

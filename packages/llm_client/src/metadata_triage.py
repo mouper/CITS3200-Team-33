@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-MODEL_ID = "gpt-5-nano"
+MODEL_ID = "gpt-4.1-nano"
 PROMPT_VERSION = "v1"
 
 _THIS_DIR = Path(__file__).resolve().parent
