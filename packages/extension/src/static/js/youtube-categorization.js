@@ -425,7 +425,8 @@ class YouTubeCategorizationManager {
 
       // Clear local state
       this.restartScraping();
-
+      this._loggedBlockedVideos.clear();
+      
       // Immediately apply any existing category overlays to new page
       setTimeout(() => {
         this.debugLog("[YouTube Categorization] Applying overlays after navigation");
