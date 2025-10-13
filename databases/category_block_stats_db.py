@@ -200,6 +200,36 @@ def _persist_level(
 
     now_iso = now.isoformat()
     rows_to_insert = []
+    
+    # ANTI-DUPLICATE CHECK: Prevent ANY category update if ANY row was added less than 1 second ago
+    # This prevents race conditions and duplicate API calls from causing spurious updates
+    # Exception: Allow scheduler updates (update_all_categories=True) to proceed
+    if not update_all_categories:
+        # Check the most recent update across ALL categories, not just this one
+        cursor.execute(
+            """
+            SELECT category, last_updated_time
+            FROM category_block_stats
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+        )
+        last_update_row = cursor.fetchone()
+        if last_update_row:
+            last_update_time = _to_datetime(last_update_row["last_updated_time"])
+            last_category = last_update_row["category"]
+            if last_update_time:
+                time_diff = (now - last_update_time).total_seconds()
+                # Skip update if less than 1 second has passed since ANY category was updated
+                if time_diff < 1.0:
+                    conn.close()
+                    return {
+                        "category": category,
+                        "current_level": clamped_level,
+                        "last_updated_time": last_update_time,
+                        "skipped": True,
+                        "reason": f"Blocked: {last_category} was updated {time_diff:.3f}s ago",
+                    }
 
     if update_all_categories:
         from databases.user_settings_db import get_settings
