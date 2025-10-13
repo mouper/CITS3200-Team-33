@@ -582,6 +582,9 @@ class YouTubeCategorizationManager {
   }
 
   setupMessageListener() {
+    // Debounce settings changes to prevent rapid successive calls
+    let settingsChangeTimeout = null;
+    
     chrome.runtime.onMessage.addListener(
       async (request, sender, sendResponse) => {
         if (request.action === "startScraping") {
@@ -601,6 +604,24 @@ class YouTubeCategorizationManager {
           });
         } else if (request.action === "categorizationComplete") {
           this.handleCategorizationComplete(request.categories);
+          sendResponse({ success: true });
+        } else if (request.action === "settingsChanged") {
+          // Category settings changed - debounce to prevent rapid successive calls
+          if (settingsChangeTimeout) {
+            clearTimeout(settingsChangeTimeout);
+          }
+          
+          settingsChangeTimeout = setTimeout(() => {
+            this.debugLog("[YouTube Categorization] Settings changed, clearing overlay caches");
+            this.overlayedVideos.clear();
+            this.tempOverlayedVideos.clear();
+            this._loggedBlockedVideos.clear();
+            // Clear existing overlays from DOM
+            document.querySelectorAll('.mellow-category-overlay').forEach(el => el.remove());
+            // Re-evaluate all videos with new settings
+            this.refreshCategoriesAndApplyLabels();
+          }, 100); // Small delay to batch multiple rapid changes
+          
           sendResponse({ success: true });
         }
       }
@@ -869,7 +890,7 @@ class YouTubeCategorizationManager {
 
 
   startPeriodicLabelRefresh() {
-    // Refresh labels every 3 seconds to handle YouTube's dynamic DOM changes (further reduced frequency)
+    // Refresh labels every 3 seconds to handle YouTube's dynamic DOM changes
     this.labelRefreshInterval = setInterval(async () => {
       // Only refresh if extension is enabled
       const isEnabled = await this.isExtensionEnabled();
@@ -878,7 +899,7 @@ class YouTubeCategorizationManager {
       // Always try to fetch and apply categories, even on video pages
       // This is necessary to update temporary overlays on sidebar videos
       this.refreshCategoriesAndApplyLabels();
-    }, 300); // Check every 3 seconds
+    }, 1000); // Check every second (1000ms)
   }
 
   refreshCategoriesAndApplyLabels() {
