@@ -423,9 +423,10 @@ class YouTubeCategorizationManager {
         "[YouTube Categorization] Navigation detected, restarting and clearing cache"
       );
 
-      // Clear local state
+      // Clear local state for new page
       this.restartScraping();
-      this._loggedBlockedVideos.clear();
+      // Clear all overlay and blocking caches so videos on new page get fresh evaluation
+      this.overlayedVideos.clear();
       
       // Immediately apply any existing category overlays to new page
       setTimeout(() => {
