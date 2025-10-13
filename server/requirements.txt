@@ -3,4 +3,5 @@ flask-cors>=4.0.0,<5
 python-dotenv>=1.0.0,<2
 requests>=2.31.0,<3
 google-api-python-client>=2.127.0,<3
+pytest>=8.4.2,<9
 
